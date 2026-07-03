@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Time Collector — Sebastian Esteva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Poppins:wght@400;600;700;800&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --cream:#f6e3bd;
+      --cream-light:#fbeed3;
+      --cream-dark:#e8c98f;
+      --ink:#1a1408;
+      --brass:#b8863b;
+      --brass-light:#d69c47;
+      --brass-dark:#8a6329;
+      --copper:#a15c3e;
+      --brown-soft:rgba(26,20,8,0.65);
+      --highlight-gold:#f4c95d;
+      --highlight-pink:#f0a8c4;
+      --script:'Fredericka the Great',cursive;
+      --sans:'Poppins',system-ui,sans-serif;
+      --display:'Cinzel',serif;
+    }
+
+    html{scroll-behavior:smooth}
+
+    body{
+      background:linear-gradient(160deg,var(--cream-light) 0%,var(--cream) 45%,var(--cream-dark) 100%);
+      color:var(--ink);
+      font-family:var(--sans);
+      line-height:1.6;
+      overflow-x:hidden;
+      position:relative;
+    }
+
+    body::before{
+      content:'';
+      position:fixed;
+      inset:0;
+      background-image:radial-gradient(circle,rgba(92,70,38,0.06) 1px,transparent 1px);
+      background-size:14px 14px;
+      pointer-events:none;
+      z-index:0;
+    }
+
+    nav{
+      position:sticky;
+      top:0;
+      z-index:100;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:1.5rem 3rem;
+      background:rgba(246,227,189,0.88);
+      backdrop-filter:blur(10px);
+      border-bottom:3px solid var(--brass-dark);
+    }
+
+    .nav-logo{
+      font-family:var(--script);
+      font-size:1.9rem;
+      color:var(--ink);
+      text-decoration:none;
+    }
+
+    .back-link{
+      font-family:var(--display);
+      font-size:0.72rem;
+      font-weight:600;
+      letter-spacing:0.1em;
+      text-transform:uppercase;
+      color:var(--ink);
+      text-decoration:none;
+      padding:0.6rem 1.4rem;
+      border:2px solid var(--ink);
+      border-radius:100px;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .back-link:hover{ background:var(--ink); color:var(--cream-light); }
+
+    main{ position:relative; z-index:1; max-width:1050px; margin:0 auto; padding:4.5rem 3rem 6rem; }
+
+    /* ─── HERO ─── */
+    .hero{ text-align:center; margin-bottom:2.5rem; }
+
+    .hero-eyebrow{
+      font-family:var(--display);
+      font-size:0.7rem;
+      font-weight:600;
+      letter-spacing:0.32em;
+      text-transform:uppercase;
+      color:var(--copper);
+      margin-bottom:1.5rem;
+    }
+
+    .hero-eyebrow::before, .hero-eyebrow::after{ content:'✦'; margin:0 0.7rem; color:var(--brass); }
+
+    .hero-title{
+      font-family:var(--script);
+      font-size:clamp(3.2rem, 9vw, 6.8rem);
+      line-height:0.95;
+      color:var(--ink);
+      text-shadow:3px 3px 0 rgba(184,134,59,0.35);
+      margin-bottom:0.75rem;
+    }
+
+    .hero-sub{
+      font-family:var(--display);
+      font-weight:700;
+      font-size:clamp(0.85rem,1.7vw,1.05rem);
+      letter-spacing:0.18em;
+      text-transform:uppercase;
+      color:var(--copper);
+    }
+
+    /* ─── ORNATE BRASS FRAME ─── */
+    .frame{
+      position:relative;
+      border-radius:6px;
+      overflow:hidden;
+      border:4px solid var(--brass-dark);
+      box-shadow:
+        0 0 0 2px var(--cream-light),
+        0 0 0 5px var(--brass),
+        10px 10px 0 rgba(26,20,8,0.15);
+      margin:3rem 0;
+    }
+
+    .frame img{ width:100%; display:block; }
+
+    .frame-corner{
+      position:absolute;
+      width:26px; height:26px;
+      z-index:3;
+      pointer-events:none;
+    }
+
+    .frame-corner::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      border:3px solid var(--highlight-gold);
+    }
+
+    .frame-corner.tl{ top:8px; left:8px; }
+    .frame-corner.tl::before{ border-right:none; border-bottom:none; }
+    .frame-corner.tr{ top:8px; right:8px; }
+    .frame-corner.tr::before{ border-left:none; border-bottom:none; }
+    .frame-corner.bl{ bottom:8px; left:8px; }
+    .frame-corner.bl::before{ border-right:none; border-top:none; }
+    .frame-corner.br{ bottom:8px; right:8px; }
+    .frame-corner.br::before{ border-left:none; border-top:none; }
+
+    .hero-caption{
+      font-size:0.85rem;
+      color:var(--brown-soft);
+      text-align:center;
+      font-style:italic;
+    }
+
+    /* ─── META — BRASS PLAQUES ─── */
+    .meta-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:1rem;
+      justify-content:center;
+      margin:3rem 0;
+    }
+
+    .plaque{
+      background:linear-gradient(160deg, var(--brass-light), var(--brass-dark));
+      border:2px solid var(--ink);
+      border-radius:6px;
+      padding:1rem 1.5rem;
+      min-width:150px;
+      position:relative;
+      box-shadow:4px 4px 0 rgba(26,20,8,0.2);
+    }
+
+    .plaque::before{
+      content:'';
+      position:absolute;
+      top:4px; left:4px; right:4px; bottom:4px;
+      border:1px solid rgba(255,255,255,0.35);
+      border-radius:3px;
+      pointer-events:none;
+    }
+
+    .plaque-label{
+      font-family:var(--display);
+      font-size:0.62rem;
+      font-weight:700;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:rgba(26,20,8,0.68);
+      margin-bottom:0.3rem;
+    }
+
+    .plaque-value{
+      font-size:0.85rem;
+      font-weight:600;
+      color:var(--ink);
+    }
+
+    /* ─── STORY ─── */
+    .story{ max-width:700px; margin:0 auto 4rem; }
+
+    .story p{
+      font-size:1.08rem;
+      color:var(--ink);
+      margin-bottom:1.4rem;
+    }
+
+    .story p strong{
+      background:linear-gradient(180deg,transparent 60%,var(--highlight-gold) 60%);
+      font-weight:700;
+      padding:0 0.15rem;
+    }
+
+    /* ─── GEAR DIVIDER ─── */
+    .gear-divider{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:1.2rem;
+      margin:4rem 0;
+    }
+
+    .gear-divider .line{ flex:1; max-width:180px; height:2px; background:linear-gradient(90deg, transparent, var(--brass), transparent); }
+    .gear-divider .icon{ font-size:1.5rem; color:var(--brass-dark); }
+
+    /* ─── JOURNEY ─── */
+    .journey-heading{
+      font-family:var(--script);
+      font-size:clamp(2.2rem,5.5vw,3.4rem);
+      text-align:center;
+      color:var(--ink);
+      text-shadow:2px 2px 0 rgba(184,134,59,0.3);
+      margin-bottom:0.4rem;
+    }
+
+    .journey-sub{
+      text-align:center;
+      font-family:var(--display);
+      font-size:0.7rem;
+      font-weight:600;
+      letter-spacing:0.24em;
+      text-transform:uppercase;
+      color:var(--copper);
+      margin-bottom:2.5rem;
+    }
+
+    /* ─── SLIDESHOW ─── */
+    .slideshow{
+      position:relative;
+      margin:3rem 0;
+    }
+
+    .slideshow-frame{
+      position:relative;
+      border-radius:6px;
+      overflow:hidden;
+      border:4px solid var(--brass-dark);
+      box-shadow:
+        0 0 0 2px var(--cream-light),
+        0 0 0 5px var(--brass),
+        10px 10px 0 rgba(26,20,8,0.15);
+      aspect-ratio:16/10;
+      background:var(--ink);
+    }
+
+    .slide{
+      position:absolute;
+      inset:0;
+      opacity:0;
+      transition:opacity 0.5s ease;
+      pointer-events:none;
+    }
+
+    .slide.active{ opacity:1; pointer-events:auto; }
+
+    .slide img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+    .slide-caption{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      padding:1.5rem 1.75rem;
+      background:linear-gradient(to top, rgba(26,20,8,0.88), transparent);
+      color:var(--cream-light);
+      font-family:var(--sans);
+      font-size:0.85rem;
+      font-weight:600;
+    }
+
+    .slide-caption span{
+      display:inline-block;
+      background:var(--highlight-gold);
+      color:var(--ink);
+      padding:0.2rem 0.6rem;
+      border-radius:3px;
+      font-size:0.78rem;
+    }
+
+    .slide-nav-btn{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:44px; height:44px;
+      border-radius:50%;
+      background:rgba(26,20,8,0.55);
+      border:2px solid var(--brass);
+      color:var(--cream-light);
+      font-size:1.1rem;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      z-index:5;
+      transition:background 0.2s;
+    }
+
+    .slide-nav-btn:hover{ background:var(--brass); color:var(--ink); }
+    .slide-nav-btn.prev{ left:14px; }
+    .slide-nav-btn.next{ right:14px; }
+
+    .slide-corner{
+      position:absolute;
+      width:26px; height:26px;
+      z-index:6;
+      pointer-events:none;
+    }
+
+    .slide-corner::before{
+      content:'';
+      position:absolute;
+      inset:0;
+      border:3px solid var(--highlight-gold);
+    }
+
+    .slide-corner.tl{ top:8px; left:8px; }
+    .slide-corner.tl::before{ border-right:none; border-bottom:none; }
+    .slide-corner.tr{ top:8px; right:8px; }
+    .slide-corner.tr::before{ border-left:none; border-bottom:none; }
+    .slide-corner.bl{ bottom:8px; left:8px; }
+    .slide-corner.bl::before{ border-right:none; border-top:none; }
+    .slide-corner.br{ bottom:8px; right:8px; }
+    .slide-corner.br::before{ border-left:none; border-top:none; }
+
+    .slide-dots{
+      display:flex;
+      justify-content:center;
+      gap:0.6rem;
+      margin-top:1.25rem;
+    }
+
+    .slide-dot{
+      width:10px; height:10px;
+      border-radius:50%;
+      background:var(--cream-dark);
+      border:2px solid var(--brass-dark);
+      cursor:pointer;
+      transition:background 0.2s, transform 0.2s;
+      padding:0;
+    }
+
+    .slide-dot.active{ background:var(--brass-dark); transform:scale(1.15); }
+
+    .slide-counter{
+      text-align:center;
+      font-family:var(--display);
+      font-size:0.7rem;
+      letter-spacing:0.12em;
+      color:var(--copper);
+      margin-top:0.75rem;
+    }
+
+    /* ─── FOOTER NAV ─── */
+    .back-bottom-wrap{ text-align:center; margin-top:3rem; }
+
+    .back-bottom{
+      display:inline-flex;
+      align-items:center;
+      gap:0.6rem;
+      font-family:var(--display);
+      font-size:0.82rem;
+      font-weight:600;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      color:var(--ink);
+      text-decoration:none;
+      padding:0.95rem 2rem;
+      border:2px solid var(--ink);
+      border-radius:100px;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .back-bottom:hover{ background:var(--ink); color:var(--cream-light); }
+
+    @media(max-width:768px){
+      nav{ padding:1.2rem 1.5rem; }
+      main{ padding:2.75rem 1.5rem 4rem; }
+      .meta-row{ gap:0.75rem; }
+      .plaque{ min-width:125px; padding:0.8rem 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#work">← Back to Work</a>
+  </nav>
+
+  <main>
+
+    <div class="hero">
+      <h1 class="hero-title">Time Collector</h1>
+      <p class="hero-sub">A Kinetic Marble Clock</p>
+    </div>
+
+    <div class="frame">
+      <span class="frame-corner tl"></span>
+      <span class="frame-corner tr"></span>
+      <span class="frame-corner bl"></span>
+      <span class="frame-corner br"></span>
+      <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic sculpture">
+    </div>
+
+    <div class="frame">
+      <span class="frame-corner tl"></span>
+      <span class="frame-corner tr"></span>
+      <span class="frame-corner bl"></span>
+      <span class="frame-corner br"></span>
+      <img src="images/timecollector-hero-side.png" alt="Time Collector side profile">
+    </div>
+    <p class="hero-caption">By Esteva, Sebastian · Paz Suaznabar, Oscar · Etcheverry, Bernard · Jung, Joelle</p>
+
+    <div class="meta-row">
+      <div class="plaque">
+        <div class="plaque-label">Team</div>
+        <div class="plaque-value">4 collaborators</div>
+      </div>
+      <div class="plaque">
+        <div class="plaque-label">Height</div>
+        <div class="plaque-value">24 inches tall</div>
+      </div>
+      <div class="plaque">
+        <div class="plaque-label">Materials</div>
+        <div class="plaque-value">Laser-cut wood + 3D print</div>
+      </div>
+      <div class="plaque">
+        <div class="plaque-label">Status</div>
+        <div class="plaque-value">Fully functional</div>
+      </div>
+    </div>
+
+    <div class="story">
+      <p>A 24-inch tall <strong>kinetic marble clock</strong> — part sculpture, part functioning mechanism. A wheel of marbles rotates through a gear train, with each marble eventually depositing into a collector at the base, marking the passage of time visually rather than with hands or numbers.</p>
+      <p>The project moved through distinct phases: heavy early sketching and ideation, force and load analysis with free body diagrams of the marble wheel system, a <strong>rapid prototype</strong> to validate the mechanism, then scaling up to the full-sized final design. We also ran finite element analysis comparing the old vs. new backboard design to make sure the structure could handle the load.</p>
+    </div>
+
+    <div class="gear-divider">
+      <span class="line"></span>
+      <span class="icon">⚙</span>
+      <span class="line"></span>
+    </div>
+
+    <h2 class="journey-heading">The Journey</h2>
+    <p class="journey-sub">From Sketch to Mechanism</p>
+
+    <div class="slideshow">
+      <div class="slideshow-frame">
+        <span class="slide-corner tl"></span>
+        <span class="slide-corner tr"></span>
+        <span class="slide-corner bl"></span>
+        <span class="slide-corner br"></span>
+
+        <div class="slide active">
+          <img src="images/slide-1-sketch.png" alt="Early sketches and ideation">
+          <div class="slide-caption"><span>Step 1</span> &nbsp; Research and ideation — a lot of sketching throughout</div>
+        </div>
+        <div class="slide">
+          <img src="images/timecollector-cardboard-real.png" alt="Cardboard rapid prototype">
+          <div class="slide-caption"><span>Step 2</span> &nbsp; Rapid prototype — cardboard mock-up of the gear mechanism</div>
+        </div>
+        <div class="slide">
+          <img src="images/timecollector-refined-real.png" alt="Refined wooden prototype">
+          <div class="slide-caption"><span>Step 3</span> &nbsp; Refined design — moving to laser-cut wood and 3D-printed gears</div>
+        </div>
+        <div class="slide">
+          <img src="images/timecollector-fbd-full.png" alt="Full force analysis and free body diagrams">
+          <div class="slide-caption"><span>Step 4</span> &nbsp; Full force analysis — power source, actuator, escapement mechanism, gear train, pulley system, and marble receptacle gear train</div>
+        </div>
+
+        <button class="slide-nav-btn prev" onclick="changeSlide(-1)" aria-label="Previous slide">←</button>
+        <button class="slide-nav-btn next" onclick="changeSlide(1)" aria-label="Next slide">→</button>
+      </div>
+
+      <div class="slide-dots" id="slideDots"></div>
+      <div class="slide-counter" id="slideCounter"></div>
+    </div>
+
+    <div class="back-bottom-wrap">
+      <a class="back-bottom" href="index.html#work">← Back to Selected Work</a>
+    </div>
+
+  </main>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const dotsContainer = document.getElementById('slideDots');
+    const counter = document.getElementById('slideCounter');
+    const total = slides.length;
+
+    // Build dots
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('button');
+      dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+      dot.onclick = () => goToSlide(i);
+      dotsContainer.appendChild(dot);
+    }
+    const dots = document.querySelectorAll('.slide-dot');
+
+    function updateSlide() {
+      slides.forEach((s, i) => s.classList.toggle('active', i === currentSlide));
+      dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+      counter.textContent = (currentSlide + 1) + ' / ' + total;
+    }
+
+    function changeSlide(dir) {
+      currentSlide = (currentSlide + dir + total) % total;
+      updateSlide();
+    }
+
+    function goToSlide(i) {
+      currentSlide = i;
+      updateSlide();
+    }
+
+    updateSlide();
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') changeSlide(-1);
+      if (e.key === 'ArrowRight') changeSlide(1);
+    });
+  </script>
+</body>
+</html>

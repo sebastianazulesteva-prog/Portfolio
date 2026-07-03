@@ -6,21 +6,30 @@
   <title>Sebastian Esteva</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0d0d0f;
-      --surface: #16161a;
-      --border: rgba(255,255,255,0.08);
-      --accent: #c8f135;
-      --accent-dim: rgba(200,241,53,0.12);
-      --text: #f0ede6;
-      --muted: #7a7870;
-      --serif: 'DM Serif Display', Georgia, serif;
-      --sans: 'DM Sans', system-ui, sans-serif;
+      --bg: #080808;
+      --bg2: #0f0f0f;
+      --bg3: #161616;
+      --border: rgba(255,255,255,0.06);
+      --border-hover: rgba(255,255,255,0.12);
+      --text: #f5f5f0;
+      --muted: rgba(245,245,240,0.4);
+      --muted2: rgba(245,245,240,0.2);
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans: 'Syne', system-ui, sans-serif;
+    }
+
+    body.accessible {
+      --serif: 'Atkinson Hyperlegible', sans-serif;
+      --sans: 'Atkinson Hyperlegible', sans-serif;
+      letter-spacing: 0.01em;
+      word-spacing: 0.05em;
+      line-height: 1.8;
     }
 
     html { scroll-behavior: smooth; }
@@ -30,11 +39,34 @@
       color: var(--text);
       font-family: var(--sans);
       font-weight: 300;
-      line-height: 1.7;
+      line-height: 1.6;
       overflow-x: hidden;
+      cursor: none;
     }
 
-    /* ─── NAV ─── */
+    .cursor {
+      width: 8px; height: 8px;
+      background: var(--text);
+      border-radius: 50%;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+    }
+
+    .cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid rgba(245,245,240,0.3);
+      border-radius: 50%;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: width 0.3s, height 0.3s, border-color 0.3s;
+    }
+
     nav {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -42,365 +74,426 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.25rem 2.5rem;
-      background: rgba(13,13,15,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
+      padding: 2rem 3rem;
     }
 
     .nav-logo {
       font-family: var(--serif);
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--text);
       text-decoration: none;
-      letter-spacing: 0.01em;
+      letter-spacing: 0.02em;
+      opacity: 0;
+      animation: fadeUp 0.6s 2.2s forwards;
     }
 
-    .nav-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-    }
+    .nav-links { display: flex; gap: 2.5rem; list-style: none; }
 
     .nav-links a {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       color: var(--muted);
       text-decoration: none;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       transition: color 0.2s;
+      opacity: 0;
+      animation: fadeUp 0.6s 2.2s forwards;
     }
 
     .nav-links a:hover { color: var(--text); }
 
-    /* ─── HERO ─── */
-    #hero {
-      min-height: 100vh;
+    .a11y-toggle {
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 0 2.5rem;
-      max-width: 900px;
-      margin: 0 auto;
+      align-items: center;
+      gap: 0.6rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.4rem 0.9rem;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: none;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      opacity: 0;
+      animation: fadeUp 0.6s 2.2s forwards;
     }
 
-    .hero-eyebrow {
-      font-size: 0.8rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 1.5rem;
+    .a11y-toggle:hover { border-color: var(--border-hover); color: var(--text); }
+    .a11y-toggle.active { border-color: var(--text); color: var(--text); background: rgba(245,245,240,0.05); }
+
+    .a11y-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.2s;
+      flex-shrink: 0;
     }
+
+    .a11y-toggle.active .a11y-dot { background: var(--text); }
+
+    #hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: end;
+      padding: 0 3rem 3rem;
+      gap: 3rem;
+      position: relative;
+    }
+
+    .hero-scroll {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0;
+      animation: fadeUp 0.8s 2.4s forwards;
+      padding-bottom: 0.2rem;
+    }
+
+    .hero-scroll-line {
+      width: 1px;
+      height: 44px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-scroll-line::after {
+      content: '';
+      position: absolute;
+      top: -100%; left: 0;
+      width: 100%; height: 100%;
+      background: var(--muted);
+      animation: scrollDown 1.8s 2.6s ease-in-out infinite;
+    }
+
+    @keyframes scrollDown {
+      0%   { top: -100%; }
+      50%  { top: 0%; }
+      100% { top: 100%; }
+    }
+
+    .hero-content { display: flex; flex-direction: column; }
 
     .hero-name {
       font-family: var(--serif);
-      font-size: clamp(3.5rem, 8vw, 7rem);
-      line-height: 1.05;
+      font-size: clamp(4rem, 10vw, 9rem);
+      line-height: 0.95;
       letter-spacing: -0.02em;
-      margin-bottom: 1.5rem;
+      margin-bottom: 2.5rem;
     }
+
+    .hero-name .word { display: block; overflow: visible; }
+    .hero-name .word.second { font-style: italic; color: var(--muted); }
+    .hero-name .letter { display: inline-block; opacity: 0; }
 
     .hero-tagline {
       font-family: var(--serif);
+      font-size: clamp(1.4rem, 2.8vw, 2.2rem);
       font-style: italic;
-      font-size: clamp(1.2rem, 2.5vw, 1.75rem);
       color: var(--muted);
-      max-width: 520px;
+      max-width: 560px;
       line-height: 1.5;
-      margin-bottom: 3rem;
-    }
-
-    .hero-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 0.9rem;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      color: var(--bg);
-      background: var(--accent);
-      padding: 0.85rem 1.75rem;
-      border-radius: 100px;
-      text-decoration: none;
-      transition: opacity 0.2s, transform 0.2s;
-    }
-
-    .hero-cta:hover { opacity: 0.88; transform: translateY(-1px); }
-
-    .scroll-hint {
-      position: absolute;
-      bottom: 2.5rem;
-      left: 2.5rem;
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .scroll-hint::before {
-      content: '';
-      display: block;
-      width: 24px;
-      height: 1px;
-      background: var(--muted);
-    }
-
-    /* ─── SECTION BASE ─── */
-    section {
-      padding: 7rem 2.5rem;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .section-label {
-      font-size: 0.75rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 2.5rem;
-    }
-
-    .section-title {
-      font-family: var(--serif);
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 1.15;
-      margin-bottom: 1.75rem;
-    }
-
-    /* ─── ABOUT ─── */
-    .about-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4rem;
-      align-items: start;
-    }
-
-    .about-text p {
-      font-size: 1.05rem;
-      color: #b8b5ae;
-      line-height: 1.8;
-      margin-bottom: 1.25rem;
-    }
-
-    .about-sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .about-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-    }
-
-    .about-card-label {
-      font-size: 0.7rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.4rem;
-    }
-
-    .about-card-value {
-      font-size: 0.95rem;
-      color: var(--text);
-    }
-
-    /* ─── PROJECTS ─── */
-    .projects-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-    }
-
-    .project-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      cursor: pointer;
-      text-decoration: none;
-      color: inherit;
-      transition: border-color 0.25s, transform 0.25s;
-      display: block;
-    }
-
-    .project-card:hover {
-      border-color: rgba(200,241,53,0.3);
-      transform: translateY(-3px);
-    }
-
-    .project-card.featured {
-      grid-column: span 2;
-    }
-
-    .project-tag {
-      display: inline-block;
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--accent);
-      background: var(--accent-dim);
-      border-radius: 100px;
-      padding: 0.25rem 0.75rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .project-title {
-      font-family: var(--serif);
-      font-size: 1.5rem;
-      margin-bottom: 0.75rem;
-      line-height: 1.2;
-    }
-
-    .project-desc {
-      font-size: 0.9rem;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-
-    .project-arrow {
-      display: inline-block;
-      margin-top: 1.25rem;
-      font-size: 0.8rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
       opacity: 0;
-      transition: opacity 0.2s;
+      animation: fadeUp 0.8s 2.3s forwards;
     }
 
-    .project-card:hover .project-arrow { opacity: 1; }
-
-    /* ─── CONTACT ─── */
-    .contact-inner {
-      max-width: 600px;
-    }
-
-    .contact-inner p {
-      font-size: 1.05rem;
-      color: #b8b5ae;
-      margin-bottom: 2.5rem;
-      line-height: 1.8;
-    }
-
-    .contact-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .contact-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.85rem;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-decoration: none;
-      color: var(--text);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      padding: 0.7rem 1.4rem;
-      transition: border-color 0.2s, color 0.2s;
-    }
-
-    .contact-link:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    /* ─── FOOTER ─── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 900px;
-      margin: 0 auto;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    /* ─── DIVIDER ─── */
     .divider {
-      width: 100%;
+      width: calc(100% - 6rem);
+      margin: 0 3rem;
       height: 1px;
       background: var(--border);
     }
 
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 680px) {
-      nav { padding: 1rem 1.25rem; }
+    section { padding: 8rem 3rem; }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 5rem;
+    }
+
+    .section-num {
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted2);
+      margin-top: 0.6rem;
+    }
+
+    .section-title {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 4.4vw, 4rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .section-title em { font-style: italic; color: var(--muted); }
+
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6rem; }
+
+    .about-text p {
+      font-size: 1rem;
+      color: rgba(245,245,240,0.55);
+      line-height: 1.9;
+      margin-bottom: 1.25rem;
+    }
+
+    .about-text p strong { color: var(--text); font-weight: 400; }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-row:first-child { border-top: 1px solid var(--border); }
+
+    .stat-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stat-value { font-size: 0.9rem; color: var(--text); text-align: right; }
+
+    .exp-item {
+      padding: 2.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .exp-item:first-child { border-top: 1px solid var(--border); }
+
+    .exp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.4rem;
+      gap: 2rem;
+    }
+
+    .exp-company {
+      font-family: var(--serif);
+      font-size: 1.3rem;
+      letter-spacing: -0.01em;
+    }
+
+    .exp-date {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+      margin-top: 0.3rem;
+    }
+
+    .exp-role {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .exp-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .exp-bullets li {
+      font-size: 0.9rem;
+      color: rgba(245,245,240,0.55);
+      line-height: 1.7;
+      padding-left: 1.2rem;
+      position: relative;
+    }
+
+    .exp-bullets li::before {
+      content: '—';
+      position: absolute;
+      left: 0;
+      color: var(--muted2);
+    }
+
+    #contact { min-height: 55vh; display: flex; flex-direction: column; justify-content: center; }
+
+    .contact-big {
+      font-family: var(--serif);
+      font-size: clamp(3rem, 7vw, 7rem);
+      line-height: 1;
+      letter-spacing: -0.03em;
+      margin-bottom: 3rem;
+    }
+
+    .contact-big em { font-style: italic; color: var(--muted); }
+
+    .contact-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+
+    .contact-link {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: var(--muted);
+      padding-bottom: 0.2rem;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .contact-link:hover { color: var(--text); border-color: rgba(245,245,240,0.4); }
+
+    .a11y-banner {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg3);
+      border: 1px solid var(--border-hover);
+      border-radius: 100px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      z-index: 200;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .a11y-banner.visible { transform: translateX(-50%) translateY(0); }
+
+    footer {
+      padding: 2rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted2);
+      border-top: 1px solid var(--border);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(36px);
+      transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal.visible { opacity: 1; transform: none; }
+    .reveal-delay-1 { transition-delay: 0.12s; }
+    .reveal-delay-2 { transition-delay: 0.24s; }
+    .reveal-delay-3 { transition-delay: 0.36s; }
+
+    @media (max-width: 768px) {
+      nav { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
       .nav-links { display: none; }
-      section { padding: 5rem 1.25rem; }
-      #hero { padding: 0 1.25rem; }
-      .scroll-hint { left: 1.25rem; }
-      .about-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-      .projects-grid { grid-template-columns: 1fr; }
-      .project-card.featured { grid-column: span 1; }
+      #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
+      .hero-scroll { flex-direction: row; justify-content: flex-start; }
+      .hero-scroll-line { width: 44px; height: 1px; }
+      section { padding: 5rem 1.5rem; }
+      .divider { width: calc(100% - 3rem); margin: 0 1.5rem; }
+      .about-grid { grid-template-columns: 1fr; gap: 3rem; }
+      .exp-header { flex-direction: column; gap: 0.25rem; }
+      footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
     }
   </style>
 </head>
-
 <body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+  <div class="a11y-banner" id="a11yBanner"></div>
 
   <!-- NAV -->
   <nav>
     <a class="nav-logo" href="#hero">SE</a>
     <ul class="nav-links">
       <li><a href="#about">About</a></li>
-      <li><a href="#projects">Projects</a></li>
+      <li><a href="#experience">Experience</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+      <span class="a11y-dot"></span>
+      Accessible
+    </button>
   </nav>
 
   <!-- HERO -->
-  <section id="hero" style="position:relative;">
-    <p class="hero-eyebrow">Portfolio</p>
-    <h1 class="hero-name">Sebastian<br>Esteva</h1>
-    <p class="hero-tagline">Bring wonder<br>through technology.</p>
-    <a href="#projects" class="hero-cta">See my work ↓</a>
-    <span class="scroll-hint">Scroll</span>
+  <section id="hero">
+    <div class="hero-scroll">
+      <div class="hero-scroll-line"></div>
+      Scroll
+    </div>
+
+    <div class="hero-content">
+      <h1 class="hero-name" id="heroName">
+        <span class="word first" id="word1"></span>
+        <span class="word second" id="word2"></span>
+      </h1>
+      <p class="hero-tagline">Bring wonder through technology.</p>
+    </div>
   </section>
 
   <div class="divider"></div>
 
   <!-- ABOUT -->
   <section id="about">
-    <p class="section-label">About</p>
+    <div class="section-header reveal">
+      <h2 class="section-title">Engineer.<br><em>Communicator.</em><br>Builder.</h2>
+      <span class="section-num">01 — About</span>
+    </div>
     <div class="about-grid">
-      <div class="about-text">
-        <h2 class="section-title">Curious by nature.<br>Creative by choice.</h2>
-        <p>
-          I'm Sebastian — a builder and thinker who believes the best technology 
-          feels like magic. I'm drawn to the intersection of ideas and experiences 
-          that make people pause and say <em>"wow, how did they do that?"</em>
-        </p>
-        <p>
-          Whether it's a side project, a collaboration, or a wild experiment, 
-          I'm always looking for the next thing worth making. Drop me a line.
-        </p>
+      <div class="about-text reveal reveal-delay-1">
+        <p>I bring three core strengths to any team: an <strong>interdisciplinary skill set</strong> that bridges media, engineering, law, government, and education; a <strong>deep curiosity</strong> that drives me to understand complex problems from every angle; and <strong>strong communication skills</strong> developed through hands-on experience — after 300+ cold calls, I can connect, adapt, and persist.</p>
+        <p>Two things pulled me toward engineering early on. The first was my grandfather — an engineer back in Mexico I mostly knew through family stories, which gave the word "engineer" a kind of mystery. Every time I built a paper airplane or clicked together magnetic toys as a kid, that connection came up: <em>he was an engineer too.</em></p>
+        <p>The second was fantasy — <strong>Percy Jackson</strong>, <strong>Avatar: The Last Airbender</strong>, any world built on magic. I knew I'd never actually bend water or meet a demigod, but I realized I could <strong>build</strong> things that captured that same sense of wonder. That's still what drives me today.</p>
+        <p>Whether it's a side project, a collaboration, or a wild experiment, I'm always looking for the next thing worth making.</p>
       </div>
-      <div class="about-sidebar">
-        <div class="about-card">
-          <p class="about-card-label">Status</p>
-          <p class="about-card-value">Open to opportunities</p>
+      <div class="reveal reveal-delay-2">
+        <div class="stat-row">
+          <span class="stat-label">Education</span>
+          <span class="stat-value">Stanford University</span>
         </div>
-        <div class="about-card">
-          <p class="about-card-label">Location</p>
-          <p class="about-card-value">Your City, Country</p>
+        <div class="stat-row">
+          <span class="stat-label">Degrees</span>
+          <span class="stat-value">BS Biomechanical Eng. · MA Media Comms</span>
         </div>
-        <div class="about-card">
-          <p class="about-card-label">Interests</p>
-          <p class="about-card-value">Design · Technology · [Your interests here]</p>
+        <div class="stat-row">
+          <span class="stat-label">Location</span>
+          <span class="stat-value">Stanford, CA</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Languages</span>
+          <span class="stat-value">English (Native) · Spanish (Fluent)</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Skills</span>
+          <span class="stat-value">Engineering · Strategy · Comms · VR</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Fun fact</span>
+          <span class="stat-value">18-year Aikido practitioner · Black Belt</span>
         </div>
       </div>
     </div>
@@ -408,74 +501,214 @@
 
   <div class="divider"></div>
 
-  <!-- PROJECTS -->
-  <section id="projects">
-    <p class="section-label">Projects</p>
-    <h2 class="section-title">Things I've made.</h2>
-
-    <div class="projects-grid">
-
-      <!-- Featured project placeholder -->
-      <a href="#" class="project-card featured">
-        <span class="project-tag">Featured</span>
-        <p class="project-title">Your First Project</p>
-        <p class="project-desc">
-          Replace this with a description of your best project. 
-          What did you build? What problem does it solve? What makes it interesting?
-          Two or three sentences is plenty.
-        </p>
-        <span class="project-arrow">View project →</span>
-      </a>
-
-      <!-- Project 2 -->
-      <a href="#" class="project-card">
-        <span class="project-tag">Project</span>
-        <p class="project-title">Second Project</p>
-        <p class="project-desc">
-          A short description of your second project. 
-          Keep it punchy — one or two sentences.
-        </p>
-        <span class="project-arrow">View project →</span>
-      </a>
-
-      <!-- Project 3 -->
-      <a href="#" class="project-card">
-        <span class="project-tag">Project</span>
-        <p class="project-title">Third Project</p>
-        <p class="project-desc">
-          A short description of your third project.
-          You can add as many cards here as you like.
-        </p>
-        <span class="project-arrow">View project →</span>
-      </a>
-
+  <!-- EXPERIENCE -->
+  <section id="experience">
+    <div class="section-header reveal">
+      <h2 class="section-title">Where I've<br><em>worked.</em></h2>
+      <span class="section-num">02 — Experience</span>
     </div>
+
+    <div class="exp-item reveal">
+      <div class="exp-header">
+        <span class="exp-company">Virtual Human Interaction Lab (VR)</span>
+        <span class="exp-date">Oct 2025 — Present</span>
+      </div>
+      <p class="exp-role">Research Assistant · Stanford University</p>
+      <ul class="exp-bullets">
+        <li>Developed and executed customized components (via 3D printing) to enhance laboratory operations</li>
+        <li>Spearheaded upgrades to lab infrastructure to enable cutting-edge VR demonstrations</li>
+        <li>Support and design studies on human behavior in virtual reality environments</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal reveal-delay-1">
+      <div class="exp-header">
+        <span class="exp-company">ExploreTech</span>
+        <span class="exp-date">Jun — Oct 2025</span>
+      </div>
+      <p class="exp-role">Marketing & Strategy Intern · AI Mining Start-up</p>
+      <ul class="exp-bullets">
+        <li>Self-taught HTML/CSS to overhaul the company website, increasing traffic by 52%</li>
+        <li>Developed a 3-month LinkedIn content roadmap (11 core posts), boosting search appearances by 103%</li>
+        <li>Built all core branding infrastructure including Brand Style Guide and Communications Playbook</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal reveal-delay-2">
+      <div class="exp-header">
+        <span class="exp-company">Stanford Explore Energy</span>
+        <span class="exp-date">Sep 2024 — Present</span>
+      </div>
+      <p class="exp-role">Resident Leader · Stanford University</p>
+      <ul class="exp-bullets">
+        <li>Field-trip engineer — coordinated off-campus educational tours (Tesla Gigafactory, NOAA labs, Costanoa eco-retreat)</li>
+        <li>Financial Manager — co-managed a $60k+ budget</li>
+        <li>Crafted, planned, and executed 20+ major bonding events</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal">
+      <div class="exp-header">
+        <span class="exp-company">Guidewheel</span>
+        <span class="exp-date">Jun — Sep 2024</span>
+      </div>
+      <p class="exp-role">Go-to-Market Intern · BlackRock-backed Manufacturing Start-up</p>
+      <ul class="exp-bullets">
+        <li>Championed internal process optimization through cross-team interviews and process mapping, reducing steps by ⅔</li>
+        <li>Drove business expansion efforts supporting new million-dollar partnership research</li>
+        <li>Created new marketing strategies including launching presence on G2 and Hero's Program</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal reveal-delay-1">
+      <div class="exp-header">
+        <span class="exp-company">Open to Debate</span>
+        <span class="exp-date">Jan — Jun 2024</span>
+      </div>
+      <p class="exp-role">Marketing & Communications Intern</p>
+      <ul class="exp-bullets">
+        <li>Generated ~25% more engagement than baseline on X through SEO optimization</li>
+        <li>Researched and outlined benefits of over 50 new partnerships</li>
+        <li>Provided live support on debate days featuring guests from Bill Nye to former CIA directors</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal reveal-delay-2">
+      <div class="exp-header">
+        <span class="exp-company">Mind Over Money</span>
+        <span class="exp-date">Feb 2023 — Present</span>
+      </div>
+      <p class="exp-role">Student Manager · Stanford University</p>
+      <ul class="exp-bullets">
+        <li>Develop and build out resident hall financial education experiences</li>
+        <li>Two-time Class TA for Financial Literacy</li>
+        <li>Hold weekly productivity and information sessions around Financial Literacy</li>
+      </ul>
+    </div>
+
   </section>
 
   <div class="divider"></div>
 
   <!-- CONTACT -->
   <section id="contact">
-    <p class="section-label">Contact</p>
-    <div class="contact-inner">
-      <h2 class="section-title">Let's build<br>something together.</h2>
-      <p>
-        I'm always up for an interesting conversation — whether it's a project idea, 
-        a collaboration, or just saying hello. My inbox is open.
-      </p>
-      <div class="contact-links">
-        <a href="mailto:your@email.com" class="contact-link">✉ Email me</a>
-        <a href="https://github.com/yourusername" class="contact-link" target="_blank">GitHub</a>
-        <a href="https://linkedin.com/in/yourusername" class="contact-link" target="_blank">LinkedIn</a>
-      </div>
+    <span class="section-num reveal" style="display:block;margin-bottom:3rem;">03 — Contact</span>
+    <h2 class="contact-big reveal reveal-delay-1">Let's build<br>something<br><em>together.</em></h2>
+    <div class="contact-links reveal reveal-delay-2">
+      <a href="mailto:sesteva@stanford.edu" class="contact-link">Email</a>
+      <a href="https://www.linkedin.com/in/sebastian-esteva/" class="contact-link" target="_blank">LinkedIn</a>
+      <a href="tel:5108123540" class="contact-link">510-812-3540</a>
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer>
     <span>© 2026 Sebastian Esteva</span>
-    <span>Built with HTML & CSS</span>
+    <span>Bring wonder through technology</span>
   </footer>
 
+  <script>
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px';
+      cursor.style.top = my + 'px';
+    });
+
+    (function animateRing() {
+      rx += (mx - rx) * 0.12;
+      ry += (my - ry) * 0.12;
+      ring.style.left = rx + 'px';
+      ring.style.top = ry + 'px';
+      requestAnimationFrame(animateRing);
+    })();
+
+    document.querySelectorAll('a, button').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        ring.style.width = '56px'; ring.style.height = '56px';
+        ring.style.borderColor = 'rgba(245,245,240,0.5)';
+      });
+      el.addEventListener('mouseleave', () => {
+        ring.style.width = '36px'; ring.style.height = '36px';
+        ring.style.borderColor = 'rgba(245,245,240,0.3)';
+      });
+    });
+
+    const words = ['Sebastian', 'Esteva'];
+    const containers = [document.getElementById('word1'), document.getElementById('word2')];
+    const allLetters = [];
+
+    words.forEach((word, wi) => {
+      word.split('').forEach(ch => {
+        const span = document.createElement('span');
+        span.className = 'letter';
+        span.textContent = ch;
+        containers[wi].appendChild(span);
+        allLetters.push({ el: span });
+      });
+    });
+
+    window.addEventListener('load', () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const seed = i => ((i * 1731 + 37) % 1000) / 1000;
+
+        allLetters.forEach(({ el }, i) => {
+          const angle = seed(i * 3) * Math.PI * 2;
+          const dist = 200 + seed(i * 7 + 1) * Math.max(vw, vh) * 0.8;
+          const tx = Math.cos(angle) * dist;
+          const ty = Math.sin(angle) * dist;
+          const rot = (seed(i * 5 + 2) - 0.5) * 720;
+          const scl = 0.3 + seed(i * 11 + 3) * 1.4;
+
+          el.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${scl})`;
+          el.style.opacity = '0';
+          el.style.transition = 'none';
+        });
+
+        setTimeout(() => {
+          allLetters.forEach(({ el }, i) => {
+            const delay = 80 + i * 18;
+            el.style.transition = `transform 1400ms cubic-bezier(0.08, 0.0, 0.08, 1.0) ${delay}ms,
+                                   opacity 200ms ease ${delay}ms`;
+            el.style.opacity = '1';
+            el.style.transform = 'translate(0,0) rotate(0deg) scale(1)';
+          });
+        }, 200);
+      }));
+    });
+
+    const banner = document.getElementById('a11yBanner');
+    const toggle = document.getElementById('a11yToggle');
+    let bannerTimer;
+
+    function showBanner(msg) {
+      banner.textContent = msg;
+      banner.classList.add('visible');
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
+    }
+
+    function toggleAccessible() {
+      const isOn = document.body.classList.toggle('accessible');
+      toggle.classList.toggle('active', isOn);
+      localStorage.setItem('a11y', isOn ? '1' : '0');
+      showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
+    }
+
+    if (localStorage.getItem('a11y') === '1') {
+      document.body.classList.add('accessible');
+      toggle.classList.add('active');
+    }
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
 </body>
 </html>

@@ -329,6 +329,102 @@
       color: var(--muted2);
     }
 
+    /* ─── SELECTED WORK ─── */
+    .work-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .work-card {
+      position: relative;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 4px;
+      background: var(--bg3);
+    }
+
+    .work-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: grayscale(30%) brightness(0.85);
+      transition: filter 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .work-card:hover img {
+      filter: grayscale(0%) brightness(1);
+      transform: scale(1.04);
+    }
+
+    .work-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(8,8,8,0.85) 0%, rgba(8,8,8,0.15) 45%, rgba(8,8,8,0.05) 100%);
+      pointer-events: none;
+    }
+
+    .work-card-info {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      padding: 1.75rem;
+      z-index: 2;
+    }
+
+    .work-card-num {
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(245,245,240,0.6);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .work-card-title {
+      font-family: var(--serif);
+      font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 0.5rem;
+    }
+
+    .work-card-tag {
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(245,245,240,0.55);
+    }
+
+    .work-card-arrow {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(8,8,8,0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-size: 1rem;
+      transform: rotate(-45deg);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s;
+      z-index: 2;
+    }
+
+    .work-card:hover .work-card-arrow {
+      transform: rotate(0deg);
+      background: var(--text);
+      color: var(--bg);
+    }
+
     #contact { min-height: 55vh; display: flex; flex-direction: column; justify-content: center; }
 
     .contact-big {
@@ -415,6 +511,7 @@
       .divider { width: calc(100% - 3rem); margin: 0 1.5rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
+      .work-grid { grid-template-columns: 1fr; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
     }
   </style>
@@ -431,6 +528,7 @@
     <ul class="nav-links">
       <li><a href="#about">About</a></li>
       <li><a href="#experience">Experience</a></li>
+      <li><a href="#work">Work</a></li>
       <li><a href="#contact">Contact</a></li>
     </ul>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
@@ -590,9 +688,63 @@
 
   <div class="divider"></div>
 
+  <!-- SELECTED WORK -->
+  <section id="work">
+    <div class="section-header reveal">
+      <h2 class="section-title">Selected<br><em>work.</em></h2>
+      <span class="section-num">03 — Work</span>
+    </div>
+
+    <div class="work-grid">
+
+      <a href="chess.html" class="work-card reveal">
+        <img src="images/chess-hero.jpg" alt="Poser Chess Set">
+        <span class="work-card-arrow">↗</span>
+        <div class="work-card-info">
+          <span class="work-card-num">01</span>
+          <p class="work-card-title">Poser Chess Set</p>
+          <span class="work-card-tag">3D Printing · ME 227</span>
+        </div>
+      </a>
+
+      <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
+        <img src="images/slipdoor-cover.jpg" alt="The Slip Door">
+        <span class="work-card-arrow">↗</span>
+        <div class="work-card-info">
+          <span class="work-card-num">02</span>
+          <p class="work-card-title">The Slip Door</p>
+          <span class="work-card-tag">Team Project · Accessibility</span>
+        </div>
+      </a>
+
+      <a href="baston.html" class="work-card reveal reveal-delay-2">
+        <img src="images/baston-cover.jpg" alt="Bastón">
+        <span class="work-card-arrow">↗</span>
+        <div class="work-card-info">
+          <span class="work-card-num">03</span>
+          <p class="work-card-title">Bastón</p>
+          <span class="work-card-tag">Woodworking · Family</span>
+        </div>
+      </a>
+
+      <a href="timecollector.html" class="work-card reveal reveal-delay-3">
+        <img src="images/timecollector-hero-front.png" alt="Time Collector">
+        <span class="work-card-arrow">↗</span>
+        <div class="work-card-info">
+          <span class="work-card-num">04</span>
+          <p class="work-card-title">Time Collector</p>
+          <span class="work-card-tag">Team Project · Kinetic Sculpture</span>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
   <!-- CONTACT -->
   <section id="contact">
-    <span class="section-num reveal" style="display:block;margin-bottom:3rem;">03 — Contact</span>
+    <span class="section-num reveal" style="display:block;margin-bottom:3rem;">04 — Contact</span>
     <h2 class="contact-big reveal reveal-delay-1">Let's build<br>something<br><em>together.</em></h2>
     <div class="contact-links reveal reveal-delay-2">
       <a href="mailto:sesteva@stanford.edu" class="contact-link">Email</a>

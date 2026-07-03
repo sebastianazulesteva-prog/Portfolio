@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poser Chess Set — Sebastian Esteva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:#000000;
+      --bg-panel:#0e0e0e;
+      --white:#f7f5f0;
+      --white-soft:rgba(247,245,240,0.72);
+      --white-faint:rgba(247,245,240,0.4);
+      --line:rgba(247,245,240,0.15);
+      --serif:'Playfair Display', Georgia, serif;
+      --sans:'Poppins', system-ui, sans-serif;
+    }
+
+    html{scroll-behavior:smooth}
+
+    body{
+      background:var(--bg);
+      color:var(--white);
+      font-family:var(--sans);
+      font-weight:300;
+      line-height:1.7;
+      overflow-x:hidden;
+    }
+
+    nav{
+      position:sticky;
+      top:0;
+      z-index:100;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:1.75rem 3rem;
+      background:rgba(0,0,0,0.85);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+
+    .nav-logo{
+      font-family:var(--serif);
+      font-size:1.1rem;
+      color:var(--white);
+      text-decoration:none;
+      letter-spacing:0.02em;
+    }
+
+    .back-link{
+      font-size:0.72rem;
+      font-weight:500;
+      letter-spacing:0.1em;
+      text-transform:uppercase;
+      color:var(--white-soft);
+      text-decoration:none;
+      padding:0.6rem 1.3rem;
+      border:1px solid var(--line);
+      border-radius:100px;
+      transition:border-color 0.2s, color 0.2s;
+    }
+
+    .back-link:hover{ border-color:var(--white); color:var(--white); }
+
+    main{ max-width:1050px; margin:0 auto; padding:5rem 3rem 7rem; }
+
+    /* ─── HERO ─── */
+    .hero{ text-align:center; margin-bottom:3rem; }
+
+    .hero-title{
+      font-family:var(--serif);
+      font-weight:700;
+      font-size:clamp(2.8rem, 7vw, 5.5rem);
+      line-height:1.05;
+      letter-spacing:-0.01em;
+      margin-bottom:1rem;
+    }
+
+    .hero-title em{ font-style:italic; font-weight:400; color:var(--white-soft); }
+
+    .hero-sub{
+      font-family:var(--sans);
+      font-weight:500;
+      font-size:clamp(0.85rem,1.6vw,1rem);
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+    }
+
+    /* ─── IMAGE SLOT (placeholder styling — replace img src later) ─── */
+    .img-slot{
+      position:relative;
+      border-radius:6px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      margin:2.5rem 0;
+      background:var(--bg-panel);
+    }
+
+    .img-slot img{ width:100%; display:block; }
+
+    /* Visual placeholder shown until a real image is dropped in */
+    .img-slot-label{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:0.5rem;
+      aspect-ratio:16/10;
+      color:var(--white-faint);
+      font-family:var(--sans);
+      font-size:0.78rem;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      text-align:center;
+      padding:2rem;
+      border:1px dashed var(--line);
+    }
+
+    .img-slot-label strong{
+      color:var(--white-soft);
+      font-size:0.85rem;
+      display:block;
+      margin-bottom:0.3rem;
+    }
+
+    .hero-caption{
+      font-size:0.85rem;
+      color:var(--white-faint);
+      text-align:center;
+      font-style:italic;
+    }
+
+    /* ─── META ROW ─── */
+    .meta-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0;
+      margin:3.5rem 0;
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+    }
+
+    .meta-item{
+      flex:1;
+      min-width:150px;
+      padding:1.5rem 1.5rem;
+      text-align:center;
+      border-left:1px solid var(--line);
+    }
+
+    .meta-item:first-child{ border-left:none; }
+
+    .meta-label{
+      font-size:0.65rem;
+      font-weight:500;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      margin-bottom:0.5rem;
+    }
+
+    .meta-value{
+      font-family:var(--serif);
+      font-size:1.05rem;
+      color:var(--white);
+    }
+
+    /* ─── STORY ─── */
+    .story{ max-width:680px; margin:0 auto 4rem; }
+
+    .story p{
+      font-size:1.05rem;
+      color:var(--white-soft);
+      margin-bottom:1.5rem;
+    }
+
+    .story p strong{ color:var(--white); font-weight:600; }
+
+    /* ─── DIVIDER ─── */
+    .divider-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:1.25rem;
+      margin:4.5rem 0;
+    }
+
+    .divider-row .line{ flex:1; max-width:220px; height:1px; background:var(--line); }
+    .divider-row .mark{ font-family:var(--serif); font-style:italic; color:var(--white-faint); font-size:1.1rem; }
+
+    /* ─── JOURNEY ─── */
+    .journey-heading{
+      font-family:var(--serif);
+      font-weight:700;
+      font-size:clamp(2.2rem,5vw,3.2rem);
+      text-align:center;
+      margin-bottom:0.5rem;
+    }
+
+    .journey-heading em{ font-style:italic; font-weight:400; color:var(--white-soft); }
+
+    .journey-sub{
+      text-align:center;
+      font-size:0.75rem;
+      font-weight:500;
+      letter-spacing:0.16em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      margin-bottom:3rem;
+    }
+
+    /* ─── NUMBERED STEPS (matches circle-badge style from reference) ─── */
+    .steps{
+      display:flex;
+      flex-direction:column;
+      gap:2.5rem;
+    }
+
+    .step{
+      display:grid;
+      grid-template-columns:80px 1fr;
+      gap:2rem;
+      align-items:start;
+    }
+
+    .step-badge{
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      border:1.5px solid var(--white);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:var(--serif);
+      font-size:1.5rem;
+      color:var(--white);
+      flex-shrink:0;
+    }
+
+    .step-body h3{
+      font-family:var(--serif);
+      font-weight:600;
+      font-size:1.3rem;
+      margin-bottom:0.6rem;
+      text-transform:capitalize;
+    }
+
+    .step-body p{
+      font-size:0.95rem;
+      color:var(--white-soft);
+    }
+
+    /* ─── FOOTER NAV ─── */
+    .back-bottom-wrap{ text-align:center; margin-top:4rem; }
+
+    .back-bottom{
+      display:inline-flex;
+      align-items:center;
+      gap:0.6rem;
+      font-size:0.8rem;
+      font-weight:500;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      color:var(--white);
+      text-decoration:none;
+      padding:1rem 2rem;
+      border:1px solid var(--white);
+      border-radius:100px;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .back-bottom:hover{ background:var(--white); color:var(--bg); }
+
+    @media(max-width:768px){
+      nav{ padding:1.25rem 1.5rem; }
+      main{ padding:3rem 1.5rem 5rem; }
+      .meta-row{ flex-direction:column; }
+      .meta-item{ border-left:none; border-top:1px solid var(--line); }
+      .meta-item:first-child{ border-top:none; }
+      .step{ grid-template-columns:56px 1fr; gap:1.25rem; }
+      .step-badge{ width:52px; height:52px; font-size:1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#work">← Back to Work</a>
+  </nav>
+
+  <main>
+
+    <div class="hero">
+      <h1 class="hero-title">Poser <em>Chess Set</em></h1>
+      <p class="hero-sub">A Wall-Mounted Chess Set</p>
+    </div>
+
+    <!-- ═══ IMAGE SLOT 1 — HERO SHOT ═══
+         Label this file: chess-hero.jpg (or .png)
+         Best pick: your two-photo hero image (chessboard on rug + wall-mounted mechanism close-up)
+    -->
+    <div class="img-slot">
+      <img src="images/chess-hero.jpg" alt="Poser Chess Set — hero shot">
+    </div>
+    <p class="hero-caption">Sebastian Esteva — ME 227, Winter 2026</p>
+
+    <div class="meta-row">
+      <div class="meta-item">
+        <div class="meta-label">Team</div>
+        <div class="meta-value">Solo project</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Materials</div>
+        <div class="meta-value">3D-printed PLA + magnets</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Size</div>
+        <div class="meta-value">~20" × 20"</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Status</div>
+        <div class="meta-value">Fully functional</div>
+      </div>
+    </div>
+
+    <div class="story">
+      <p>A wall-mounted chess set where every piece <strong>poses itself</strong> — sliding out from a flat magnetic backing into a fully three-dimensional chess piece. The set is functional to actually play with, but also designed to be displayed proudly on a wall between games.</p>
+      <p>The biggest design challenge was scale: the full board needed to be roughly <strong>20 inches by 20 inches</strong>, which was too large for a single print bed. That meant breaking the entire board and every piece into printable sections, then reassembling them with <strong>96 embedded magnets</strong> to keep everything correctly oriented and connected.</p>
+    </div>
+
+    <div class="divider-row">
+      <span class="line"></span>
+      <span class="mark">✦</span>
+      <span class="line"></span>
+    </div>
+
+    <h2 class="journey-heading">The <em>Journey</em></h2>
+    <p class="journey-sub">Ideation → Prototyping → Execution</p>
+
+    <!-- ═══ NUMBERED STEP SECTIONS ═══
+         Each step below has its own image slot. Circle badges (I, 2, 3) match your reference image style.
+    -->
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-badge">I</div>
+        <div class="step-body">
+          <h3>Prototyping</h3>
+          <p>Testing every connector, hinge, and mechanism individually before committing to a full print run — a single point of failure at this scale would be costly to redo.</p>
+
+          <div class="img-slot">
+            <img src="images/chess-prototyping.jpg" alt="Chess set prototyping — testing mechanisms and connectors">
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-badge">2</div>
+        <div class="step-body">
+          <h3>Execute</h3>
+          <p>All 46 individual pieces were tracked and printed, then assembled using 96 embedded magnets to keep every piece correctly oriented when posed out from the wall.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider-row">
+      <span class="line"></span>
+      <span class="mark">✦</span>
+      <span class="line"></span>
+    </div>
+
+    <div class="img-slot">
+      <img src="images/chess-final-AI-Pieces.jpg" alt="Poser Chess Set — finished pieces on the board">
+    </div>
+
+    <div class="back-bottom-wrap">
+      <a class="back-bottom" href="index.html#work">← Back to Selected Work</a>
+    </div>
+
+  </main>
+</body>
+</html>

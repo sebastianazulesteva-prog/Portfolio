@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Slip Door — Sebastian Esteva</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet" />
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --white:#ffffff;
+      --mint:#dcebe0;
+      --mint-soft:#eaf3ec;
+      --ink:#141414;
+      --ink-soft:rgba(20,20,20,0.68);
+      --ink-faint:rgba(20,20,20,0.45);
+      --magenta:#d6238c;
+      --gold:#e0a83e;
+      --sans:'Poppins', system-ui, sans-serif;
+    }
+
+    html{scroll-behavior:smooth}
+
+    body{
+      background:var(--white);
+      color:var(--ink);
+      font-family:var(--sans);
+      font-weight:400;
+      line-height:1.6;
+      overflow-x:hidden;
+    }
+
+    nav{
+      position:sticky;
+      top:0;
+      z-index:100;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:1.5rem 3rem;
+      background:rgba(255,255,255,0.92);
+      backdrop-filter:blur(10px);
+      border-bottom:2px solid var(--ink);
+    }
+
+    .nav-logo{
+      font-weight:900;
+      font-size:1.2rem;
+      color:var(--ink);
+      text-decoration:none;
+    }
+
+    .back-link{
+      font-size:0.75rem;
+      font-weight:600;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+      color:var(--ink);
+      text-decoration:none;
+      padding:0.6rem 1.3rem;
+      border:2px solid var(--ink);
+      border-radius:100px;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .back-link:hover{ background:var(--ink); color:var(--white); }
+
+    /* ─── HERO ─── */
+    .hero{
+      display:grid;
+      grid-template-columns:340px 1fr;
+      align-items:end;
+      gap:2rem;
+      padding:4rem 3rem 0;
+      max-width:1300px;
+      margin:0 auto;
+    }
+
+    .hero-title{
+      font-weight:900;
+      font-size:clamp(3rem, 7vw, 5.5rem);
+      line-height:0.92;
+      letter-spacing:-0.02em;
+    }
+
+    .hero-title em{ font-style:italic; font-weight:800; }
+
+    .hero-img-wrap{
+      position:relative;
+      border-radius:6px;
+      overflow:hidden;
+      background:var(--mint-soft);
+    }
+
+    .hero-img-wrap img{ width:100%; display:block; }
+
+    .hero-caption{
+      max-width:1300px;
+      margin:0 auto;
+      padding:1.25rem 3rem 0;
+      font-size:0.9rem;
+      color:var(--ink-faint);
+      font-style:italic;
+    }
+
+    /* ─── LINK BAR ─── */
+    .link-bar{
+      max-width:1300px;
+      margin:2.5rem auto 0;
+      padding:0 3rem;
+    }
+
+    .report-link{
+      display:inline-flex;
+      align-items:center;
+      gap:0.75rem;
+      background:var(--ink);
+      color:var(--white);
+      text-decoration:none;
+      padding:0.9rem 1.6rem;
+      border-radius:100px;
+      font-size:0.85rem;
+      font-weight:600;
+      letter-spacing:0.02em;
+      transition:transform 0.2s, background 0.2s;
+    }
+
+    .report-link:hover{ background:var(--magenta); transform:translateY(-1px); }
+
+    .report-link .arrow{ font-size:1rem; }
+
+    /* ─── SECTION BLOCKS ─── */
+    .block{
+      max-width:1300px;
+      margin:0 auto;
+      padding:3rem;
+      display:grid;
+      grid-template-columns:220px 1fr;
+      gap:2.5rem;
+      align-items:start;
+      background:var(--mint);
+      border-top:2px solid var(--white);
+    }
+
+    .block:nth-of-type(odd){ background:var(--mint-soft); }
+
+    .block-label{
+      font-weight:900;
+      font-size:clamp(2rem,4vw,2.8rem);
+      letter-spacing:-0.01em;
+      line-height:1;
+    }
+
+    .block-body p{
+      font-size:1.05rem;
+      font-weight:600;
+      color:var(--ink);
+      margin-bottom:1rem;
+    }
+
+    .block-body p.detail{
+      font-weight:600;
+      font-style:italic;
+      font-size:0.98rem;
+      color:var(--ink-soft);
+    }
+
+    .block-body p.detail .accent{
+      color:var(--magenta);
+      font-style:normal;
+    }
+
+    /* ─── IDEA IMAGE ROW ─── */
+    .idea-imgs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1rem;
+      margin-top:1.5rem;
+    }
+
+    .idea-img-wrap{
+      border-radius:6px;
+      overflow:hidden;
+      background:var(--white);
+    }
+
+    .idea-img-wrap img{ width:100%; display:block; }
+
+    /* ─── FOOTER ─── */
+    .back-bottom-wrap{
+      text-align:center;
+      padding:4rem 3rem;
+    }
+
+    .back-bottom{
+      display:inline-flex;
+      align-items:center;
+      gap:0.6rem;
+      font-size:0.85rem;
+      font-weight:700;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+      color:var(--ink);
+      text-decoration:none;
+      padding:1rem 2rem;
+      border:2px solid var(--ink);
+      border-radius:100px;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .back-bottom:hover{ background:var(--ink); color:var(--white); }
+
+    @media(max-width:768px){
+      nav{ padding:1.2rem 1.5rem; }
+      .hero{ grid-template-columns:1fr; padding:2.5rem 1.5rem 0; gap:1rem; }
+      .hero-caption, .link-bar{ padding-left:1.5rem; padding-right:1.5rem; }
+      .block{ grid-template-columns:1fr; padding:2rem 1.5rem; gap:1rem; }
+      .idea-imgs{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#work">← Back to Work</a>
+  </nav>
+
+  <div class="hero">
+    <h1 class="hero-title">The<br><em>Slip</em><br>Door</h1>
+
+    <!-- ═══ IMAGE SLOT 1 — HERO SHOT ═══
+         Label this file: slipdoor-hero.jpg
+         Suggested: the full prototype photo with VW banner + team member standing next to it
+    -->
+    <div class="hero-img-wrap">
+      <img src="images/slipdoor-hero.jpg" alt="The Slip Door — full prototype with VW Future of Entry banner">
+    </div>
+  </div>
+
+  <p class="hero-caption">By Victor Son, Sebastian Esteva, Seth Rhodes, Odommoly Tranin</p>
+
+  <div class="link-bar">
+    <a href="https://searchworks.stanford.edu/view/jv618zg4362" class="report-link" target="_blank" rel="noopener">
+      <span>Read the Full Report</span>
+      <span class="arrow">↗</span>
+    </a>
+  </div>
+
+  <div style="height:3rem"></div>
+
+  <div class="block">
+    <div class="block-label">Need</div>
+    <div class="block-body">
+      <p>It's hard, dangerous, and anxiety-inducing for mobility-impaired drivers to enter and exit parked cars.</p>
+      <p class="detail">Points found by <span class="accent">needs-finding interviews</span> with grandparents and local senior centers.</p>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-label">Idea</div>
+    <div class="block-body">
+      <p class="detail">Four parts create an automatic system that circumvents traditional front-door challenges.</p>
+
+      <!-- ═══ IMAGE SLOT 2 & 3 — IN-PROCESS BUILD SHOTS ═══
+           Label these files: slipdoor-process-1.jpg and slipdoor-process-2.jpg
+           Suggested: early mechanism testing / build-in-progress photos
+      -->
+      <div class="idea-imgs">
+        <div class="idea-img-wrap">
+          <img src="images/slipdoor-process-1.jpg" alt="Slip Door mechanism — in-process build shot 1">
+        </div>
+        <div class="idea-img-wrap">
+          <img src="images/slipdoor-process-2.jpg" alt="Slip Door mechanism — in-process build shot 2">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="block">
+    <div class="block-label">Result</div>
+    <div class="block-body">
+      <p class="detail">Automatic van-esc sliding front door increasing entrance volume by <span class="accent">250%*</span>, so drivers can exit/enter easily.</p>
+    </div>
+  </div>
+
+  <div class="back-bottom-wrap">
+    <a class="back-bottom" href="index.html#work">← Back to Selected Work</a>
+  </div>
+
+</body>
+</html>

@@ -21,6 +21,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ONE-TIME ENTRANCE ANIMATION CHECK ═══
+       The name-scatter animation + nav/tagline/photo fade-in should only
+       play once — the very first time someone lands on the site. If they
+       navigate to another page (like Experience) and come back, or refresh,
+       it should NOT replay. This runs immediately (before the page paints)
+       to avoid a flash of the animation on repeat visits.
+       Uses sessionStorage, so it resets naturally when the browser tab/
+       window is fully closed — a fresh browsing session gets the animation
+       again, but clicking around the site within one session does not. -->
+  <script>
+    if (sessionStorage.getItem('heroAnimPlayed') === '1') {
+      document.documentElement.classList.add('no-hero-anim');
+    }
+  </script>
+
   <title>Sebastian Esteva — Engineer &amp; Communicator | Portfolio</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══
@@ -233,6 +249,82 @@
     }
 
     .a11y-toggle.active .a11y-dot { background: var(--text); }
+
+    /* ─── MOBILE MENU BUTTON (hamburger icon) ───
+       Hidden on desktop by default — only appears on small screens
+       (see the @media block below). Three small bars that animate
+       into an X when the menu is open. */
+    .mobile-menu-btn {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      width: 32px;
+      height: 32px;
+      background: none;
+      border: none;
+      cursor: none;
+      padding: 0;
+    }
+
+    .mobile-menu-btn span {
+      display: block;
+      width: 100%;
+      height: 1.5px;
+      background: var(--text);
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* When the menu is open, turn the hamburger into an X */
+    .mobile-menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .mobile-menu-btn.open span:nth-child(2) { opacity: 0; }
+    .mobile-menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    /* ─── MOBILE MENU OVERLAY ───
+       Full-screen panel with the same links as the desktop nav.
+       Hidden by default (off-screen + invisible); slides/fades in
+       when .mobile-menu.open is toggled by the JS below. */
+    .mobile-menu {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-16px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .mobile-menu.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .mobile-menu a {
+      font-family: var(--serif);
+      font-size: 2rem;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.01em;
+    }
+
+    .mobile-menu-close {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 1.3rem;
+      cursor: none;
+      padding: 0.5rem;
+    }
 
     #hero {
       min-height: 100vh;
@@ -720,6 +812,7 @@
     @media (max-width: 768px) {
       nav { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
       .nav-links { display: none; }
+      .mobile-menu-btn { display: flex; }
       #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }
@@ -732,6 +825,41 @@
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: 160px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
+    }
+
+    /* ─── RETURNING VISIT: SKIP ENTRANCE ANIMATIONS ───
+       When html has class "no-hero-anim" (see the inline script at the top
+       of <head>), every element that normally fades/animates in on page
+       load instead appears instantly at its final state. Placed at the very
+       end of this stylesheet so it always wins, even over the mobile rules
+       above. */
+    html.no-hero-anim .nav-logo,
+    html.no-hero-anim .nav-links a,
+    html.no-hero-anim .a11y-toggle,
+    html.no-hero-anim .hero-scroll,
+    html.no-hero-anim .hero-tagline {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+
+    html.no-hero-anim .hero-photo-wrap {
+      animation: none !important;
+      opacity: 0.22 !important;
+    }
+
+    @media (max-width: 768px) {
+      html.no-hero-anim .hero-photo-wrap {
+        opacity: 0.15 !important;
+      }
+    }
+
+    /* Letters appear instantly in place instead of scattering + reassembling
+       (the JS below also skips running the scatter logic entirely, this is
+       just a safety net in case JS runs before the class is checked) */
+    html.no-hero-anim .hero-name .letter {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
     }
   </style>
 </head>
@@ -762,7 +890,28 @@
       <span class="a11y-dot"></span>
       Accessible
     </button>
+
+    <!-- ═══ MOBILE MENU BUTTON (hamburger) ═══
+         Only visible on small screens (see .mobile-menu-btn CSS) — the
+         normal nav-links list is hidden on mobile, so this button opens
+         a full-screen menu instead. -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="Open menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
   </nav>
+
+  <!-- ═══ MOBILE MENU OVERLAY ═══
+       Hidden by default. Opens full-screen when the hamburger button above
+       is tapped on mobile. Same links as the desktop nav. -->
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="mobile-menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">✕</button>
+    <a href="#about" onclick="toggleMobileMenu()">About</a>
+    <a href="experience.html">Experience</a>
+    <a href="#work" onclick="toggleMobileMenu()">Work</a>
+    <a href="#contact" onclick="toggleMobileMenu()">Contact</a>
+  </div>
 
   <!-- ═══ HERO SECTION (top of page) ═══
        - "Scroll" indicator on the left with an animated line (top-to-bottom fill loop)
@@ -1009,10 +1158,13 @@
        ✎ TO CHANGE YOUR NAME: edit the two strings in the array below.
        On page load, every letter of your name scatters to a random position
        on screen, then animates back into place (slow start, fast finish —
-       like the time-reversal effect from the movie Tenet). */
+       like the time-reversal effect from the movie Tenet).
+       This only plays once per browser session — see the inline script at
+       the top of <head> and the "no-hero-anim" checks throughout. */
     const words = ['Sebastian', 'Esteva']; // ← your first and last name
     const containers = [document.getElementById('word1'), document.getElementById('word2')];
     const allLetters = [];
+    const skipAnimation = document.documentElement.classList.contains('no-hero-anim');
 
     // Break each word into individual letters so each one can animate separately
     words.forEach((word, wi) => {
@@ -1025,41 +1177,63 @@
       });
     });
 
-    window.addEventListener('load', () => {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        // Deterministic "random" number generator so the scatter pattern
-        // looks random but is actually the same every time the page loads
-        const seed = i => ((i * 1731 + 37) % 1000) / 1000;
+    if (skipAnimation) {
+      // Returning visit this session — show the name immediately, no scatter
+      allLetters.forEach(({ el }) => {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      });
+    } else {
+      // First visit this session — play the full scatter/reassemble animation
+      window.addEventListener('load', () => {
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          // Deterministic "random" number generator so the scatter pattern
+          // looks random but is actually the same every time the page loads
+          const seed = i => ((i * 1731 + 37) % 1000) / 1000;
 
-        // STEP 1: instantly scatter every letter to a random spot off-screen
-        allLetters.forEach(({ el }, i) => {
-          const angle = seed(i * 3) * Math.PI * 2;
-          const dist = 200 + seed(i * 7 + 1) * Math.max(vw, vh) * 0.8;
-          const tx = Math.cos(angle) * dist;
-          const ty = Math.sin(angle) * dist;
-          const rot = (seed(i * 5 + 2) - 0.5) * 720;
-          const scl = 0.3 + seed(i * 11 + 3) * 1.4;
-
-          el.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${scl})`;
-          el.style.opacity = '0';
-          el.style.transition = 'none';
-        });
-
-        // STEP 2: after a brief pause, animate every letter back to its
-        // normal position — this is the part that's actually visible
-        setTimeout(() => {
+          // STEP 1: instantly scatter every letter to a random spot off-screen
           allLetters.forEach(({ el }, i) => {
-            const delay = 80 + i * 18; // each letter starts slightly after the last
-            el.style.transition = `transform 1400ms cubic-bezier(0.08, 0.0, 0.08, 1.0) ${delay}ms,
-                                   opacity 200ms ease ${delay}ms`;
-            el.style.opacity = '1';
-            el.style.transform = 'translate(0,0) rotate(0deg) scale(1)';
+            const angle = seed(i * 3) * Math.PI * 2;
+            const dist = 200 + seed(i * 7 + 1) * Math.max(vw, vh) * 0.8;
+            const tx = Math.cos(angle) * dist;
+            const ty = Math.sin(angle) * dist;
+            const rot = (seed(i * 5 + 2) - 0.5) * 720;
+            const scl = 0.3 + seed(i * 11 + 3) * 1.4;
+
+            el.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg) scale(${scl})`;
+            el.style.opacity = '0';
+            el.style.transition = 'none';
           });
-        }, 200);
-      }));
-    });
+
+          // STEP 2: after a brief pause, animate every letter back to its
+          // normal position — this is the part that's actually visible
+          setTimeout(() => {
+            allLetters.forEach(({ el }, i) => {
+              const delay = 80 + i * 18; // each letter starts slightly after the last
+              el.style.transition = `transform 1400ms cubic-bezier(0.08, 0.0, 0.08, 1.0) ${delay}ms,
+                                     opacity 200ms ease ${delay}ms`;
+              el.style.opacity = '1';
+              el.style.transform = 'translate(0,0) rotate(0deg) scale(1)';
+            });
+          }, 200);
+        }));
+      });
+
+      // Mark this session as having seen the animation, so navigating away
+      // and back (or refreshing) won't replay it until the tab/browser closes
+      sessionStorage.setItem('heroAnimPlayed', '1');
+    }
+
+    /* ─── MOBILE MENU TOGGLE ───
+       Opens/closes the full-screen mobile navigation menu (hamburger icon
+       in the top-right on small screens). Tapping any link inside the menu
+       also closes it automatically before jumping to that section. */
+    function toggleMobileMenu() {
+      document.getElementById('mobileMenuBtn').classList.toggle('open');
+      document.getElementById('mobileMenu').classList.toggle('open');
+    }
 
     /* ─── ACCESSIBLE MODE TOGGLE ───
        Handles the "Accessible" button in the nav bar: switches fonts,

@@ -264,13 +264,15 @@
       margin-bottom:2.5rem;
     }
 
-    /* ─── SLIDESHOW ─── */
-    .slideshow{
-      position:relative;
-      margin:3rem 0;
+    /* ─── PROCESS GRID (static images, same pattern as other project pages) ─── */
+    .process-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:1.5rem;
+      margin-bottom:1rem;
     }
 
-    .slideshow-frame{
+    .process-card{
       position:relative;
       border-radius:6px;
       overflow:hidden;
@@ -278,114 +280,22 @@
       box-shadow:
         0 0 0 2px var(--cream-light),
         0 0 0 5px var(--brass),
-        10px 10px 0 rgba(26,20,8,0.15);
-      aspect-ratio:16/10;
-      background:var(--ink);
+        8px 8px 0 rgba(26,20,8,0.15);
     }
 
-    .slide{
+    .process-card img{ width:100%; display:block; }
+
+    .process-tag{
       position:absolute;
-      inset:0;
-      opacity:0;
-      transition:opacity 0.5s ease;
-      pointer-events:none;
-    }
-
-    .slide.active{ opacity:1; pointer-events:auto; }
-
-    .slide img{ width:100%; height:100%; object-fit:cover; display:block; }
-
-    .slide-caption{
-      position:absolute;
-      left:0; right:0; bottom:0;
-      padding:1.5rem 1.75rem;
-      background:linear-gradient(to top, rgba(26,20,8,0.88), transparent);
-      color:var(--cream-light);
-      font-family:var(--sans);
-      font-size:0.85rem;
-      font-weight:600;
-    }
-
-    .slide-caption span{
-      display:inline-block;
+      top:0.9rem; left:0.9rem;
       background:var(--highlight-gold);
+      border:1.5px solid var(--ink);
+      border-radius:100px;
+      padding:0.35rem 0.9rem;
+      font-size:0.72rem;
+      font-weight:600;
       color:var(--ink);
-      padding:0.2rem 0.6rem;
-      border-radius:3px;
-      font-size:0.78rem;
-    }
-
-    .slide-nav-btn{
-      position:absolute;
-      top:50%;
-      transform:translateY(-50%);
-      width:44px; height:44px;
-      border-radius:50%;
-      background:rgba(26,20,8,0.55);
-      border:2px solid var(--brass);
-      color:var(--cream-light);
-      font-size:1.1rem;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      z-index:5;
-      transition:background 0.2s;
-    }
-
-    .slide-nav-btn:hover{ background:var(--brass); color:var(--ink); }
-    .slide-nav-btn.prev{ left:14px; }
-    .slide-nav-btn.next{ right:14px; }
-
-    .slide-corner{
-      position:absolute;
-      width:26px; height:26px;
-      z-index:6;
-      pointer-events:none;
-    }
-
-    .slide-corner::before{
-      content:'';
-      position:absolute;
-      inset:0;
-      border:3px solid var(--highlight-gold);
-    }
-
-    .slide-corner.tl{ top:8px; left:8px; }
-    .slide-corner.tl::before{ border-right:none; border-bottom:none; }
-    .slide-corner.tr{ top:8px; right:8px; }
-    .slide-corner.tr::before{ border-left:none; border-bottom:none; }
-    .slide-corner.bl{ bottom:8px; left:8px; }
-    .slide-corner.bl::before{ border-right:none; border-top:none; }
-    .slide-corner.br{ bottom:8px; right:8px; }
-    .slide-corner.br::before{ border-left:none; border-top:none; }
-
-    .slide-dots{
-      display:flex;
-      justify-content:center;
-      gap:0.6rem;
-      margin-top:1.25rem;
-    }
-
-    .slide-dot{
-      width:10px; height:10px;
-      border-radius:50%;
-      background:var(--cream-dark);
-      border:2px solid var(--brass-dark);
-      cursor:pointer;
-      transition:background 0.2s, transform 0.2s;
-      padding:0;
-    }
-
-    .slide-dot.active{ background:var(--brass-dark); transform:scale(1.15); }
-
-    .slide-counter{
-      text-align:center;
-      font-family:var(--display);
-      font-size:0.7rem;
-      letter-spacing:0.12em;
-      color:var(--copper);
-      margin-top:0.75rem;
+      z-index:2;
     }
 
     /* ─── FOOTER NAV ─── */
@@ -415,6 +325,7 @@
       main{ padding:2.75rem 1.5rem 4rem; }
       .meta-row{ gap:0.75rem; }
       .plaque{ min-width:125px; padding:0.8rem 1.1rem; }
+      .process-grid{ grid-template-columns:1fr; }
     }
   </style>
 </head>
@@ -482,36 +393,28 @@
     <h2 class="journey-heading">The Journey</h2>
     <p class="journey-sub">From Sketch to Mechanism</p>
 
-    <div class="slideshow">
-      <div class="slideshow-frame">
-        <span class="slide-corner tl"></span>
-        <span class="slide-corner tr"></span>
-        <span class="slide-corner bl"></span>
-        <span class="slide-corner br"></span>
+    <div class="process-grid">
 
-        <div class="slide active">
-          <img src="images/slide-1-sketch.png" alt="Early sketches and ideation">
-          <div class="slide-caption"><span>Step 1</span> &nbsp; Research and ideation — a lot of sketching throughout</div>
-        </div>
-        <div class="slide">
-          <img src="images/timecollector-cardboard-real.png" alt="Cardboard rapid prototype">
-          <div class="slide-caption"><span>Step 2</span> &nbsp; Rapid prototype — cardboard mock-up of the gear mechanism</div>
-        </div>
-        <div class="slide">
-          <img src="images/timecollector-refined-real.png" alt="Refined wooden prototype">
-          <div class="slide-caption"><span>Step 3</span> &nbsp; Refined design — moving to laser-cut wood and 3D-printed gears</div>
-        </div>
-        <div class="slide">
-          <img src="images/timecollector-fbd-full.png" alt="Full force analysis and free body diagrams">
-          <div class="slide-caption"><span>Step 4</span> &nbsp; Full force analysis — power source, actuator, escapement mechanism, gear train, pulley system, and marble receptacle gear train</div>
-        </div>
-
-        <button class="slide-nav-btn prev" onclick="changeSlide(-1)" aria-label="Previous slide">←</button>
-        <button class="slide-nav-btn next" onclick="changeSlide(1)" aria-label="Next slide">→</button>
+      <div class="process-card">
+        <span class="process-tag">Sketching & Ideation</span>
+        <img src="images/slide-1-sketch.png" alt="Early sketches and ideation">
       </div>
 
-      <div class="slide-dots" id="slideDots"></div>
-      <div class="slide-counter" id="slideCounter"></div>
+      <div class="process-card">
+        <span class="process-tag">Cardboard Prototype</span>
+        <img src="images/timecollector-cardboard-real.png" alt="Cardboard rapid prototype">
+      </div>
+
+      <div class="process-card">
+        <span class="process-tag">Refined Prototype</span>
+        <img src="images/timecollector-refined-real.png" alt="Refined wooden prototype">
+      </div>
+
+      <div class="process-card">
+        <span class="process-tag">Force Analysis</span>
+        <img src="images/timecollector-fbd-full.png" alt="Full force analysis and free body diagrams">
+      </div>
+
     </div>
 
     <div class="back-bottom-wrap">
@@ -519,47 +422,5 @@
     </div>
 
   </main>
-
-  <script>
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.slide');
-    const dotsContainer = document.getElementById('slideDots');
-    const counter = document.getElementById('slideCounter');
-    const total = slides.length;
-
-    // Build dots
-    for (let i = 0; i < total; i++) {
-      const dot = document.createElement('button');
-      dot.className = 'slide-dot' + (i === 0 ? ' active' : '');
-      dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
-      dot.onclick = () => goToSlide(i);
-      dotsContainer.appendChild(dot);
-    }
-    const dots = document.querySelectorAll('.slide-dot');
-
-    function updateSlide() {
-      slides.forEach((s, i) => s.classList.toggle('active', i === currentSlide));
-      dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
-      counter.textContent = (currentSlide + 1) + ' / ' + total;
-    }
-
-    function changeSlide(dir) {
-      currentSlide = (currentSlide + dir + total) % total;
-      updateSlide();
-    }
-
-    function goToSlide(i) {
-      currentSlide = i;
-      updateSlide();
-    }
-
-    updateSlide();
-
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') changeSlide(-1);
-      if (e.key === 'ArrowRight') changeSlide(1);
-    });
-  </script>
 </body>
 </html>

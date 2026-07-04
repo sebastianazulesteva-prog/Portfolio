@@ -492,12 +492,22 @@
 
     .contact-link:hover { color: var(--text); border-color: rgba(245,245,240,0.4); }
 
-    /* ─── CONTACT PHOTO SWAP ───
-       Two photos stacked exactly on top of each other. The professional one
-       is visible by default; hovering fades it out and fades the fun one in.
-       ✎ TO SWAP PHOTOS: replace the two image files in images/ folder —
-         contact-photo-professional.jpg and contact-photo-fun.jpg — keeping
-         those exact filenames, or update the src= paths below to match new names. */
+    /* ─── CONTACT PHOTO SWAP + CYCLE ───
+       The professional photo is visible by default. On hover, it fades out
+       and the fun photos start cycling through one at a time (fun-1, fun-2,
+       fun-3, fun-4, then the Slip Door process photo, then loops back to fun-1).
+       Moving the mouse away fades back to the professional photo and stops the cycle.
+       ✎ TO SWAP PHOTOS: replace the files in images/ folder, keeping these
+         exact filenames — or edit the src= paths in the HTML below to match
+         whatever new filenames you use:
+           contact-photo-professional.jpg
+           contact-photo-fun-1.jpg
+           contact-photo-fun-2.jpg
+           contact-photo-fun-3.jpg
+           contact-photo-fun-4.jpg
+           slipdoor-process-2.jpg   ← reused from the Slip Door project page, last in the cycle
+       The actual cycling logic (timing, order) lives in the <script> — search
+       for "CONTACT PHOTO CYCLER" further down this file. */
     .contact-photo-wrap {
       position: relative;
       width: 220px;
@@ -513,26 +523,28 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
+      opacity: 0;
       transition: opacity 0.5s ease;
+      z-index: 1;
     }
 
+    /* Professional photo sits on top and is visible by default */
     .contact-photo-professional {
       opacity: 1;
-      z-index: 2;
+      z-index: 3;
     }
 
-    .contact-photo-fun {
+    /* When hovering, professional photo fades out... */
+    .contact-photo-wrap:hover .contact-photo-professional {
       opacity: 0;
       z-index: 1;
     }
 
-    /* On hover, fade the professional photo out and the fun one in */
-    .contact-photo-wrap:hover .contact-photo-professional {
-      opacity: 0;
-    }
-
-    .contact-photo-wrap:hover .contact-photo-fun {
+    /* ...and whichever fun photo has the "active" class fades in.
+       JavaScript adds/removes "active" to cycle through them. */
+    .contact-photo-fun.active {
       opacity: 1;
+      z-index: 2;
     }
 
     .contact-layout {
@@ -940,13 +952,26 @@
         </div>
       </div>
 
-      <!-- ═══ HOVER PHOTO SWAP ═══
-           Professional photo shows by default. Hovering fades it into the fun one.
-           Moving the mouse away fades back to professional.
-           ✎ Filenames to upload into images/ folder: contact-photo-professional.jpg + contact-photo-fun.jpg -->
-      <div class="contact-photo-wrap reveal reveal-delay-2">
+      <!-- ═══ HOVER PHOTO SWAP + CYCLE ═══
+           Professional photo shows by default. Hovering fades it out and starts
+           cycling through the 5 photos below (2.5 seconds each, on a loop).
+           Moving the mouse away fades back to the professional photo.
+           ✎ Filenames to upload into images/ folder:
+             contact-photo-professional.jpg
+             contact-photo-fun-1.jpg
+             contact-photo-fun-2.jpg
+             contact-photo-fun-3.jpg
+             contact-photo-fun-4.jpg
+             (slipdoor-process-2.jpg is reused from the Slip Door page — already uploaded)
+           To add/remove photos from the cycle: add/remove an <img> line here AND
+           update the `funPhotoCount` number in the script (search "CONTACT PHOTO CYCLER"). -->
+      <div class="contact-photo-wrap reveal reveal-delay-2" id="contactPhotoWrap">
         <img class="contact-photo-professional" src="images/contact-photo-professional.jpg" alt="Sebastian Esteva — professional photo">
-        <img class="contact-photo-fun" src="images/contact-photo-fun.jpg" alt="Sebastian Esteva — candid photo">
+        <img class="contact-photo-fun active" src="images/contact-photo-fun-1.jpg" alt="Sebastian Esteva — candid photo 1">
+        <img class="contact-photo-fun" src="images/contact-photo-fun-2.jpg" alt="Sebastian Esteva — candid photo 2">
+        <img class="contact-photo-fun" src="images/contact-photo-fun-3.jpg" alt="Sebastian Esteva — candid photo 3">
+        <img class="contact-photo-fun" src="images/contact-photo-fun-4.jpg" alt="Sebastian Esteva — candid photo 4">
+        <img class="contact-photo-fun" src="images/slipdoor-process-2.jpg" alt="Slip Door project — process photo">
       </div>
     </div>
   </section>
@@ -1085,6 +1110,41 @@
     if (localStorage.getItem('a11y') === '1') {
       document.body.classList.add('accessible');
       toggle.classList.add('active');
+    }
+
+    /* ─── CONTACT PHOTO CYCLER ───
+       While hovering the contact photo, cycles through the fun photos every
+       2.5 seconds (fun-1 → fun-2 → fun-3 → fun-4 → fun-5 → loops back to fun-1).
+       Stops and resets to fun-1 when the mouse leaves, so it always restarts
+       from the beginning next time.
+       ✎ TO ADD/REMOVE PHOTOS: change this number to match how many
+         contact-photo-fun images you have in the HTML above. */
+    const funPhotoCount = 5;
+
+    const photoWrap = document.getElementById('contactPhotoWrap');
+    const funPhotos = document.querySelectorAll('.contact-photo-fun');
+    let currentFunPhoto = 0;
+    let cycleInterval = null;
+
+    function showFunPhoto(index) {
+      funPhotos.forEach((img, i) => img.classList.toggle('active', i === index));
+    }
+
+    if (photoWrap) {
+      photoWrap.addEventListener('mouseenter', () => {
+        currentFunPhoto = 0;
+        showFunPhoto(currentFunPhoto);
+        cycleInterval = setInterval(() => {
+          currentFunPhoto = (currentFunPhoto + 1) % funPhotoCount;
+          showFunPhoto(currentFunPhoto);
+        }, 2500);
+      });
+
+      photoWrap.addEventListener('mouseleave', () => {
+        clearInterval(cycleInterval);
+        currentFunPhoto = 0;
+        showFunPhoto(currentFunPhoto); // reset to fun-1 for next hover
+      });
     }
 
     /* ─── SCROLL REVEAL ───

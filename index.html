@@ -340,6 +340,17 @@
       font-family: var(--serif);
       font-size: 1.3rem;
       letter-spacing: -0.01em;
+      color: var(--text);
+      text-decoration: none;
+      background-image: linear-gradient(var(--text), var(--text));
+      background-position: 0 100%;
+      background-repeat: no-repeat;
+      background-size: 0% 1px;
+      transition: background-size 0.3s ease;
+    }
+
+    .exp-company:hover {
+      background-size: 100% 1px;
     }
 
     .exp-date {
@@ -735,7 +746,8 @@
   <!-- ═══ EXPERIENCE SECTION ═══
        Each job is one <div class="exp-item">...</div> block, listed newest-first.
        To add a new job: copy an entire exp-item block, paste it, then edit:
-         - exp-company  → company/org name
+         - exp-company  → company/org name (now a link — set href to their website,
+                           or delete the href/target attributes to make it plain text again)
          - exp-date     → date range shown on the right
          - exp-role     → your title / one-line description
          - <li> bullets → 2-3 accomplishment bullets
@@ -748,7 +760,7 @@
 
     <div class="exp-item reveal">
       <div class="exp-header">
-        <span class="exp-company">Maker Nexus</span>
+        <a href="https://www.makernexus.org/" target="_blank" class="exp-company">Maker Nexus</a>
         <span class="exp-date">Jun 2026 — Present</span>
       </div>
       <p class="exp-role">Maker on Duty · Stanford, CA</p>
@@ -761,7 +773,7 @@
 
     <div class="exp-item reveal reveal-delay-1">
       <div class="exp-header">
-        <span class="exp-company">Stanford University</span>
+        <a href="https://exploreintrosems.stanford.edu/opportunities/ouch-it-hurts-comparative-neurobiology-pain" target="_blank" class="exp-company">Stanford University</a>
         <span class="exp-date">Summer 2026</span>
       </div>
       <p class="exp-role">Teaching Assistant, Neurobiology of Pain</p>
@@ -773,7 +785,7 @@
 
     <div class="exp-item reveal reveal-delay-2">
       <div class="exp-header">
-        <span class="exp-company">Virtual Human Interaction Lab (VHIL)</span>
+        <a href="https://vhil.stanford.edu/" target="_blank" class="exp-company">Virtual Human Interaction Lab (VHIL)</a>
         <span class="exp-date">Ongoing</span>
       </div>
       <p class="exp-role">Research Assistant · Stanford University</p>
@@ -786,7 +798,7 @@
 
     <div class="exp-item reveal">
       <div class="exp-header">
-        <span class="exp-company">ExploreTech</span>
+        <a href="https://exploretech.ai/" target="_blank" class="exp-company">ExploreTech</a>
         <span class="exp-date">Jun — Oct 2025</span>
       </div>
       <p class="exp-role">Strategy & Marketing Intern · AI Mining Start-up</p>
@@ -799,7 +811,7 @@
 
     <div class="exp-item reveal reveal-delay-1">
       <div class="exp-header">
-        <span class="exp-company">Stanford Explore Energy</span>
+        <a href="https://explore-energy.stanford.edu/" target="_blank" class="exp-company">Stanford Explore Energy</a>
         <span class="exp-date">Sep 2024 — Jun 2026</span>
       </div>
       <p class="exp-role">Resident Leader · Stanford University</p>
@@ -813,7 +825,7 @@
 
     <div class="exp-item reveal reveal-delay-2">
       <div class="exp-header">
-        <span class="exp-company">Guidewheel</span>
+        <a href="https://www.guidewheel.com/" target="_blank" class="exp-company">Guidewheel</a>
         <span class="exp-date">Jun — Sep 2024</span>
       </div>
       <p class="exp-role">Go-to-Market Intern · San Francisco, CA</p>
@@ -826,7 +838,7 @@
 
     <div class="exp-item reveal">
       <div class="exp-header">
-        <span class="exp-company">Open to Debate</span>
+        <a href="https://opentodebate.org/" target="_blank" class="exp-company">Open to Debate</a>
         <span class="exp-date">Jan — Jun 2024</span>
       </div>
       <p class="exp-role">Marketing & Communications Intern · Remote</p>
@@ -839,7 +851,7 @@
 
     <div class="exp-item reveal reveal-delay-1">
       <div class="exp-header">
-        <span class="exp-company">Sensa Consulting</span>
+        <a href="https://www.stanfordsensa.org/" target="_blank" class="exp-company">Sensa Consulting</a>
         <span class="exp-date">Oct 2023 — Oct 2024</span>
       </div>
       <p class="exp-role">Consultant · Stanford, CA</p>
@@ -851,7 +863,7 @@
 
     <div class="exp-item reveal reveal-delay-2">
       <div class="exp-header">
-        <span class="exp-company">Everytown for Gun Safety</span>
+        <a href="https://www.everytown.org/" target="_blank" class="exp-company">Everytown for Gun Safety</a>
         <span class="exp-date">Jul — Sep 2023</span>
       </div>
       <p class="exp-role">Community Engagement Intern · Hybrid</p>
@@ -864,7 +876,7 @@
 
     <div class="exp-item reveal">
       <div class="exp-header">
-        <span class="exp-company">Stanford's Mind Over Money</span>
+        <a href="https://mindovermoney.stanford.edu/" target="_blank" class="exp-company">Stanford's Mind Over Money</a>
         <span class="exp-date">Feb 2023 — Present</span>
       </div>
       <p class="exp-role">Associate · Stanford, CA</p>

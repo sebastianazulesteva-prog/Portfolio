@@ -1,4 +1,22 @@
 <!DOCTYPE html>
+<!--
+  ═══════════════════════════════════════════════════════════════
+  SEBASTIAN ESTEVA — PORTFOLIO HOMEPAGE
+  ═══════════════════════════════════════════════════════════════
+  This file has 3 parts, in order:
+    1. <style>  — all colors, fonts, and layout rules (the "look")
+    2. <body>   — the actual page content (nav, hero, about, etc.)
+    3. <script> — the interactive bits (cursor, animations, toggle)
+
+  Quick edit guide:
+    - Change text/wording      → search in <body>, edit directly
+    - Change colors            → edit the :root { } block below
+    - Change fonts             → edit --serif and --sans below,
+                                  and update the Google Fonts link above
+    - Add/remove a project     → see the "SELECTED WORK" section in <body>
+    - Add/remove a job         → see the "EXPERIENCE" section in <body>
+  ═══════════════════════════════════════════════════════════════
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,11 +24,21 @@
   <title>Sebastian Esteva</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Fonts used on this page: Playfair Display (headlines), Syne (body text),
+       Atkinson Hyperlegible (used only when "Accessible" mode is on) -->
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ─── COLOR PALETTE ───
+       Change any value here to update that color EVERYWHERE it's used on the page.
+       --bg        = main background (near-black)
+       --text      = main text color (off-white)
+       --muted     = dimmer text, used for labels/captions
+       --muted2    = even dimmer, used for faint decorative text
+       --border    = thin divider lines between sections
+    */
     :root {
       --bg: #080808;
       --bg2: #0f0f0f;
@@ -20,10 +48,14 @@
       --text: #f5f5f0;
       --muted: rgba(245,245,240,0.4);
       --muted2: rgba(245,245,240,0.2);
-      --serif: 'Playfair Display', Georgia, serif;
-      --sans: 'Syne', system-ui, sans-serif;
+      --serif: 'Playfair Display', Georgia, serif;   /* used for big headlines */
+      --sans: 'Syne', system-ui, sans-serif;          /* used for body/nav text */
     }
 
+    /* ─── ACCESSIBLE MODE ───
+       When the "Accessible" button (top right of nav) is toggled on, the body
+       gets this class added, which swaps both fonts for Atkinson Hyperlegible
+       (a font designed for easier reading) and loosens spacing slightly. */
     body.accessible {
       --serif: 'Atkinson Hyperlegible', sans-serif;
       --sans: 'Atkinson Hyperlegible', sans-serif;
@@ -41,7 +73,14 @@
       font-weight: 300;
       line-height: 1.6;
       overflow-x: hidden;
-      cursor: none;
+      cursor: none; /* hides system cursor so our custom dot/ring can show instead */
+    }
+
+    /* Hide custom cursor entirely on touch devices — no mouse means no
+       mousemove events, so the dot/ring would otherwise sit stuck at 0,0 */
+    @media (hover: none), (pointer: coarse) {
+      body { cursor: auto; }
+      .cursor, .cursor-ring { display: none !important; }
     }
 
     .cursor {
@@ -169,16 +208,17 @@
     .hero-scroll-line::after {
       content: '';
       position: absolute;
-      top: -100%; left: 0;
+      top: 0; left: 0;
       width: 100%; height: 100%;
       background: var(--muted);
+      transform: translateY(-100%);
       animation: scrollDown 1.8s 2.6s ease-in-out infinite;
     }
 
     @keyframes scrollDown {
-      0%   { top: -100%; }
-      50%  { top: 0%; }
-      100% { top: 100%; }
+      0%   { transform: translateY(-100%); }
+      50%  { transform: translateY(0%); }
+      100% { transform: translateY(100%); }
     }
 
     .hero-content { display: flex; flex-direction: column; }
@@ -452,6 +492,56 @@
 
     .contact-link:hover { color: var(--text); border-color: rgba(245,245,240,0.4); }
 
+    /* ─── CONTACT PHOTO SWAP ───
+       Two photos stacked exactly on top of each other. The professional one
+       is visible by default; hovering fades it out and fades the fun one in.
+       ✎ TO SWAP PHOTOS: replace the two image files in images/ folder —
+         contact-photo-professional.jpg and contact-photo-fun.jpg — keeping
+         those exact filenames, or update the src= paths below to match new names. */
+    .contact-photo-wrap {
+      position: relative;
+      width: 220px;
+      aspect-ratio: 4 / 5;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .contact-photo-wrap img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: opacity 0.5s ease;
+    }
+
+    .contact-photo-professional {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .contact-photo-fun {
+      opacity: 0;
+      z-index: 1;
+    }
+
+    /* On hover, fade the professional photo out and the fun one in */
+    .contact-photo-wrap:hover .contact-photo-professional {
+      opacity: 0;
+    }
+
+    .contact-photo-wrap:hover .contact-photo-fun {
+      opacity: 1;
+    }
+
+    .contact-layout {
+      display: flex;
+      align-items: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+
     .a11y-banner {
       position: fixed;
       bottom: 2rem;
@@ -505,24 +595,34 @@
       nav { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
       .nav-links { display: none; }
       #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
-      .hero-scroll { flex-direction: row; justify-content: flex-start; }
-      .hero-scroll-line { width: 44px; height: 1px; }
+      .hero-scroll { flex-direction: column; justify-content: flex-start; }
+      .hero-scroll-line { width: 1px; height: 36px; }
       section { padding: 5rem 1.5rem; }
       .divider { width: calc(100% - 3rem); margin: 0 1.5rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
+      .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
+      .contact-photo-wrap { width: 160px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
     }
   </style>
 </head>
 <body>
 
+  <!-- These two divs are the custom mouse cursor (a small dot + a trailing ring).
+       They're just empty here — all their movement is handled in the <script> at
+       the bottom of this file. Hidden automatically on phones/tablets. -->
   <div class="cursor" id="cursor"></div>
   <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- Small popup that appears bottom-center when you toggle Accessible mode on/off -->
   <div class="a11y-banner" id="a11yBanner"></div>
 
-  <!-- NAV -->
+  <!-- ═══ NAV BAR ═══
+       "SE" logo (top left) links back to the top of the page.
+       The 4 links jump to each section further down this file (About, Experience, Work, Contact).
+       The "Accessible" button on the right toggles the easier-to-read font — see toggleAccessible() in the script. -->
   <nav>
     <a class="nav-logo" href="#hero">SE</a>
     <ul class="nav-links">
@@ -537,7 +637,12 @@
     </button>
   </nav>
 
-  <!-- HERO -->
+  <!-- ═══ HERO SECTION (top of page) ═══
+       - "Scroll" indicator on the left with an animated line (top-to-bottom fill loop)
+       - Your name ("Sebastian" / "Esteva") — the letters animate in via JavaScript
+         further down (look for "TENET LETTER EXPLOSION" in the <script>).
+         To change your name, edit the `words` array in that script section, NOT here.
+       - Tagline below your name — safe to edit that text directly right here. -->
   <section id="hero">
     <div class="hero-scroll">
       <div class="hero-scroll-line"></div>
@@ -549,13 +654,17 @@
         <span class="word first" id="word1"></span>
         <span class="word second" id="word2"></span>
       </h1>
+      <!-- ✎ EDIT YOUR TAGLINE HERE -->
       <p class="hero-tagline">Bring wonder through technology.</p>
     </div>
   </section>
 
   <div class="divider"></div>
 
-  <!-- ABOUT -->
+  <!-- ═══ ABOUT SECTION ═══
+       Left column = your written bio (edit paragraphs directly below).
+       Right column = quick-fact rows (Education, Degrees, Location, etc).
+       To add a new fact row, copy one <div class="stat-row">...</div> block and edit it. -->
   <section id="about">
     <div class="section-header reveal">
       <h2 class="section-title">Engineer.<br><em>Communicator.</em><br>Builder.</h2>
@@ -599,7 +708,14 @@
 
   <div class="divider"></div>
 
-  <!-- EXPERIENCE -->
+  <!-- ═══ EXPERIENCE SECTION ═══
+       Each job is one <div class="exp-item">...</div> block, listed newest-first.
+       To add a new job: copy an entire exp-item block, paste it, then edit:
+         - exp-company  → company/org name
+         - exp-date     → date range shown on the right
+         - exp-role     → your title / one-line description
+         - <li> bullets → 2-3 accomplishment bullets
+       To remove a job: delete its whole exp-item block. -->
   <section id="experience">
     <div class="section-header reveal">
       <h2 class="section-title">Where I've<br><em>worked.</em></h2>
@@ -608,79 +724,130 @@
 
     <div class="exp-item reveal">
       <div class="exp-header">
-        <span class="exp-company">Virtual Human Interaction Lab (VR)</span>
-        <span class="exp-date">Oct 2025 — Present</span>
+        <span class="exp-company">Maker Nexus</span>
+        <span class="exp-date">Jun 2026 — Present</span>
       </div>
-      <p class="exp-role">Research Assistant · Stanford University</p>
+      <p class="exp-role">Maker on Duty · Stanford, CA</p>
       <ul class="exp-bullets">
-        <li>Developed and executed customized components (via 3D printing) to enhance laboratory operations</li>
-        <li>Spearheaded upgrades to lab infrastructure to enable cutting-edge VR demonstrations</li>
-        <li>Support and design studies on human behavior in virtual reality environments</li>
+        <li>Serve as on-site technical expert, troubleshooting and supporting members' projects</li>
+        <li>Maintain workshop equipment and infrastructure to ensure operational uptime</li>
+        <li>Manage floor safety and onboard new community members to the shared making space</li>
       </ul>
     </div>
 
     <div class="exp-item reveal reveal-delay-1">
       <div class="exp-header">
-        <span class="exp-company">ExploreTech</span>
-        <span class="exp-date">Jun — Oct 2025</span>
+        <span class="exp-company">Stanford University</span>
+        <span class="exp-date">Summer 2026</span>
       </div>
-      <p class="exp-role">Marketing & Strategy Intern · AI Mining Start-up</p>
+      <p class="exp-role">Teaching Assistant, Neurobiology of Pain</p>
       <ul class="exp-bullets">
-        <li>Self-taught HTML/CSS to overhaul the company website, increasing traffic by 52%</li>
-        <li>Developed a 3-month LinkedIn content roadmap (11 core posts), boosting search appearances by 103%</li>
-        <li>Built all core branding infrastructure including Brand Style Guide and Communications Playbook</li>
+        <li>Guide students through core curriculum on neurological pathways and pain mechanisms</li>
+        <li>Manage course administration and academic logistics for the course</li>
       </ul>
     </div>
 
     <div class="exp-item reveal reveal-delay-2">
       <div class="exp-header">
-        <span class="exp-company">Stanford Explore Energy</span>
-        <span class="exp-date">Sep 2024 — Present</span>
+        <span class="exp-company">Virtual Human Interaction Lab (VHIL)</span>
+        <span class="exp-date">Ongoing</span>
       </div>
-      <p class="exp-role">Resident Leader · Stanford University</p>
+      <p class="exp-role">Research Assistant · Stanford University</p>
       <ul class="exp-bullets">
-        <li>Field-trip engineer — coordinated off-campus educational tours (Tesla Gigafactory, NOAA labs, Costanoa eco-retreat)</li>
-        <li>Financial Manager — co-managed a $60k+ budget</li>
-        <li>Crafted, planned, and executed 20+ major bonding events</li>
+        <li>Research how virtual and augmented reality (VR/AR) shape human behavior, psychological processes, and real-world decision-making</li>
+        <li>Support Virtual Reality Lab demo development and maintenance</li>
+        <li>Developed and executed customized components (via 3D printing) to enhance laboratory operations</li>
       </ul>
     </div>
 
     <div class="exp-item reveal">
       <div class="exp-header">
-        <span class="exp-company">Guidewheel</span>
-        <span class="exp-date">Jun — Sep 2024</span>
+        <span class="exp-company">ExploreTech</span>
+        <span class="exp-date">Jun — Oct 2025</span>
       </div>
-      <p class="exp-role">Go-to-Market Intern · BlackRock-backed Manufacturing Start-up</p>
+      <p class="exp-role">Strategy & Marketing Intern · AI Mining Start-up</p>
       <ul class="exp-bullets">
-        <li>Championed internal process optimization through cross-team interviews and process mapping, reducing steps by ⅔</li>
-        <li>Drove business expansion efforts supporting new million-dollar partnership research</li>
-        <li>Created new marketing strategies including launching presence on G2 and Hero's Program</li>
+        <li>Self-taught HTML/CSS to overhaul the company website, increasing traffic 52% through unified brand messaging and SEO</li>
+        <li>Built core branding infrastructure, including the Brand Style Guide and Communications Playbook</li>
+        <li>Developed a 3-month, 11-post LinkedIn content roadmap, boosting search appearances 103%</li>
       </ul>
     </div>
 
     <div class="exp-item reveal reveal-delay-1">
       <div class="exp-header">
-        <span class="exp-company">Open to Debate</span>
-        <span class="exp-date">Jan — Jun 2024</span>
+        <span class="exp-company">Stanford Explore Energy</span>
+        <span class="exp-date">Sep 2024 — Jun 2026</span>
       </div>
-      <p class="exp-role">Marketing & Communications Intern</p>
+      <p class="exp-role">Resident Leader · Stanford University</p>
       <ul class="exp-bullets">
-        <li>Generated ~25% more engagement than baseline on X through SEO optimization</li>
-        <li>Researched and outlined benefits of over 50 new partnerships</li>
-        <li>Provided live support on debate days featuring guests from Bill Nye to former CIA directors</li>
+        <li>Co-managed a $60,000+ program budget</li>
+        <li>Coordinated off-campus educational tours to industry sites, including the Tesla Gigafactory and NOAA labs</li>
+        <li>Planned and executed 30+ community-building events</li>
+        <li>Hosted faculty and industry professionals for a fireside-chat speaker series on climate tech</li>
       </ul>
     </div>
 
     <div class="exp-item reveal reveal-delay-2">
       <div class="exp-header">
-        <span class="exp-company">Mind Over Money</span>
+        <span class="exp-company">Guidewheel</span>
+        <span class="exp-date">Jun — Sep 2024</span>
+      </div>
+      <p class="exp-role">Go-to-Market Intern · San Francisco, CA</p>
+      <ul class="exp-bullets">
+        <li>Championed internal process optimization through cross-team interviews and process mapping, streamlining a workflow to ⅓ its original steps</li>
+        <li>Supported business-expansion research for a new million-dollar partnership</li>
+        <li>Launched new marketing strategies, including company presence on G2 and Hero's Program</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal">
+      <div class="exp-header">
+        <span class="exp-company">Open to Debate</span>
+        <span class="exp-date">Jan — Jun 2024</span>
+      </div>
+      <p class="exp-role">Marketing & Communications Intern · Remote</p>
+      <ul class="exp-bullets">
+        <li>Grew social media engagement approximately 25% above baseline through SEO-optimized content on X</li>
+        <li>Researched and outlined 50+ potential partnership opportunities</li>
+        <li>Provided live operational support on debate event days</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal reveal-delay-1">
+      <div class="exp-header">
+        <span class="exp-company">Sensa Consulting</span>
+        <span class="exp-date">Oct 2023 — Oct 2024</span>
+      </div>
+      <p class="exp-role">Consultant · Stanford, CA</p>
+      <ul class="exp-bullets">
+        <li>Supported a client's first B2C product launch end-to-end, from ideation through go-to-market strategy</li>
+        <li>Conducted in-depth regulatory research on product safety standards</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal reveal-delay-2">
+      <div class="exp-header">
+        <span class="exp-company">Everytown for Gun Safety</span>
+        <span class="exp-date">Jul — Sep 2023</span>
+      </div>
+      <p class="exp-role">Community Engagement Intern · Hybrid</p>
+      <ul class="exp-bullets">
+        <li>Advocated for gun-violence prevention at national conferences in New York City and Washington, D.C.</li>
+        <li>Performed organizational power-mapping and research on potential partner organizations</li>
+        <li>Self-taught Salesforce to track engagement metrics and streamline team workflows</li>
+      </ul>
+    </div>
+
+    <div class="exp-item reveal">
+      <div class="exp-header">
+        <span class="exp-company">Stanford's Mind Over Money</span>
         <span class="exp-date">Feb 2023 — Present</span>
       </div>
-      <p class="exp-role">Student Manager · Stanford University</p>
+      <p class="exp-role">Associate · Stanford, CA</p>
       <ul class="exp-bullets">
-        <li>Develop and build out resident hall financial education experiences</li>
-        <li>Two-time Class TA for Financial Literacy</li>
-        <li>Hold weekly productivity and information sessions around Financial Literacy</li>
+        <li>Developed and built out residence-hall financial-education programming for the Stanford community</li>
+        <li>Served as Teaching Assistant for a Financial Literacy course across two academic terms</li>
+        <li>Led weekly financial-literacy and productivity information sessions</li>
       </ul>
     </div>
 
@@ -688,7 +855,20 @@
 
   <div class="divider"></div>
 
-  <!-- SELECTED WORK -->
+  <!-- ═══ SELECTED WORK SECTION ═══
+       Each project is a clickable image card that links to its own page (chess.html,
+       slipdoor.html, baston.html, timecollector.html — each one is a separate file
+       in this same folder, with its own colors/fonts/layout).
+
+       To add a new project card: copy one <a class="work-card">...</a> block below,
+       then edit:
+         - href           → the project's html filename
+         - <img src>      → path to its thumbnail image (must be in the images/ folder)
+         - work-card-num  → the number shown (01, 02, 03...)
+         - work-card-title → project name
+         - work-card-tag  → short category text under the title
+
+       To remove a project: delete its whole <a class="work-card">...</a> block. -->
   <section id="work">
     <div class="section-header reveal">
       <h2 class="section-title">Selected<br><em>work.</em></h2>
@@ -708,7 +888,7 @@
       </a>
 
       <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
-        <img src="images/slipdoor-cover.jpg" alt="The Slip Door">
+        <img src="images/slipdoor-hero.jpg" alt="The Slip Door">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">02</span>
@@ -718,7 +898,7 @@
       </a>
 
       <a href="baston.html" class="work-card reveal reveal-delay-2">
-        <img src="images/baston-cover.jpg" alt="Bastón">
+        <img src="images/baston-hero.jpg" alt="Bastón">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">03</span>
@@ -742,32 +922,67 @@
 
   <div class="divider"></div>
 
-  <!-- CONTACT -->
+  <!-- ═══ CONTACT SECTION (bottom of page) ═══ -->
   <section id="contact">
     <span class="section-num reveal" style="display:block;margin-bottom:3rem;">04 — Contact</span>
-    <h2 class="contact-big reveal reveal-delay-1">Let's build<br>something<br><em>together.</em></h2>
-    <div class="contact-links reveal reveal-delay-2">
-      <a href="mailto:sesteva@stanford.edu" class="contact-link">Email</a>
-      <a href="https://www.linkedin.com/in/sebastian-esteva/" class="contact-link" target="_blank">LinkedIn</a>
-      <a href="tel:5108123540" class="contact-link">510-812-3540</a>
+
+    <div class="contact-layout">
+      <div>
+        <!-- ✎ EDIT YOUR CLOSING HEADLINE HERE -->
+        <h2 class="contact-big reveal reveal-delay-1">Let's build<br>something<br><em>together.</em></h2>
+        <!-- ═══ CONTACT LINKS ═══
+             To change your email: edit the address in the href="mailto:..." AND the visible text right after it.
+             To change your LinkedIn: edit the href URL only (visible text stays "LinkedIn").
+        -->
+        <div class="contact-links reveal reveal-delay-2">
+          <a href="mailto:sesteva@stanford.edu" class="contact-link">sesteva@stanford.edu</a>
+          <a href="https://www.linkedin.com/in/sebastian-esteva/" class="contact-link" target="_blank">LinkedIn</a>
+        </div>
+      </div>
+
+      <!-- ═══ HOVER PHOTO SWAP ═══
+           Professional photo shows by default. Hovering fades it into the fun one.
+           Moving the mouse away fades back to professional.
+           ✎ Filenames to upload into images/ folder: contact-photo-professional.jpg + contact-photo-fun.jpg -->
+      <div class="contact-photo-wrap reveal reveal-delay-2">
+        <img class="contact-photo-professional" src="images/contact-photo-professional.jpg" alt="Sebastian Esteva — professional photo">
+        <img class="contact-photo-fun" src="images/contact-photo-fun.jpg" alt="Sebastian Esteva — candid photo">
+      </div>
     </div>
   </section>
 
+  <!-- ═══ FOOTER — the small line at the very bottom of the page ═══ -->
   <footer>
     <span>© 2026 Sebastian Esteva</span>
     <span>Bring wonder through technology</span>
   </footer>
 
+  <!-- ═══════════════════════════════════════════════════════════════
+       JAVASCRIPT — powers the interactive parts of the page.
+       You generally shouldn't need to edit this unless you want to
+       change HOW something behaves (not just text/colors, which live
+       in <style> and <body> above). Each block below is commented.
+       ═══════════════════════════════════════════════════════════════ -->
   <script>
+    /* ─── CUSTOM CURSOR ───
+       Makes a small dot + trailing ring follow your mouse instead of the
+       normal arrow cursor. The ring grows when hovering over any link/button. */
     const cursor = document.getElementById('cursor');
     const ring = document.getElementById('cursorRing');
     let mx = 0, my = 0, rx = 0, ry = 0;
+
+    // Keep cursor hidden until the first real mouse movement fires —
+    // prevents it from sitting stuck in the corner on touch devices
+    cursor.style.opacity = '0';
+    ring.style.opacity = '0';
 
     document.addEventListener('mousemove', e => {
       mx = e.clientX; my = e.clientY;
       cursor.style.left = mx + 'px';
       cursor.style.top = my + 'px';
-    });
+      cursor.style.opacity = '1';
+      ring.style.opacity = '1';
+    }, { once: false });
 
     (function animateRing() {
       rx += (mx - rx) * 0.12;
@@ -788,10 +1003,16 @@
       });
     });
 
-    const words = ['Sebastian', 'Esteva'];
+    /* ─── NAME LETTER ANIMATION ("Tenet" effect) ───
+       ✎ TO CHANGE YOUR NAME: edit the two strings in the array below.
+       On page load, every letter of your name scatters to a random position
+       on screen, then animates back into place (slow start, fast finish —
+       like the time-reversal effect from the movie Tenet). */
+    const words = ['Sebastian', 'Esteva']; // ← your first and last name
     const containers = [document.getElementById('word1'), document.getElementById('word2')];
     const allLetters = [];
 
+    // Break each word into individual letters so each one can animate separately
     words.forEach((word, wi) => {
       word.split('').forEach(ch => {
         const span = document.createElement('span');
@@ -806,8 +1027,11 @@
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const vw = window.innerWidth;
         const vh = window.innerHeight;
+        // Deterministic "random" number generator so the scatter pattern
+        // looks random but is actually the same every time the page loads
         const seed = i => ((i * 1731 + 37) % 1000) / 1000;
 
+        // STEP 1: instantly scatter every letter to a random spot off-screen
         allLetters.forEach(({ el }, i) => {
           const angle = seed(i * 3) * Math.PI * 2;
           const dist = 200 + seed(i * 7 + 1) * Math.max(vw, vh) * 0.8;
@@ -821,9 +1045,11 @@
           el.style.transition = 'none';
         });
 
+        // STEP 2: after a brief pause, animate every letter back to its
+        // normal position — this is the part that's actually visible
         setTimeout(() => {
           allLetters.forEach(({ el }, i) => {
-            const delay = 80 + i * 18;
+            const delay = 80 + i * 18; // each letter starts slightly after the last
             el.style.transition = `transform 1400ms cubic-bezier(0.08, 0.0, 0.08, 1.0) ${delay}ms,
                                    opacity 200ms ease ${delay}ms`;
             el.style.opacity = '1';
@@ -833,6 +1059,10 @@
       }));
     });
 
+    /* ─── ACCESSIBLE MODE TOGGLE ───
+       Handles the "Accessible" button in the nav bar: switches fonts,
+       shows a confirmation banner, and remembers the choice next time
+       the person visits (via localStorage). */
     const banner = document.getElementById('a11yBanner');
     const toggle = document.getElementById('a11yToggle');
     let bannerTimer;
@@ -847,15 +1077,20 @@
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
       toggle.classList.toggle('active', isOn);
-      localStorage.setItem('a11y', isOn ? '1' : '0');
+      localStorage.setItem('a11y', isOn ? '1' : '0'); // remembers the choice for next visit
       showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
     }
 
+    // On page load, restore the person's saved preference from last visit
     if (localStorage.getItem('a11y') === '1') {
       document.body.classList.add('accessible');
       toggle.classList.add('active');
     }
 
+    /* ─── SCROLL REVEAL ───
+       Any element with class="reveal" starts invisible and fades/slides
+       into view the moment it scrolls into the browser's viewport.
+       (This is what makes each section appear as you scroll down the page.) */
     const observer = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });

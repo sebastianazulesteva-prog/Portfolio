@@ -21,7 +21,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sebastian Esteva</title>
+  <title>Sebastian Esteva — Engineer &amp; Communicator | Portfolio</title>
+
+  <!-- ═══ SEO — SEARCH ENGINE METADATA ═══
+       ✎ TO EDIT: change the text inside content="..." on each line below.
+       These don't show up on the page itself — they control how this site
+       looks in Google search results and when shared as a link (e.g. in
+       iMessage, Slack, LinkedIn, X/Twitter). -->
+  <meta name="description" content="Sebastian Esteva is a Stanford engineer and communicator building at the intersection of biomechanical engineering, media, and virtual reality. Explore his portfolio of hands-on projects, work experience, and design work.">
+  <meta name="keywords" content="Sebastian Esteva, Stanford engineer, biomechanical engineering, product design, VR research, portfolio, engineer and communicator">
+  <meta name="author" content="Sebastian Esteva">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://sesteva.com/" />
+
+  <!-- Open Graph tags — control the preview card when this link is shared
+       on iMessage, Slack, LinkedIn, Facebook, etc. -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Sebastian Esteva — Engineer & Communicator">
+  <meta property="og:description" content="Stanford engineer and communicator bringing wonder through technology. Explore hands-on projects spanning mechanical design, VR research, and more.">
+  <meta property="og:image" content="https://sesteva.com/images/contact-photo-professional.jpg">
+  <meta property="og:url" content="https://sesteva.com/">
+  <meta property="og:site_name" content="Sebastian Esteva">
+
+  <!-- Twitter/X card tags — same idea as Open Graph, but for X specifically -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Sebastian Esteva — Engineer & Communicator">
+  <meta name="twitter:description" content="Stanford engineer and communicator bringing wonder through technology.">
+  <meta name="twitter:image" content="https://sesteva.com/images/contact-photo-professional.jpg">
 
   <!-- ═══ FAVICON (the small icon shown in browser tabs) ═══
        All 6 files below need to sit in your images/ folder with these exact names.
@@ -39,6 +65,29 @@
   <!-- Fonts used on this page: Playfair Display (headlines), Syne (body text),
        Atkinson Hyperlegible (used only when "Accessible" mode is on) -->
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <!-- ═══ STRUCTURED DATA (JSON-LD) ═══
+       Tells Google "this page is about a Person" in a machine-readable
+       format. This is what powers rich results like a knowledge panel. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Sebastian Esteva",
+    "url": "https://sesteva.com/",
+    "image": "https://sesteva.com/images/contact-photo-professional.jpg",
+    "jobTitle": "Engineer & Communicator",
+    "email": "sesteva@stanford.edu",
+    "sameAs": [
+      "https://www.linkedin.com/in/sebastian-esteva/"
+    ],
+    "alumniOf": {
+      "@type": "CollegeOrUniversity",
+      "name": "Stanford University"
+    }
+  }
+  </script>
+
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -818,7 +867,7 @@
     <div class="work-grid">
 
       <a href="chess.html" class="work-card reveal">
-        <img src="images/chess-hero.jpg" alt="Poser Chess Set">
+        <img src="images/chess-hero.jpg" alt="Poser Chess Set — a wall-mounted, 3D-printed chess set project">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">01</span>
@@ -828,7 +877,7 @@
       </a>
 
       <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
-        <img src="images/slipdoor-hero.jpg" alt="The Slip Door">
+        <img src="images/slipdoor-hero.jpg" alt="The Slip Door — an accessible sliding car door prototype built with Volkswagen">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">02</span>
@@ -838,7 +887,7 @@
       </a>
 
       <a href="baston.html" class="work-card reveal reveal-delay-2">
-        <img src="images/baston-hero.jpg" alt="Bastón">
+        <img src="images/baston-hero.jpg" alt="Bastón — a hand-built foldable wooden cane project">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">03</span>
@@ -848,7 +897,7 @@
       </a>
 
       <a href="timecollector.html" class="work-card reveal reveal-delay-3">
-        <img src="images/timecollector-hero-front.png" alt="Time Collector">
+        <img src="images/timecollector-hero-front.png" alt="Time Collector — a 24-inch kinetic marble clock sculpture">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">04</span>

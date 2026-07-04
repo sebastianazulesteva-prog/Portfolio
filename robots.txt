@@ -1,0 +1,8 @@
+# robots.txt — tells search engine crawlers which parts of the site
+# they're allowed to visit. "Allow: /" means the whole site is open.
+# The Sitemap line below points crawlers straight to the full page list.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://sesteva.com/sitemap.xml

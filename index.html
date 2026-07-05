@@ -380,9 +380,14 @@
        Two photos stacked exactly on top of each other:
          1. hero-photo-mosaic (bottom)       — the mosaic version, full color
          2. hero-photo-professional (top)    — a photo of you cropped to the
-            SAME aspect ratio/framing as the mosaic, in grayscale, with a
-            soft circular "hole" that follows the mouse cursor, revealing
-            the mosaic underneath wherever you move your mouse.
+            SAME aspect ratio/framing as the mosaic, in grayscale, masked by
+            an SVG mask (#heroRevealMask, defined next to the HTML markup
+            below) with a handful of soft circular "holes" punched in it that
+            reveal the mosaic underneath.
+       On desktop, one hole continuously follows the mouse. On touch, each
+       tap spawns a quick "water drop" hole that fades out on its own — up to
+       3 can be visible at once. See the "HERO PHOTO MOSAIC REVEAL" script
+       further down for how the SVG circles are driven.
        ✎ TO SWAP PHOTOS: replace the two files in images/ folder, keeping
          these exact filenames:
            contact-photo-framed-for-mosaic.jpg   (top layer — cropped to
@@ -409,9 +414,7 @@
       -webkit-mask-image: radial-gradient(ellipse 70% 70% at center, black 40%, transparent 75%);
       mask-image: radial-gradient(ellipse 70% 70% at center, black 40%, transparent 75%);
       animation: heroPhotoFadeIn 2s 1.8s ease forwards;
-      --reveal-radius: 260px;
-      --mx: -9999px; /* off-screen by default so no reveal hole shows until the mouse moves */
-      --my: -9999px;
+      --reveal-radius: 130px;
     }
 
     .hero-photo-mosaic,
@@ -429,12 +432,12 @@
     }
 
     /* Top layer — your normal photo, grayscale + darkened so it reads as a
-       subtle background, with a soft moving "hole" cut out around the cursor
-       (via mask-image) that reveals the mosaic layer underneath. */
+       subtle background, with soft moving "holes" cut out (via the SVG mask
+       referenced below) that reveal the mosaic layer underneath. */
     .hero-photo-professional {
       filter: grayscale(100%) contrast(1.15) brightness(0.65);
-      -webkit-mask-image: radial-gradient(circle var(--reveal-radius) at var(--mx) var(--my), transparent 0%, transparent 55%, black 100%);
-      mask-image: radial-gradient(circle var(--reveal-radius) at var(--mx) var(--my), transparent 0%, transparent 55%, black 100%);
+      -webkit-mask-image: url(#heroRevealMask);
+      mask-image: url(#heroRevealMask);
     }
 
     .hero-name {
@@ -876,7 +879,7 @@
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
-      .hero-photo-wrap { width: 100vw; opacity: 0.9 !important; --reveal-radius: 160px; }
+      .hero-photo-wrap { width: 100vw; opacity: 0.9 !important; --reveal-radius: 80px; }
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: 160px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
@@ -982,14 +985,36 @@
 
     <div class="hero-content">
       <!-- ═══ HERO BACKGROUND PHOTO — MOSAIC REVEAL ═══
-           Move your mouse over this area: the top photo (grayscale) has a
-           soft hole that follows the cursor, revealing the mosaic photo
-           underneath in full color. Both images must be the same crop/
-           aspect ratio to line up — see the CSS comment above
-           class="hero-photo-wrap" for exact filenames. -->
+           Desktop: move your mouse over this area — the top photo (grayscale)
+           has a soft hole that follows the cursor, revealing the mosaic photo
+           underneath in full color.
+           Mobile/touch: each tap drops a soft hole that quickly fades away
+           on its own (up to 3 can be visible at once), like a drop of water.
+           Both images must be the same crop/aspect ratio to line up — see the
+           CSS comment above class="hero-photo-wrap" for exact filenames.
+           The actual holes are 4 <circle> elements in the SVG mask below (1
+           for the desktop cursor, 3 reusable slots for touch taps) — see
+           "HERO PHOTO MOSAIC REVEAL" further down in the <script> for how
+           they're driven. -->
       <div class="hero-photo-wrap" id="heroPhotoWrap">
         <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="">
         <img class="hero-photo-professional" src="images/contact-photo-framed-for-mosaic.jpg" alt="">
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <defs>
+            <radialGradient id="heroRevealGrad">
+              <stop offset="0%" stop-color="#000" />
+              <stop offset="55%" stop-color="#000" />
+              <stop offset="100%" stop-color="#fff" />
+            </radialGradient>
+            <mask id="heroRevealMask" maskContentUnits="userSpaceOnUse">
+              <rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff" />
+              <circle id="heroRevealMouse" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
+              <circle class="hero-reveal-drop" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
+              <circle class="hero-reveal-drop" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
+              <circle class="hero-reveal-drop" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
+            </mask>
+          </defs>
+        </svg>
       </div>
 
       <h1 class="hero-name" id="heroName">
@@ -1214,15 +1239,25 @@
     })();
 
     /* ─── HERO PHOTO MOSAIC REVEAL ───
-       Reuses the same global mouse position (mx, my) tracked above for the
-       custom cursor. Every frame, converts that page position into local
-       coordinates relative to the hero photo box, then updates --mx/--my —
-       the CSS mask on .hero-photo-professional uses those to position the
-       circular "reveal hole" so it always lines up with the actual cursor,
-       regardless of scroll position or screen size. */
+       Drives the 4 <circle> "holes" in the #heroRevealMask SVG (see the HTML
+       above class="hero-photo-wrap"): 1 that continuously follows the mouse
+       on desktop, and 3 reusable slots for touch taps on mobile.
+       --reveal-radius is read once (and again on resize, since the mobile
+       media query sets a smaller value) rather than every frame — cheap. */
     const heroPhotoWrap = document.getElementById('heroPhotoWrap');
+    const heroRevealMouse = document.getElementById('heroRevealMouse');
+    const heroRevealDrops = document.querySelectorAll('.hero-reveal-drop');
 
-    if (heroPhotoWrap) {
+    if (heroPhotoWrap && heroRevealMouse) {
+      let revealRadius = 130;
+      const readRevealRadius = () => {
+        revealRadius = parseFloat(getComputedStyle(heroPhotoWrap).getPropertyValue('--reveal-radius')) || 130;
+      };
+      readRevealRadius();
+      window.addEventListener('resize', readRevealRadius);
+
+      // Desktop: continuously follow the mouse, reusing the same global
+      // mx/my tracked above for the custom cursor.
       (function animateHeroReveal() {
         const rect = heroPhotoWrap.getBoundingClientRect();
         // Only bother updating while the box is at least partly on screen,
@@ -1230,13 +1265,34 @@
         // unwanted reveal hole from appearing on touch devices, which never
         // fire mousemove) — cheap early-out so this does nothing otherwise
         if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
-          const localX = mx - rect.left;
-          const localY = my - rect.top;
-          heroPhotoWrap.style.setProperty('--mx', localX + 'px');
-          heroPhotoWrap.style.setProperty('--my', localY + 'px');
+          heroRevealMouse.setAttribute('cx', mx - rect.left);
+          heroRevealMouse.setAttribute('cy', my - rect.top);
+          heroRevealMouse.setAttribute('r', revealRadius);
         }
         requestAnimationFrame(animateHeroReveal);
       })();
+
+      // Mobile: each tap "drops" a hole at the touch point that quickly
+      // grows in then fades out on its own — round-robins across the 3
+      // reusable circles above, so up to 3 can be visible at once.
+      let nextDrop = 0;
+      heroPhotoWrap.addEventListener('touchstart', e => {
+        const rect = heroPhotoWrap.getBoundingClientRect();
+        for (const touch of e.changedTouches) {
+          const dot = heroRevealDrops[nextDrop];
+          nextDrop = (nextDrop + 1) % heroRevealDrops.length;
+
+          dot.style.transition = 'none';
+          dot.setAttribute('r', '0');
+          dot.setAttribute('cx', touch.clientX - rect.left);
+          dot.setAttribute('cy', touch.clientY - rect.top);
+          dot.style.opacity = '1';
+          void dot.getBoundingClientRect(); // force reflow so the transition below actually animates
+          dot.style.transition = 'r 200ms ease-out, opacity 500ms ease-in 150ms';
+          dot.setAttribute('r', String(revealRadius));
+          dot.style.opacity = '0';
+        }
+      }, { passive: true });
     }
 
     document.querySelectorAll('a, button').forEach(el => {

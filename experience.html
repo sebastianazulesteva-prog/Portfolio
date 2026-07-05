@@ -61,6 +61,11 @@
       --sans: 'Syne', system-ui, sans-serif;
     }
 
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full explanation. */
+    html.accessible {
+      font-size: 115%;
+    }
+
     body.accessible {
       --serif: 'Atkinson Hyperlegible', sans-serif;
       --sans: 'Atkinson Hyperlegible', sans-serif;
@@ -145,6 +150,104 @@
     }
 
     .back-link:hover { border-color: var(--border-hover); color: var(--text); }
+
+    /* ─── ACCESSIBLE MODE TOGGLE + BANNER + EXPLAINER CARD ───
+       See index.html for the full write-up — same behavior here. */
+    .a11y-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.4rem 0.9rem;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: none;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .a11y-toggle:hover { border-color: var(--border-hover); color: var(--text); }
+    .a11y-toggle.active { border-color: var(--text); color: var(--text); background: rgba(245,245,240,0.05); }
+
+    .a11y-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .a11y-toggle.active .a11y-dot { background: var(--text); }
+
+    .a11y-banner {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg3);
+      border: 1px solid var(--border-hover);
+      border-radius: 100px;
+      padding: 0.6rem 1.4rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      z-index: 200;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .a11y-banner.visible { transform: translateX(-50%) translateY(0); }
+
+    .a11y-note {
+      position: fixed;
+      top: 5.5rem;
+      right: 1.5rem;
+      z-index: 150;
+      width: min(280px, calc(100vw - 3rem));
+      background: var(--bg3);
+      border: 1px solid var(--border-hover);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .a11y-note.visible { opacity: 1; transform: none; pointer-events: auto; }
+    .a11y-note p { font-size: 0.72rem; line-height: 1.55; color: var(--muted); }
+    .a11y-note strong { color: var(--text); }
+    .a11y-note a { color: var(--text); }
+
+    .a11y-note-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.6rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1;
+      cursor: none;
+      padding: 0.2rem;
+    }
+
+    .a11y-note-close:hover { color: var(--text); }
+
+    .a11y-line-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: rgba(245, 245, 240, 0.12);
+      pointer-events: none;
+      clip-path: inset(0 0 100% 0);
+    }
 
     main {
       max-width: 900px;
@@ -284,9 +387,20 @@
   <div class="cursor" id="cursor"></div>
   <div class="cursor-ring" id="cursorRing"></div>
 
+  <div class="a11y-banner" id="a11yBanner"></div>
+
+  <div class="a11y-note" id="a11yNote">
+    <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
+    <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go — <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
+  </div>
+
   <!-- ═══ NAV ═══ -->
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+      <span class="a11y-dot"></span>
+      Accessible
+    </button>
     <a class="back-link" href="index.html#work">← Back to Home</a>
   </nav>
 
@@ -454,7 +568,7 @@
       requestAnimationFrame(animateRing);
     })();
 
-    document.querySelectorAll('a').forEach(el => {
+    document.querySelectorAll('a, button').forEach(el => {
       el.addEventListener('mouseenter', () => {
         ring.style.width = '56px'; ring.style.height = '56px';
         ring.style.borderColor = 'rgba(245,245,240,0.5)';
@@ -471,6 +585,89 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
     document.querySelectorAll('.exp-item').forEach(el => observer.observe(el));
+
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    const banner = document.getElementById('a11yBanner');
+    const toggle = document.getElementById('a11yToggle');
+    const a11yNote = document.getElementById('a11yNote');
+    let bannerTimer;
+
+    function showBanner(msg) {
+      banner.textContent = msg;
+      banner.classList.add('visible');
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
+    }
+
+    function updateA11yNote(show) {
+      if (a11yNote) a11yNote.classList.toggle('visible', show);
+    }
+
+    function dismissA11yNote() {
+      sessionStorage.setItem('a11yNoteDismissed', '1');
+      updateA11yNote(false);
+    }
+
+    function toggleAccessible() {
+      const isOn = document.body.classList.toggle('accessible');
+      document.documentElement.classList.toggle('accessible', isOn);
+      toggle.classList.toggle('active', isOn);
+      localStorage.setItem('a11y', isOn ? '1' : '0');
+      showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
+
+      if (isOn) {
+        sessionStorage.removeItem('a11yNoteDismissed');
+        updateA11yNote(true);
+      } else {
+        updateA11yNote(false);
+        document.querySelectorAll('.a11y-line-overlay').forEach(o => {
+          o.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      }
+    }
+
+    if (localStorage.getItem('a11y') === '1') {
+      document.body.classList.add('accessible');
+      document.documentElement.classList.add('accessible');
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') updateA11yNote(true);
+    }
+
+    function initA11yLineHighlight(selector) {
+      document.querySelectorAll(selector).forEach(el => {
+        // The highlight bar is a plain absolutely-positioned box with
+        // z-index:-1, so it needs el to be positioned (to anchor to) and to
+        // establish its own stacking context (so the bar paints behind el's
+        // own text without leaking behind any ancestor's background).
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        if (getComputedStyle(el).zIndex === 'auto') el.style.zIndex = '0';
+
+        const overlay = document.createElement('span');
+        overlay.className = 'a11y-line-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        el.appendChild(overlay);
+
+        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+        window.addEventListener('resize', () => {
+          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+        });
+
+        el.addEventListener('mousemove', e => {
+          if (!document.body.classList.contains('accessible')) return;
+          const rect = el.getBoundingClientRect();
+          const line = Math.floor((e.clientY - rect.top) / lineHeight);
+          const top = Math.max(line, 0) * lineHeight;
+          const bottom = Math.max(rect.height - top - lineHeight, 0);
+          overlay.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
+        });
+
+        el.addEventListener('mouseleave', () => {
+          overlay.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      });
+    }
+
+    initA11yLineHighlight('.page-title, .exp-company, .exp-date, .exp-role, .exp-bullets li');
   </script>
 </body>
 </html>

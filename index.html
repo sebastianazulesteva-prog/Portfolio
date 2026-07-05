@@ -132,7 +132,15 @@
     /* ─── ACCESSIBLE MODE ───
        When the "Accessible" button (top right of nav) is toggled on, the body
        gets this class added, which swaps both fonts for Atkinson Hyperlegible
-       (a font designed for easier reading) and loosens spacing slightly. */
+       (a free typeface from the Braille Institute designed to reduce letter
+       confusion for low-vision readers) and loosens spacing slightly.
+       The <html> element also gets the class, bumping the root font-size —
+       since nearly every size on this page is set in rem, this scales the
+       whole page's text up proportionally. */
+    html.accessible {
+      font-size: 115%;
+    }
+
     body.accessible {
       --serif: 'Atkinson Hyperlegible', sans-serif;
       --sans: 'Atkinson Hyperlegible', sans-serif;
@@ -511,6 +519,7 @@
     .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6rem; }
 
     .about-text p {
+      position: relative;
       font-size: 1rem;
       color: rgba(245,245,240,0.55);
       line-height: 1.9;
@@ -839,6 +848,70 @@
 
     .a11y-banner.visible { transform: translateX(-50%) translateY(0); }
 
+    /* ─── ACCESSIBLE MODE — EXPLAINER CARD ───
+       Small card that appears near the top-right of the nav whenever
+       Accessible mode is on, explaining what changed and why (font, size,
+       line highlight). Dismissible with the × — see toggleAccessible() and
+       dismissA11yNote() in the script for the show/hide logic. */
+    .a11y-note {
+      position: fixed;
+      top: 5.5rem;
+      right: 1.5rem;
+      z-index: 150;
+      width: min(280px, calc(100vw - 3rem));
+      background: var(--bg3);
+      border: 1px solid var(--border-hover);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .a11y-note.visible { opacity: 1; transform: none; pointer-events: auto; }
+
+    .a11y-note p {
+      font-size: 0.72rem;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .a11y-note strong { color: var(--text); }
+
+    .a11y-note a { color: var(--text); }
+
+    .a11y-note-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.6rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1;
+      cursor: none;
+      padding: 0.2rem;
+    }
+
+    .a11y-note-close:hover { color: var(--text); }
+
+    /* ─── ACCESSIBLE MODE — LINE HOVER HIGHLIGHT ───
+       Only meaningful while Accessible mode is on (gated in the script, not
+       here in CSS — see initA11yLineHighlight()). Each qualifying text block
+       gets one plain highlight bar layered behind it, clipped down to a
+       single line-height band. On mousemove the band is repositioned to
+       whichever line the cursor is over, creating a reading-ruler effect;
+       on mouseleave it collapses to nothing. */
+    .a11y-line-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: rgba(245, 245, 240, 0.12);
+      pointer-events: none;
+      clip-path: inset(0 0 100% 0);
+    }
+
     footer {
       padding: 2rem 3rem;
       display: flex;
@@ -931,6 +1004,14 @@
 
   <!-- Small popup that appears bottom-center when you toggle Accessible mode on/off -->
   <div class="a11y-banner" id="a11yBanner"></div>
+
+  <!-- ═══ ACCESSIBLE MODE EXPLAINER CARD ═══
+       Shown/hidden by updateA11yNote() in the script whenever Accessible
+       mode is on (and not dismissed this session) — see toggleAccessible(). -->
+  <div class="a11y-note" id="a11yNote">
+    <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
+    <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go — <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
+  </div>
 
   <!-- ═══ NAV BAR ═══
        "SE" logo (top left) links back to the top of the page.
@@ -1388,11 +1469,12 @@
     }
 
     /* ─── ACCESSIBLE MODE TOGGLE ───
-       Handles the "Accessible" button in the nav bar: switches fonts,
-       shows a confirmation banner, and remembers the choice next time
-       the person visits (via localStorage). */
+       Handles the "Accessible" button in the nav bar: switches fonts, bumps
+       text size, shows a confirmation banner + explainer card, and remembers
+       the choice next time the person visits (via localStorage). */
     const banner = document.getElementById('a11yBanner');
     const toggle = document.getElementById('a11yToggle');
+    const a11yNote = document.getElementById('a11yNote');
     let bannerTimer;
 
     function showBanner(msg) {
@@ -1402,18 +1484,88 @@
       bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
     }
 
+    // Explainer card: shown whenever accessible mode is on, unless the
+    // person already dismissed it earlier this browser session.
+    function updateA11yNote(show) {
+      if (a11yNote) a11yNote.classList.toggle('visible', show);
+    }
+
+    function dismissA11yNote() {
+      sessionStorage.setItem('a11yNoteDismissed', '1');
+      updateA11yNote(false);
+    }
+
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
+      document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
       localStorage.setItem('a11y', isOn ? '1' : '0'); // remembers the choice for next visit
       showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
+
+      if (isOn) {
+        // Re-show the explainer even if it was dismissed earlier — the
+        // person just deliberately turned the mode back on.
+        sessionStorage.removeItem('a11yNoteDismissed');
+        updateA11yNote(true);
+      } else {
+        updateA11yNote(false);
+        // Clear any stale reading-ruler highlight left over from hovering
+        // text right as the mode was switched off.
+        document.querySelectorAll('.a11y-line-overlay').forEach(o => {
+          o.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      }
     }
 
     // On page load, restore the person's saved preference from last visit
     if (localStorage.getItem('a11y') === '1') {
       document.body.classList.add('accessible');
+      document.documentElement.classList.add('accessible');
       toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') updateA11yNote(true);
     }
+
+    /* ─── ACCESSIBLE MODE — LINE HOVER HIGHLIGHT ───
+       Gives each qualifying text block (see selector below) a reading-ruler
+       effect: hovering highlights just the line under the cursor. Built with
+       one cloned, full-brightness overlay per block, clipped to a single
+       line-height band via clip-path — only active while accessible mode is
+       on (checked in the mousemove handler, so this stays cheap otherwise). */
+    function initA11yLineHighlight(selector) {
+      document.querySelectorAll(selector).forEach(el => {
+        // The highlight bar is a plain absolutely-positioned box with
+        // z-index:-1, so it needs el to be positioned (to anchor to) and to
+        // establish its own stacking context (so the bar paints behind el's
+        // own text without leaking behind any ancestor's background).
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        if (getComputedStyle(el).zIndex === 'auto') el.style.zIndex = '0';
+
+        const overlay = document.createElement('span');
+        overlay.className = 'a11y-line-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        el.appendChild(overlay);
+
+        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+        window.addEventListener('resize', () => {
+          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+        });
+
+        el.addEventListener('mousemove', e => {
+          if (!document.body.classList.contains('accessible')) return;
+          const rect = el.getBoundingClientRect();
+          const line = Math.floor((e.clientY - rect.top) / lineHeight);
+          const top = Math.max(line, 0) * lineHeight;
+          const bottom = Math.max(rect.height - top - lineHeight, 0);
+          overlay.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
+        });
+
+        el.addEventListener('mouseleave', () => {
+          overlay.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      });
+    }
+
+    initA11yLineHighlight('.hero-tagline, .section-title, .about-text p, .stat-label, .stat-value, .work-card-title, .work-card-tag, .work-card-num, .contact-big, .contact-link, footer span');
 
     /* ─── CONTACT PHOTO SLIDESHOW ───
        Auto-advances through every photo every 4 seconds, looping back to the

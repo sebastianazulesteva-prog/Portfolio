@@ -27,7 +27,7 @@
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
 
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -45,6 +45,16 @@
     }
 
     html{scroll-behavior:smooth}
+
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    html.accessible{ font-size:115%; }
+
+    body.accessible{
+      --sans:'Atkinson Hyperlegible', sans-serif;
+      letter-spacing:0.01em;
+      word-spacing:0.05em;
+      line-height:1.8;
+    }
 
     body{
       background:var(--white);
@@ -89,6 +99,105 @@
     }
 
     .back-link:hover{ background:var(--ink); color:var(--white); }
+
+    /* ─── ACCESSIBLE MODE TOGGLE + BANNER + EXPLAINER CARD ───
+       See index.html for the full write-up — same behavior here. */
+    .a11y-toggle{
+      display:flex;
+      align-items:center;
+      gap:0.6rem;
+      background:none;
+      border:2px solid var(--ink);
+      border-radius:100px;
+      padding:0.4rem 0.9rem;
+      color:var(--ink);
+      font-family:var(--sans);
+      font-size:0.65rem;
+      font-weight:600;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .a11y-toggle:hover{ background:var(--ink); color:var(--white); }
+    .a11y-toggle.active{ background:var(--ink); color:var(--white); }
+
+    .a11y-dot{
+      width:6px; height:6px;
+      border-radius:50%;
+      background:var(--ink-faint);
+      transition:background 0.2s;
+      flex-shrink:0;
+    }
+
+    .a11y-toggle.active .a11y-dot{ background:var(--white); }
+
+    .a11y-banner{
+      position:fixed;
+      bottom:2rem;
+      left:50%;
+      transform:translateX(-50%) translateY(80px);
+      background:var(--ink);
+      border:1px solid var(--ink);
+      border-radius:100px;
+      padding:0.6rem 1.4rem;
+      font-size:0.7rem;
+      letter-spacing:0.04em;
+      text-transform:uppercase;
+      color:var(--white);
+      z-index:200;
+      transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      white-space:nowrap;
+      pointer-events:none;
+    }
+
+    .a11y-banner.visible{ transform:translateX(-50%) translateY(0); }
+
+    .a11y-note{
+      position:fixed;
+      top:5.5rem;
+      right:1.5rem;
+      z-index:150;
+      width:min(280px, calc(100vw - 3rem));
+      background:var(--vwblue-soft);
+      border:2px solid var(--magenta);
+      border-radius:12px;
+      padding:1rem 1.1rem;
+      opacity:0;
+      transform:translateY(-12px);
+      pointer-events:none;
+      transition:opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .a11y-note.visible{ opacity:1; transform:none; pointer-events:auto; }
+    .a11y-note p{ font-size:0.72rem; line-height:1.55; color:var(--ink-soft); }
+    .a11y-note strong{ color:var(--ink); }
+    .a11y-note a{ color:var(--magenta); }
+
+    .a11y-note-close{
+      position:absolute;
+      top:0.5rem;
+      right:0.6rem;
+      background:none;
+      border:none;
+      color:var(--ink-soft);
+      font-size:1rem;
+      line-height:1;
+      cursor:pointer;
+      padding:0.2rem;
+    }
+
+    .a11y-note-close:hover{ color:var(--ink); }
+
+    .a11y-line-overlay{
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background:rgba(224,168,62,0.4);
+      pointer-events:none;
+      clip-path:inset(0 0 100% 0);
+    }
 
     /* ─── HERO ─── */
     .hero{
@@ -177,6 +286,7 @@
     }
 
     .block-body p{
+      position:relative;
       font-size:1.05rem;
       font-weight:600;
       color:var(--ink);
@@ -246,8 +356,19 @@
 </head>
 <body>
 
+  <div class="a11y-banner" id="a11yBanner"></div>
+
+  <div class="a11y-note" id="a11yNote">
+    <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
+    <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go — <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
+  </div>
+
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+      <span class="a11y-dot"></span>
+      Accessible
+    </button>
     <a class="back-link" href="index.html#work">← Back to Work</a>
   </nav>
 
@@ -313,5 +434,89 @@
     <a class="back-bottom" href="index.html#work">← Back to Selected Work</a>
   </div>
 
+  <script>
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    const banner = document.getElementById('a11yBanner');
+    const toggle = document.getElementById('a11yToggle');
+    const a11yNote = document.getElementById('a11yNote');
+    let bannerTimer;
+
+    function showBanner(msg) {
+      banner.textContent = msg;
+      banner.classList.add('visible');
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
+    }
+
+    function updateA11yNote(show) {
+      if (a11yNote) a11yNote.classList.toggle('visible', show);
+    }
+
+    function dismissA11yNote() {
+      sessionStorage.setItem('a11yNoteDismissed', '1');
+      updateA11yNote(false);
+    }
+
+    function toggleAccessible() {
+      const isOn = document.body.classList.toggle('accessible');
+      document.documentElement.classList.toggle('accessible', isOn);
+      toggle.classList.toggle('active', isOn);
+      localStorage.setItem('a11y', isOn ? '1' : '0');
+      showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
+
+      if (isOn) {
+        sessionStorage.removeItem('a11yNoteDismissed');
+        updateA11yNote(true);
+      } else {
+        updateA11yNote(false);
+        document.querySelectorAll('.a11y-line-overlay').forEach(o => {
+          o.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      }
+    }
+
+    if (localStorage.getItem('a11y') === '1') {
+      document.body.classList.add('accessible');
+      document.documentElement.classList.add('accessible');
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') updateA11yNote(true);
+    }
+
+    function initA11yLineHighlight(selector) {
+      document.querySelectorAll(selector).forEach(el => {
+        // The highlight bar is a plain absolutely-positioned box with
+        // z-index:-1, so it needs el to be positioned (to anchor to) and to
+        // establish its own stacking context (so the bar paints behind el's
+        // own text without leaking behind any ancestor's background).
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        if (getComputedStyle(el).zIndex === 'auto') el.style.zIndex = '0';
+
+        const overlay = document.createElement('span');
+        overlay.className = 'a11y-line-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        el.appendChild(overlay);
+
+        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+        window.addEventListener('resize', () => {
+          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+        });
+
+        el.addEventListener('mousemove', e => {
+          if (!document.body.classList.contains('accessible')) return;
+          const rect = el.getBoundingClientRect();
+          const line = Math.floor((e.clientY - rect.top) / lineHeight);
+          const top = Math.max(line, 0) * lineHeight;
+          const bottom = Math.max(rect.height - top - lineHeight, 0);
+          overlay.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
+        });
+
+        el.addEventListener('mouseleave', () => {
+          overlay.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      });
+    }
+
+    initA11yLineHighlight('.hero-title, .hero-caption, .block-label, .block-body p');
+  </script>
 </body>
 </html>

@@ -383,11 +383,16 @@
 
     .process-tag.pink{ background:var(--pink); color:#fff; border-color:var(--pink); }
 
-    /* ─── FINAL HERO SHOT ─── */
+    /* ─── FINAL HERO SHOT ───
+       Capped to roughly one .process-card's width so it reads consistent
+       with the rest of the page instead of stretching full-width. Only
+       width is constrained (height:auto), so the photo scales down cleanly
+       with no cropping or distortion. */
     .final-hero-wrap{
+      max-width:480px;
+      margin:3rem auto 1rem;
       border-radius:6px;
       overflow:hidden;
-      margin:3rem 0 1rem;
       box-shadow:12px 12px 0 var(--pink-pale);
     }
 
@@ -454,7 +459,7 @@
       </div>
 
       <div class="hero-img-wrap">
-        <img src="images/baston-hero.jpg" alt="Bastón — foldable cane" width="5184" height="3058">
+        <img src="images/baston-hero.jpg" alt="Close-up of the Bastón foldable cane's folding joint and rainbow strap" width="5184" height="3058">
       </div>
     </div>
 
@@ -492,7 +497,7 @@
       -->
       <div class="process-card">
         <span class="process-tag">Rapid prototype & sketches</span>
-        <img src="images/baston-sketch.jpg" alt="Bastón — early sketches and rapid prototype" width="4284" height="5712" loading="lazy">
+        <img src="images/baston-sketch.jpg" alt="Cardboard rapid prototype and hand sketches for the Bastón folding mechanism" width="4284" height="5712" loading="lazy">
       </div>
 
       <!-- ═══ IMAGE SLOT 3 — 3D-PRINT PROTOTYPE ═══
@@ -500,7 +505,7 @@
       -->
       <div class="process-card">
         <span class="process-tag pink">3D prints of mechanism</span>
-        <img src="images/baston-3dprint.jpg" alt="Bastón — 3D-printed mechanism prototype" width="2920" height="3839" loading="lazy">
+        <img src="images/baston-3dprint.jpg" alt="3D-printed folding mechanism parts for the Bastón cane" width="2920" height="3839" loading="lazy">
       </div>
 
       <!-- ═══ IMAGE SLOT 4 — WORKING SHOT ═══
@@ -509,7 +514,7 @@
       -->
       <div class="process-card">
         <span class="process-tag">Me on the lathe</span>
-        <img src="images/baston-working.jpg" alt="Bastón — working on the lathe" width="1410" height="1062" loading="lazy">
+        <img src="images/baston-working.jpg" alt="Sebastian Esteva machining a wooden cane piece on a lathe" width="1410" height="1062" loading="lazy">
       </div>
 
       <!-- ═══ IMAGE SLOT 5 — PARTS LIST ═══
@@ -518,7 +523,7 @@
       -->
       <div class="process-card">
         <span class="process-tag pink">Parts list</span>
-        <img src="images/baston-parts.jpg" alt="Bastón — labeled parts: shafts, links, pins, outer shell" width="4284" height="3894" loading="lazy">
+        <img src="images/baston-parts.jpg" alt="Wood, aluminum, and brass parts laid out for the Bastón cane build" width="4284" height="3894" loading="lazy">
       </div>
 
     </div>
@@ -528,7 +533,7 @@
          Suggested: the cane fully unfolded/extended, standing upright
     -->
     <div class="final-hero-wrap">
-      <img src="images/baston-final.jpg" alt="Bastón — fully extended, finished cane" width="3456" height="5184" loading="lazy">
+      <img src="images/baston-final.jpg" alt="Bastón finished cane leaning against a wooden bench outdoors" width="3456" height="5184" loading="lazy">
     </div>
 
   </article>

@@ -377,6 +377,8 @@
 
     @media (max-width: 768px) {
       nav { padding: 1.5rem; }
+      .a11y-toggle { font-size: 0.78rem; padding: 0.55rem 1.1rem; }
+      .back-link { font-size: 0.78rem; padding: 0.7rem 1.3rem; }
       main { padding: 3rem 1.5rem 5rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
     }
@@ -397,17 +399,24 @@
   <!-- ═══ NAV ═══ -->
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#projects">← Back to Home</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
       Accessible
     </button>
-    <a class="back-link" href="index.html#projects">← Back to Home</a>
   </nav>
 
   <main>
     <div class="page-header">
       <span class="section-num">02 — Experience</span>
       <h1 class="page-title">Where I've<br><em>worked.</em></h1>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <a href="https://canva.link/t3jqobabksdbv33" class="back-bottom" target="_blank" rel="noopener">
+        <span>View All Projects in One Place</span>
+        <span>↗</span>
+      </a>
     </div>
 
     <!-- ═══ EXPERIENCE LIST ═══
@@ -428,7 +437,7 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://exploreintrosems.stanford.edu/opportunities/ouch-it-hurts-comparative-neurobiology-pain" target="_blank" class="exp-company">Stanford University</a>
+        <a href="https://exploreintrosems.stanford.edu/opportunities/ouch-it-hurts-comparative-neurobiology-pain" target="_blank" class="exp-company">Stanford University - Comparative Medicine</a>
         <span class="exp-date">Summer 2026</span>
       </div>
       <p class="exp-role">Teaching Assistant, Neurobiology of Pain</p>
@@ -561,8 +570,8 @@
     });
 
     (function animateRing() {
-      rx += (mx - rx) * 0.12;
-      ry += (my - ry) * 0.12;
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
       ring.style.left = rx + 'px';
       ring.style.top = ry + 'px';
       requestAnimationFrame(animateRing);
@@ -647,13 +656,11 @@
         overlay.setAttribute('aria-hidden', 'true');
         el.appendChild(overlay);
 
-        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        window.addEventListener('resize', () => {
-          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        });
-
         el.addEventListener('mousemove', e => {
           if (!document.body.classList.contains('accessible')) return;
+          // Computed fresh every hover (not cached) since toggling accessible
+          // mode changes the font and line-height after this listener is set up.
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
           const rect = el.getBoundingClientRect();
           const line = Math.floor((e.clientY - rect.top) / lineHeight);
           const top = Math.max(line, 0) * lineHeight;

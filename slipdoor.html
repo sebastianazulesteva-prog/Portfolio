@@ -357,6 +357,8 @@
 
     @media(max-width:768px){
       nav{ padding:1.2rem 1.5rem; }
+      .a11y-toggle{ font-size:0.78rem; padding:0.55rem 1.1rem; }
+      .back-link{ font-size:0.78rem; padding:0.7rem 1.3rem; }
       .hero{ grid-template-columns:1fr; padding:2.5rem 1.5rem 0; gap:1rem; }
       .hero-caption, .link-bar{ padding-left:1.5rem; padding-right:1.5rem; }
       .block{ grid-template-columns:1fr; padding:2rem 1.5rem; gap:1rem; }
@@ -375,11 +377,11 @@
 
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#projects">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
       Accessible
     </button>
-    <a class="back-link" href="index.html#projects">← Back to Projects</a>
   </nav>
 
   <div class="hero">
@@ -394,6 +396,7 @@
   </div>
 
   <p class="hero-caption">By Victor Son, Sebastian Esteva, Seth Rhodes, Odommoly Tranin</p>
+  <p class="hero-caption">Built in collaboration with the Volkswagen Innovation and Engineering Center California, for VW's Future of Entry challenge</p>
 
   <div class="link-bar">
     <a href="https://searchworks.stanford.edu/view/jv618zg4362" class="report-link" target="_blank" rel="noopener">
@@ -416,6 +419,7 @@
     <div class="block-label">Idea + Building</div>
     <div class="block-body">
       <p class="detail">Four coordinated subsystems — a push-pull actuator, pivot arm, chain-and-sprocket mechanism, and alignment actuator — circumvent traditional front-door challenges.</p>
+      <p class="detail">Built as a fully operational, full-scale prototype — real electrical and motor-drive systems included, not just a mockup.</p>
 
       <!-- ═══ IMAGE SLOT 2 & 3 — IN-PROCESS BUILD SHOTS ═══
            Label these files: slipdoor-process-1.jpg and slipdoor-process-2.jpg
@@ -511,13 +515,11 @@
         overlay.setAttribute('aria-hidden', 'true');
         el.appendChild(overlay);
 
-        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        window.addEventListener('resize', () => {
-          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        });
-
         el.addEventListener('mousemove', e => {
           if (!document.body.classList.contains('accessible')) return;
+          // Computed fresh every hover (not cached) since toggling accessible
+          // mode changes the font and line-height after this listener is set up.
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
           const rect = el.getBoundingClientRect();
           const line = Math.floor((e.clientY - rect.top) / lineHeight);
           const top = Math.max(line, 0) * lineHeight;

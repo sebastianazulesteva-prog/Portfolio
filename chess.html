@@ -313,11 +313,20 @@
       color:var(--white);
     }
 
+    /* The badge always stacks its two glyphs in a column, but which pair of
+       glyphs it shows depends on whether the photos are side-by-side
+       (→ over ←, pointing at each other horizontally) or stacked on mobile
+       (↓ over ↑, pointing at each other vertically) — the arrows should
+       always point between the two images, not just default to horizontal. */
+    .img-pair-transform .arrow-vertical{ display:none; }
+
     @media(max-width:768px){
       .img-pair{ grid-template-columns:1fr; gap:0; }
       .img-pair .img-slot:first-child{ border-radius:6px 6px 0 0; }
       .img-pair .img-slot:last-child{ border-radius:0 0 6px 6px; }
       .img-pair-transform{ width:38px; height:38px; font-size:0.8rem; }
+      .img-pair-transform .arrow-horizontal{ display:none; }
+      .img-pair-transform .arrow-vertical{ display:inline; }
     }
 
     /* ─── 2×2 IMAGE COLLAGE ───
@@ -526,6 +535,8 @@
 
     @media(max-width:768px){
       nav{ padding:1.25rem 1.5rem; }
+      .a11y-toggle{ font-size:0.78rem; padding:0.55rem 1.1rem; }
+      .back-link{ font-size:0.78rem; padding:0.7rem 1.3rem; }
       main{ padding:3rem 1.5rem 5rem; }
       .meta-row{ flex-direction:column; }
       .meta-item{ border-left:none; border-top:1px solid var(--line); }
@@ -546,11 +557,11 @@
 
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#projects">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
       Accessible
     </button>
-    <a class="back-link" href="index.html#projects">← Back to Projects</a>
   </nav>
 
   <main>
@@ -575,11 +586,20 @@
         <img src="images/chess-final-AI-Pieces.jpg" alt="Poser Chess Set — finished, fully posed set">
       </div>
       <div class="img-pair-transform" aria-hidden="true">
-        <span>→</span>
-        <span>←</span>
+        <span class="arrow-horizontal">→</span>
+        <span class="arrow-horizontal">←</span>
+        <span class="arrow-vertical">↓</span>
+        <span class="arrow-vertical">↑</span>
       </div>
     </div>
     <p class="hero-caption">Sebastian Esteva — ME 227, Winter 2026</p>
+
+    <div style="text-align:center; margin-top:1.5rem;">
+      <a href="https://canva.link/7iz5vqdo5poc2wv" class="back-bottom" target="_blank" rel="noopener">
+        <span>View Full Slideshow</span>
+        <span>↗</span>
+      </a>
+    </div>
 
     <div class="meta-row">
       <div class="meta-item">
@@ -750,13 +770,11 @@
         overlay.setAttribute('aria-hidden', 'true');
         el.appendChild(overlay);
 
-        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        window.addEventListener('resize', () => {
-          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        });
-
         el.addEventListener('mousemove', e => {
           if (!document.body.classList.contains('accessible')) return;
+          // Computed fresh every hover (not cached) since toggling accessible
+          // mode changes the font and line-height after this listener is set up.
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
           const rect = el.getBoundingClientRect();
           const line = Math.floor((e.clientY - rect.top) / lineHeight);
           const top = Math.max(line, 0) * lineHeight;

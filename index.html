@@ -335,13 +335,13 @@
          1. hero-photo-mosaic (bottom)       — the mosaic version, full color
          2. hero-photo-professional (top)    — a photo of you cropped to the
             SAME aspect ratio/framing as the mosaic, in grayscale, masked by
-            an SVG mask (#heroRevealMask, defined next to the HTML markup
-            below) with a handful of soft circular "holes" punched in it that
+            a handful of soft circular "holes" (built as plain CSS
+            radial-gradients in JS, applied via el.style.maskImage) that
             reveal the mosaic underneath.
        On desktop, one hole continuously follows the mouse. On touch, each
        tap spawns a quick "water drop" hole that fades out on its own — up to
        3 can be visible at once. See the "HERO PHOTO MOSAIC REVEAL" script
-       further down for how the SVG circles are driven.
+       further down for how the mask is built.
        ✎ TO SWAP PHOTOS: replace the two files in images/ folder, keeping
          these exact filenames:
            contact-photo-framed-for-mosaic.jpg   (top layer — cropped to
@@ -386,12 +386,15 @@
     }
 
     /* Top layer — your normal photo, grayscale + darkened so it reads as a
-       subtle background, with soft moving "holes" cut out (via the SVG mask
-       referenced below) that reveal the mosaic layer underneath. */
+       subtle background, with soft moving "holes" cut out that reveal the
+       mosaic layer underneath. The mask is built and applied entirely in JS
+       as plain CSS radial-gradients (see "HERO PHOTO MOSAIC REVEAL" in the
+       <script>) rather than an SVG <mask> reference — Safari/iOS doesn't
+       reliably repaint an element whose CSS mask points at an SVG element
+       whose attributes are being mutated by JS, which made the reveal
+       effect silently not work there. */
     .hero-photo-professional {
       filter: grayscale(100%) contrast(1.15) brightness(0.65);
-      -webkit-mask-image: url(#heroRevealMask);
-      mask-image: url(#heroRevealMask);
     }
 
     .hero-name {
@@ -492,6 +495,42 @@
     }
 
     .stat-value { font-size: 0.9rem; color: var(--text); text-align: right; }
+
+    .skills-expand-btn {
+      display: block;
+      margin: 1rem 0 0 auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: none;
+      padding: 0.3rem 0;
+      transition: color 0.2s;
+    }
+
+    .skills-expand-btn:hover { color: var(--text); }
+
+    .skills-expand-panel {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.35s ease, opacity 0.3s ease;
+    }
+
+    .skills-expand-panel.open { max-height: 300px; opacity: 1; }
+
+    .skills-expand-group {
+      display: flex;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .skills-expand-group .stat-value { max-width: 60%; }
 
     .exp-item {
       padding: 2.5rem 0;
@@ -675,13 +714,14 @@
     .contact-links { display: flex; gap: 1.5rem; flex-wrap: wrap; }
 
     .contact-link {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+      font-size: 1.05rem;
+      font-family: var(--serif);
+      font-style: italic;
+      letter-spacing: 0.01em;
       text-decoration: none;
-      color: var(--muted);
-      padding-bottom: 0.2rem;
-      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid var(--border-hover);
       transition: color 0.2s, border-color 0.2s;
     }
 
@@ -898,7 +938,7 @@
         justify-content: space-between;
         gap: 0.5rem;
       }
-      .nav-links a { font-size: 0.6rem; letter-spacing: 0.04em; }
+      .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 0.5rem 0; }
       .nav-sep { display: none; }
       #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
@@ -1011,29 +1051,12 @@
            on its own (up to 3 can be visible at once), like a drop of water.
            Both images must be the same crop/aspect ratio to line up — see the
            CSS comment above class="hero-photo-wrap" for exact filenames.
-           The actual holes are 4 <circle> elements in the SVG mask below (1
-           for the desktop cursor, 3 reusable slots for touch taps) — see
-           "HERO PHOTO MOSAIC REVEAL" further down in the <script> for how
-           they're driven. -->
+           The mask (1 hole for the desktop cursor, 3 reusable slots for
+           touch taps) is built as plain CSS radial-gradients in JS — see
+           "HERO PHOTO MOSAIC REVEAL" further down in the <script>. -->
       <div class="hero-photo-wrap" id="heroPhotoWrap">
         <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="">
         <img class="hero-photo-professional" src="images/contact-photo-framed-for-mosaic.jpg" alt="">
-        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-          <defs>
-            <radialGradient id="heroRevealGrad">
-              <stop offset="0%" stop-color="#000" />
-              <stop offset="55%" stop-color="#000" />
-              <stop offset="100%" stop-color="#fff" />
-            </radialGradient>
-            <mask id="heroRevealMask" maskContentUnits="userSpaceOnUse">
-              <rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff" />
-              <circle id="heroRevealMouse" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
-              <circle class="hero-reveal-drop" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
-              <circle class="hero-reveal-drop" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
-              <circle class="hero-reveal-drop" cx="-9999" cy="-9999" r="0" fill="url(#heroRevealGrad)" />
-            </mask>
-          </defs>
-        </svg>
       </div>
 
       <h1 class="hero-name" id="heroName">
@@ -1070,7 +1093,7 @@
         </div>
         <div class="stat-row">
           <span class="stat-label">Degrees</span>
-          <span class="stat-value">BS Biomechanical Engineering · MA Media Comms<span class="sr-only"> — Stanford's Biomechanical Engineering program is essentially its Biomedical Engineering degree.</span></span>
+          <span class="stat-value">BS Biomechanical Engineering · MA Media Communications <em>(in progress)</em><span class="sr-only"> — Stanford's Biomechanical Engineering program is essentially its Biomedical Engineering degree.</span></span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Location</span>
@@ -1082,17 +1105,32 @@
         </div>
         <div class="stat-row">
           <span class="stat-label">Skills</span>
-          <span class="stat-value">Engineering · Strategy · Comms · VR</span>
+          <span class="stat-value">Engineering · Strategy · Communication · VR</span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Discipline</span>
           <span class="stat-value">18-year Aikido practitioner · Black Belt</span>
         </div>
       </div>
+
+      <!-- ═══ EXPANDABLE FULL SKILLS LIST ═══
+           Pulled from Sebastian_Esteva_Resume.pdf. Update both this panel
+           and the résumé together if skills change. -->
+      <button class="skills-expand-btn" id="skillsExpandBtn" onclick="toggleSkillsExpand()" aria-expanded="false">
+        <span id="skillsExpandLabel">+ View all skills</span>
+      </button>
+      <div class="skills-expand-panel" id="skillsExpandPanel">
+        <div class="skills-expand-group">
+          <span class="stat-label">Technical</span>
+          <span class="stat-value">CAD · FEA · Rapid Prototyping · Additive Manufacturing · Equipment Maintenance · Troubleshooting · MATLAB</span>
+        </div>
+        <div class="skills-expand-group">
+          <span class="stat-label">Professional</span>
+          <span class="stat-value">Project & Event Management · Stakeholder Engagement & Outreach · Cross-Functional Collaboration · AI-Assisted Workflows · Market & Partnership Research</span>
+        </div>
+      </div>
     </div>
   </section>
-
-  <div class="divider"></div>
 
   <div class="divider"></div>
 
@@ -1129,7 +1167,7 @@
       </a>
 
       <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
-        <img src="images/slipdoor-hero.jpg" alt="The Slip Door — an accessible sliding car door prototype built with Volkswagen">
+        <img src="images/slipdoor-final-result.gif" alt="The Slip Door — an accessible sliding car door prototype built with Volkswagen">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">02</span>
@@ -1250,24 +1288,30 @@
     }, { once: false });
 
     (function animateRing() {
-      rx += (mx - rx) * 0.12;
-      ry += (my - ry) * 0.12;
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
       ring.style.left = rx + 'px';
       ring.style.top = ry + 'px';
       requestAnimationFrame(animateRing);
     })();
 
     /* ─── HERO PHOTO MOSAIC REVEAL ───
-       Drives the 4 <circle> "holes" in the #heroRevealMask SVG (see the HTML
-       above class="hero-photo-wrap"): 1 that continuously follows the mouse
-       on desktop, and 3 reusable slots for touch taps on mobile.
-       --reveal-radius is read once (and again on resize, since the mobile
-       media query sets a smaller value) rather than every frame — cheap. */
+       Builds the mask on .hero-photo-professional as plain CSS
+       radial-gradients, applied directly via el.style — no SVG involved.
+       (An earlier version referenced an SVG <mask> whose circle attributes
+       were mutated by JS; Safari/iOS doesn't reliably repaint an element
+       whose CSS mask points at an SVG resource like that, so the effect
+       silently did nothing there. Plain CSS gradients recalculated in JS
+       don't have that problem.)
+       1 hole continuously follows the mouse on desktop; 3 reusable "drop"
+       slots fade in/out for touch taps on mobile. Multiple layers are
+       combined with mask-composite: intersect, which — for masks shaped
+       like "transparent hole surrounded by opaque black" — multiplies their
+       alpha together, so a pixel stays revealed if ANY layer reveals it. */
     const heroPhotoWrap = document.getElementById('heroPhotoWrap');
-    const heroRevealMouse = document.getElementById('heroRevealMouse');
-    const heroRevealDrops = document.querySelectorAll('.hero-reveal-drop');
+    const heroPhotoProfessional = document.querySelector('.hero-photo-professional');
 
-    if (heroPhotoWrap && heroRevealMouse) {
+    if (heroPhotoWrap && heroPhotoProfessional) {
       let revealRadius = 130;
       const readRevealRadius = () => {
         revealRadius = parseFloat(getComputedStyle(heroPhotoWrap).getPropertyValue('--reveal-radius')) || 130;
@@ -1275,8 +1319,33 @@
       readRevealRadius();
       window.addEventListener('resize', readRevealRadius);
 
+      const mouseDot = { x: -9999, y: -9999 };
+      const drops = [
+        { x: -9999, y: -9999, opacity: 0, start: 0 },
+        { x: -9999, y: -9999, opacity: 0, start: 0 },
+        { x: -9999, y: -9999, opacity: 0, start: 0 }
+      ];
+
+      function gradientLayer(x, y, r, opacity) {
+        // opacity 0 → fully opaque black everywhere (no hole, a no-op layer)
+        // opacity 1 → fully transparent at the center (a real hole)
+        const covered = 1 - opacity;
+        return `radial-gradient(circle ${r}px at ${x}px ${y}px, rgba(0,0,0,${covered}) 0%, rgba(0,0,0,${covered}) 55%, black 100%)`;
+      }
+
+      function renderHeroMask() {
+        const layers = [gradientLayer(mouseDot.x, mouseDot.y, revealRadius, 1)];
+        drops.forEach(d => layers.push(gradientLayer(d.x, d.y, revealRadius, d.opacity)));
+        const value = layers.join(', ');
+        const composite = layers.map((_, i) => (i === 0 ? 'add' : 'intersect')).join(', ');
+        heroPhotoProfessional.style.maskImage = value;
+        heroPhotoProfessional.style.webkitMaskImage = value;
+        heroPhotoProfessional.style.maskComposite = composite;
+      }
+
       // Desktop: continuously follow the mouse, reusing the same global
-      // mx/my tracked above for the custom cursor.
+      // mx/my tracked above for the custom cursor. Also decays any active
+      // touch "drops" each frame (grow 150ms, hold, fade 500ms).
       (function animateHeroReveal() {
         const rect = heroPhotoWrap.getBoundingClientRect();
         // Only bother updating while the box is at least partly on screen,
@@ -1284,32 +1353,37 @@
         // unwanted reveal hole from appearing on touch devices, which never
         // fire mousemove) — cheap early-out so this does nothing otherwise
         if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
-          heroRevealMouse.setAttribute('cx', mx - rect.left);
-          heroRevealMouse.setAttribute('cy', my - rect.top);
-          heroRevealMouse.setAttribute('r', revealRadius);
+          mouseDot.x = mx - rect.left;
+          mouseDot.y = my - rect.top;
         }
+
+        const now = performance.now();
+        drops.forEach(d => {
+          if (d.start === 0) return;
+          const elapsed = now - d.start;
+          if (elapsed < 150) d.opacity = elapsed / 150;
+          else if (elapsed < 300) d.opacity = 1;
+          else if (elapsed < 800) d.opacity = 1 - (elapsed - 300) / 500;
+          else { d.opacity = 0; d.start = 0; }
+        });
+
+        renderHeroMask();
         requestAnimationFrame(animateHeroReveal);
       })();
 
       // Mobile: each tap "drops" a hole at the touch point that quickly
       // grows in then fades out on its own — round-robins across the 3
-      // reusable circles above, so up to 3 can be visible at once.
+      // slots above, so up to 3 can be visible at once.
       let nextDrop = 0;
       heroPhotoWrap.addEventListener('touchstart', e => {
         const rect = heroPhotoWrap.getBoundingClientRect();
         for (const touch of e.changedTouches) {
-          const dot = heroRevealDrops[nextDrop];
-          nextDrop = (nextDrop + 1) % heroRevealDrops.length;
-
-          dot.style.transition = 'none';
-          dot.setAttribute('r', '0');
-          dot.setAttribute('cx', touch.clientX - rect.left);
-          dot.setAttribute('cy', touch.clientY - rect.top);
-          dot.style.opacity = '1';
-          void dot.getBoundingClientRect(); // force reflow so the transition below actually animates
-          dot.style.transition = 'r 200ms ease-out, opacity 500ms ease-in 150ms';
-          dot.setAttribute('r', String(revealRadius));
-          dot.style.opacity = '0';
+          const d = drops[nextDrop];
+          nextDrop = (nextDrop + 1) % drops.length;
+          d.x = touch.clientX - rect.left;
+          d.y = touch.clientY - rect.top;
+          d.opacity = 0;
+          d.start = performance.now();
         }
       }, { passive: true });
     }
@@ -1424,6 +1498,15 @@
       updateA11yNote(false);
     }
 
+    function toggleSkillsExpand() {
+      const panel = document.getElementById('skillsExpandPanel');
+      const btn = document.getElementById('skillsExpandBtn');
+      const label = document.getElementById('skillsExpandLabel');
+      const isOpen = panel.classList.toggle('open');
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      label.textContent = isOpen ? '− Hide full skills list' : '+ View all skills';
+    }
+
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
@@ -1474,13 +1557,11 @@
         overlay.setAttribute('aria-hidden', 'true');
         el.appendChild(overlay);
 
-        let lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        window.addEventListener('resize', () => {
-          lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
-        });
-
         el.addEventListener('mousemove', e => {
           if (!document.body.classList.contains('accessible')) return;
+          // Computed fresh every hover (not cached) since toggling accessible
+          // mode changes the font and line-height after this listener is set up.
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
           const rect = el.getBoundingClientRect();
           const line = Math.floor((e.clientY - rect.top) / lineHeight);
           const top = Math.max(line, 0) * lineHeight;

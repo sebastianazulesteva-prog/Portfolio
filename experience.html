@@ -48,6 +48,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Cross-browser button reset — Safari/iOS give buttons default padding,
+       border, and font that fight the custom styling used everywhere here. */
+    button { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; }
+
     :root {
       --bg: #080808;
       --bg2: #0f0f0f;
@@ -124,6 +128,7 @@
       justify-content: space-between;
       padding: 2rem 3rem;
       background: rgba(8,8,8,0.85);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }

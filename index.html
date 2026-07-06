@@ -108,6 +108,10 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* Cross-browser button reset — Safari/iOS give buttons default padding,
+       border, and font that fight the custom styling used everywhere here. */
+    button { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; }
+
     /* Visually hidden but still in the DOM/accessibility tree — used for
        small clarifying notes meant for search engines and screen readers,
        not sighted visitors (e.g. spelling out what a degree abbreviation
@@ -432,13 +436,6 @@
       to   { opacity: 1; }
     }
 
-    .divider {
-      width: calc(100% - 6rem);
-      margin: 0 3rem;
-      height: 1px;
-      background: var(--border);
-    }
-
     section { padding: 8rem 3rem; }
 
     .section-header {
@@ -496,9 +493,14 @@
 
     .stat-value { font-size: 0.9rem; color: var(--text); text-align: right; }
 
+    .skills-expand-wrap {
+      padding: 0 0 1.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
     .skills-expand-btn {
       display: block;
-      margin: 1rem 0 0 auto;
+      margin: 0 0 0 auto;
       background: none;
       border: none;
       color: var(--muted);
@@ -682,6 +684,7 @@
       height: 34px;
       border-radius: 50%;
       background: rgba(8,8,8,0.5);
+      -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
@@ -795,6 +798,7 @@
       height: 26px;
       border-radius: 50%;
       background: rgba(8,8,8,0.5);
+      -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
       color: var(--text);
       display: flex;
@@ -944,7 +948,6 @@
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }
       section { padding: 5rem 1.5rem; }
-      .divider { width: calc(100% - 3rem); margin: 0 1.5rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
@@ -1067,8 +1070,6 @@
     </div>
   </section>
 
-  <div class="divider"></div>
-
   <!-- ═══ ABOUT SECTION ═══
        Left column = your written bio (edit paragraphs directly below).
        Right column = quick-fact rows (Education, Degrees, Location, etc).
@@ -1106,32 +1107,33 @@
           <span class="stat-label">Skills</span>
           <span class="stat-value">Engineering · Strategy · Communication · VR</span>
         </div>
+
+        <!-- ═══ EXPANDABLE FULL SKILLS LIST ═══
+             Pulled from Sebastian_Esteva_Resume.pdf. Update both this panel
+             and the résumé together if skills change. -->
+        <div class="skills-expand-wrap">
+          <button class="skills-expand-btn" id="skillsExpandBtn" onclick="toggleSkillsExpand()" aria-expanded="false">
+            <span id="skillsExpandLabel">+ View more skills</span>
+          </button>
+          <div class="skills-expand-panel" id="skillsExpandPanel">
+            <div class="skills-expand-group">
+              <span class="stat-label">Technical</span>
+              <span class="stat-value">CAD · FEA · Rapid Prototyping · Additive Manufacturing · Equipment Maintenance · Troubleshooting · MATLAB</span>
+            </div>
+            <div class="skills-expand-group">
+              <span class="stat-label">Professional</span>
+              <span class="stat-value">Project & Event Management · Stakeholder Engagement & Outreach · Cross-Functional Collaboration · AI-Assisted Workflows · Market & Partnership Research</span>
+            </div>
+          </div>
+        </div>
+
         <div class="stat-row">
           <span class="stat-label">Discipline</span>
           <span class="stat-value">18-year Aikido practitioner · Black Belt</span>
         </div>
       </div>
-
-      <!-- ═══ EXPANDABLE FULL SKILLS LIST ═══
-           Pulled from Sebastian_Esteva_Resume.pdf. Update both this panel
-           and the résumé together if skills change. -->
-      <button class="skills-expand-btn" id="skillsExpandBtn" onclick="toggleSkillsExpand()" aria-expanded="false">
-        <span id="skillsExpandLabel">+ View all skills</span>
-      </button>
-      <div class="skills-expand-panel" id="skillsExpandPanel">
-        <div class="skills-expand-group">
-          <span class="stat-label">Technical</span>
-          <span class="stat-value">CAD · FEA · Rapid Prototyping · Additive Manufacturing · Equipment Maintenance · Troubleshooting · MATLAB</span>
-        </div>
-        <div class="skills-expand-group">
-          <span class="stat-label">Professional</span>
-          <span class="stat-value">Project & Event Management · Stakeholder Engagement & Outreach · Cross-Functional Collaboration · AI-Assisted Workflows · Market & Partnership Research</span>
-        </div>
-      </div>
     </div>
   </section>
-
-  <div class="divider"></div>
 
   <!-- ═══ SELECTED PROJECTS SECTION ═══
        Each project is a clickable image card that links to its own page (chess.html,
@@ -1197,8 +1199,6 @@
 
     </div>
   </section>
-
-  <div class="divider"></div>
 
   <!-- ═══ CONTACT SECTION (bottom of page) ═══ -->
   <section id="contact">
@@ -1479,7 +1479,7 @@
       const label = document.getElementById('skillsExpandLabel');
       const isOpen = panel.classList.toggle('open');
       btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      label.textContent = isOpen ? '− Hide full skills list' : '+ View all skills';
+      label.textContent = isOpen ? '− Hide extra skills' : '+ View more skills';
     }
 
     function toggleAccessible() {

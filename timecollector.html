@@ -32,6 +32,8 @@
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
+    button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
+
     :root{
       --cream:#f6e3bd;
       --cream-light:#fbeed3;
@@ -91,7 +93,8 @@
       justify-content:space-between;
       padding:1.5rem 3rem;
       background:rgba(246,227,189,0.88);
-      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
       border-bottom:3px solid var(--brass-dark);
     }
 

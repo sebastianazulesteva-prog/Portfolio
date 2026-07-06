@@ -32,6 +32,8 @@
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
+    button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
+
     :root{
       --bg:#000000;
       --bg-panel:#0e0e0e;
@@ -74,7 +76,8 @@
       justify-content:space-between;
       padding:1.75rem 3rem;
       background:rgba(0,0,0,0.85);
-      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
       border-bottom:1px solid var(--line);
     }
 

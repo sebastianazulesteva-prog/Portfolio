@@ -1,8 +1,39 @@
-# robots.txt — tells search engine crawlers which parts of the site
-# they're allowed to visit. "Allow: /" means the whole site is open.
-# The Sitemap line below points crawlers straight to the full page list.
+# robots.txt — tells search engine crawlers (and AI crawlers) which parts
+# of the site they're allowed to visit. "Allow: /" means the whole site is
+# open. The Sitemap line below points crawlers straight to the full page list.
+#
+# ✎ TO BLOCK A CRAWLER: change its "Allow: /" to "Disallow: /" below.
 
 User-agent: *
+Allow: /
+
+# ─── AI crawlers — explicitly allowed ───
+# These are called out by name (instead of relying only on the "*" rule
+# above) so they stay allowed even if a future default-deny policy is
+# ever applied to unnamed bots.
+
+# OpenAI (ChatGPT)
+User-agent: GPTBot
+Allow: /
+
+# Anthropic (Claude)
+User-agent: ClaudeBot
+Allow: /
+
+# Anthropic (Claude, legacy name)
+User-agent: anthropic-ai
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+# Google's AI training crawler (separate from regular Googlebot)
+User-agent: Google-Extended
+Allow: /
+
+# Common Crawl (used to train many AI models)
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://sesteva.com/sitemap.xml

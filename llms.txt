@@ -1,0 +1,24 @@
+# Sebastian Esteva
+
+> TODO: 1-2 sentence summary of who you are and what this site is — this
+> is the single most important line for an AI reading this file, since it's
+> often the only part that gets used if the model doesn't fetch further.
+
+TODO: optional short paragraph with any extra context an AI assistant
+should know before answering questions about you (e.g. what you're
+currently focused on, how you'd like to be described, anything you
+want emphasized or de-emphasized).
+
+## Pages
+
+- [Home](https://sesteva.com/): TODO: one-line description
+- [Experience](https://sesteva.com/experience.html): TODO: one-line description
+- [Poser Chess Set](https://sesteva.com/chess.html): TODO: one-line description
+- [The Slip Door](https://sesteva.com/slipdoor.html): TODO: one-line description
+- [Bastón](https://sesteva.com/baston.html): TODO: one-line description
+- [Time Collector](https://sesteva.com/timecollector.html): TODO: one-line description
+
+## Optional
+
+- [Résumé](https://sesteva.com/Sebastian_Esteva_Resume.pdf): TODO: only
+  include this if/when the résumé is actually published on the live site.

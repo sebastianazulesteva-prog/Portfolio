@@ -1035,10 +1035,12 @@
 
   <!-- ═══ HERO SECTION (top of page) ═══
        - "Scroll" indicator on the left with an animated line (top-to-bottom fill loop)
-       - Your name ("Sebastian" / "Esteva") — the letters animate in via JavaScript
-         further down (look for "TENET LETTER EXPLOSION" in the <script>).
-         To change your name, edit the `words` array in that script section, NOT here.
+       - Your name ("Sebastian" / "Esteva") — edit the text directly in the
+         <h1 class="hero-name"> below. The letters animate in via JavaScript
+         further down (look for "NAME LETTER ANIMATION" in the <script>),
+         which reads whatever name text is already there.
        - Tagline below your name — safe to edit that text directly right here. -->
+  <main>
   <section id="hero">
     <div class="hero-scroll">
       <div class="hero-scroll-line"></div>
@@ -1057,13 +1059,18 @@
            The single hole is built as a plain CSS radial-gradient in JS — see
            "HERO PHOTO MOSAIC REVEAL" further down in the <script>. -->
       <div class="hero-photo-wrap" id="heroPhotoWrap">
-        <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="">
-        <img class="hero-photo-professional" src="images/contact-photo-framed-for-mosaic.jpg" alt="">
+        <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="" width="682" height="1024">
+        <img class="hero-photo-professional" src="images/contact-photo-framed-for-mosaic.jpg" alt="" width="682" height="1024">
       </div>
 
+      <!-- The name below is real, static text (not injected by JS) so it's
+           visible to search engines/AI crawlers and shows up even if
+           JavaScript fails to load. The letter-scatter animation script
+           further down reads this existing text and re-builds it into
+           per-letter <span>s — it enhances this markup, it doesn't create it. -->
       <h1 class="hero-name" id="heroName">
-        <span class="word first" id="word1"></span>
-        <span class="word second" id="word2"></span>
+        <span class="word first" id="word1">Sebastian</span>
+        <span class="word second" id="word2">Esteva</span>
       </h1>
       <!-- ✎ EDIT YOUR TAGLINE HERE -->
       <p class="hero-tagline">Bringing wonder through technology.</p>
@@ -1158,7 +1165,7 @@
     <div class="work-grid">
 
       <a href="chess.html" class="work-card reveal">
-        <img src="images/chess-hero.jpg" alt="Poser Chess Set — a wall-mounted, 3D-printed chess set project">
+        <img src="images/chess-hero.jpg" alt="Poser Chess Set — a wall-mounted, 3D-printed chess set project" width="5712" height="4284">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">01</span>
@@ -1168,7 +1175,7 @@
       </a>
 
       <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
-        <img src="images/slipdoor-final-result.gif" alt="The Slip Door — an accessible sliding car door prototype built with Volkswagen">
+        <img src="images/slipdoor-final-result.gif" alt="The Slip Door — an accessible sliding car door prototype built with Volkswagen" width="1280" height="720">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">02</span>
@@ -1178,7 +1185,7 @@
       </a>
 
       <a href="baston.html" class="work-card reveal reveal-delay-2">
-        <img src="images/baston-hero.jpg" alt="Bastón — a hand-built foldable wooden cane project">
+        <img src="images/baston-hero.jpg" alt="Bastón — a hand-built foldable wooden cane project" width="5184" height="3058">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">03</span>
@@ -1188,7 +1195,7 @@
       </a>
 
       <a href="timecollector.html" class="work-card reveal reveal-delay-3">
-        <img src="images/timecollector-hero-front.png" alt="Time Collector — a 24-inch kinetic marble clock sculpture">
+        <img src="images/timecollector-hero-front.png" alt="Time Collector — a 24-inch kinetic marble clock sculpture" width="966" height="1192">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <span class="work-card-num">04</span>
@@ -1233,12 +1240,12 @@
              (slipdoor-process-2.jpg is reused from the Slip Door page — already uploaded)
            To add/remove photos: add/remove an <img class="contact-photo-slide"> line here. -->
       <div class="contact-photo-wrap reveal reveal-delay-2" id="contactPhotoWrap">
-        <img class="contact-photo-slide active" src="images/contact-photo-professional.jpg" alt="Sebastian Esteva — professional photo">
-        <img class="contact-photo-slide" src="images/contact-photo-fun-1.jpg" alt="Sebastian Esteva — candid photo 1">
-        <img class="contact-photo-slide" src="images/contact-photo-fun-2.jpg" alt="Sebastian Esteva — candid photo 2">
-        <img class="contact-photo-slide" src="images/contact-photo-fun-3.jpg" alt="Sebastian Esteva — candid photo 3">
-        <img class="contact-photo-slide" src="images/contact-photo-fun-4.jpg" alt="Sebastian Esteva — candid photo 4">
-        <img class="contact-photo-slide" src="images/slipdoor-process-2.jpg" alt="Slip Door project — process photo">
+        <img class="contact-photo-slide active" src="images/contact-photo-professional.jpg" alt="Sebastian Esteva — professional photo" width="1984" height="2976" loading="lazy">
+        <img class="contact-photo-slide" src="images/contact-photo-fun-1.jpg" alt="Sebastian Esteva — candid photo 1" width="3024" height="4032" loading="lazy">
+        <img class="contact-photo-slide" src="images/contact-photo-fun-2.jpg" alt="Sebastian Esteva — candid photo 2" width="1000" height="750" loading="lazy">
+        <img class="contact-photo-slide" src="images/contact-photo-fun-3.jpg" alt="Sebastian Esteva — candid photo 3" width="4032" height="3024" loading="lazy">
+        <img class="contact-photo-slide" src="images/contact-photo-fun-4.jpg" alt="Sebastian Esteva — candid photo 4" width="4032" height="3024" loading="lazy">
+        <img class="contact-photo-slide" src="images/slipdoor-process-2.jpg" alt="Slip Door project — process photo" width="4032" height="3024" loading="lazy">
         <div class="contact-photo-nav">
           <span class="contact-photo-nav-half left" aria-label="Previous photo">
             <span class="contact-photo-nav-arrow">‹</span>
@@ -1250,6 +1257,7 @@
       </div>
     </div>
   </section>
+  </main>
 
   <!-- ═══ FOOTER — the small line at the very bottom of the page ═══ -->
   <footer>
@@ -1375,14 +1383,19 @@
     });
 
     /* ─── NAME LETTER ANIMATION ("Tenet" effect) ───
-       ✎ TO CHANGE YOUR NAME: edit the two strings in the array below.
+       ✎ TO CHANGE YOUR NAME: edit the actual text in the two <span id="word1">
+       / <span id="word2"> elements in the HTML above — not here. This script
+       reads whatever text is already there (so the real name stays visible
+       to search engines/AI crawlers and to visitors with JS disabled) and
+       re-builds it into per-letter <span>s for the animation.
        On page load, every letter of your name scatters to a random position
        on screen, then animates back into place (slow start, fast finish —
        like the time-reversal effect from the movie Tenet).
        This only plays once per browser session — see the inline script at
        the top of <head> and the "no-hero-anim" checks throughout. */
-    const words = ['Sebastian', 'Esteva']; // ← your first and last name
     const containers = [document.getElementById('word1'), document.getElementById('word2')];
+    const words = containers.map(c => c.textContent);
+    containers.forEach(c => { c.textContent = ''; }); // clear plain text before rebuilding as letter spans
     const allLetters = [];
     const skipAnimation = document.documentElement.classList.contains('no-hero-anim');
 

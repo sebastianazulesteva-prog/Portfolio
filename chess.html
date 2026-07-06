@@ -735,7 +735,6 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
-      localStorage.setItem('a11y', isOn ? '1' : '0');
       showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
 
       if (isOn) {
@@ -749,12 +748,6 @@
       }
     }
 
-    if (localStorage.getItem('a11y') === '1') {
-      document.body.classList.add('accessible');
-      document.documentElement.classList.add('accessible');
-      toggle.classList.add('active');
-      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') updateA11yNote(true);
-    }
 
     function initA11yLineHighlight(selector) {
       document.querySelectorAll(selector).forEach(el => {

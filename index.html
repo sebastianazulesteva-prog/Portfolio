@@ -335,13 +335,13 @@
          1. hero-photo-mosaic (bottom)       — the mosaic version, full color
          2. hero-photo-professional (top)    — a photo of you cropped to the
             SAME aspect ratio/framing as the mosaic, in grayscale, masked by
-            a handful of soft circular "holes" (built as plain CSS
-            radial-gradients in JS, applied via el.style.maskImage) that
-            reveal the mosaic underneath.
-       On desktop, one hole continuously follows the mouse. On touch, each
-       tap spawns a quick "water drop" hole that fades out on its own — up to
-       3 can be visible at once. See the "HERO PHOTO MOSAIC REVEAL" script
-       further down for how the mask is built.
+            a single soft circular "hole" (built as a plain CSS
+            radial-gradient in JS, applied via el.style.webkitMaskImage) that
+            reveals the mosaic underneath.
+       On desktop, the hole continuously follows the mouse. On touch, each
+       tap moves the same hole to the new spot and re-plays its "water drop"
+       grow/fade animation. See the "HERO PHOTO MOSAIC REVEAL" script further
+       down for how the mask is built.
        ✎ TO SWAP PHOTOS: replace the two files in images/ folder, keeping
          these exact filenames:
            contact-photo-framed-for-mosaic.jpg   (top layer — cropped to
@@ -1047,12 +1047,11 @@
            Desktop: move your mouse over this area — the top photo (grayscale)
            has a soft hole that follows the cursor, revealing the mosaic photo
            underneath in full color.
-           Mobile/touch: each tap drops a soft hole that quickly fades away
-           on its own (up to 3 can be visible at once), like a drop of water.
+           Mobile/touch: each tap moves the hole there and it quickly fades
+           away on its own, like a drop of water landing.
            Both images must be the same crop/aspect ratio to line up — see the
            CSS comment above class="hero-photo-wrap" for exact filenames.
-           The mask (1 hole for the desktop cursor, 3 reusable slots for
-           touch taps) is built as plain CSS radial-gradients in JS — see
+           The single hole is built as a plain CSS radial-gradient in JS — see
            "HERO PHOTO MOSAIC REVEAL" further down in the <script>. -->
       <div class="hero-photo-wrap" id="heroPhotoWrap">
         <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="">
@@ -1296,18 +1295,15 @@
     })();
 
     /* ─── HERO PHOTO MOSAIC REVEAL ───
-       Builds the mask on .hero-photo-professional as plain CSS
-       radial-gradients, applied directly via el.style — no SVG involved.
-       (An earlier version referenced an SVG <mask> whose circle attributes
-       were mutated by JS; Safari/iOS doesn't reliably repaint an element
-       whose CSS mask points at an SVG resource like that, so the effect
-       silently did nothing there. Plain CSS gradients recalculated in JS
-       don't have that problem.)
-       1 hole continuously follows the mouse on desktop; 3 reusable "drop"
-       slots fade in/out for touch taps on mobile. Multiple layers are
-       combined with mask-composite: intersect, which — for masks shaped
-       like "transparent hole surrounded by opaque black" — multiplies their
-       alpha together, so a pixel stays revealed if ANY layer reveals it. */
+       Builds a single mask on .hero-photo-professional as one plain CSS
+       radial-gradient, applied directly via el.style.webkitMaskImage (the
+       property that actually renders across browsers here — the unprefixed
+       mask-image/mask-composite properties parse fine but don't reliably
+       paint in every engine, and layering multiple mask gradients needs
+       mask-composite to avoid one opaque layer erasing another's hole).
+       Using exactly one gradient sidesteps that entirely: one hole follows
+       the mouse on desktop, and on touch each tap moves that same hole to
+       the new spot and re-plays its grow/fade, like a drop of water. */
     const heroPhotoWrap = document.getElementById('heroPhotoWrap');
     const heroPhotoProfessional = document.querySelector('.hero-photo-professional');
 
@@ -1319,72 +1315,51 @@
       readRevealRadius();
       window.addEventListener('resize', readRevealRadius);
 
-      const mouseDot = { x: -9999, y: -9999 };
-      const drops = [
-        { x: -9999, y: -9999, opacity: 0, start: 0 },
-        { x: -9999, y: -9999, opacity: 0, start: 0 },
-        { x: -9999, y: -9999, opacity: 0, start: 0 }
-      ];
-
-      function gradientLayer(x, y, r, opacity) {
-        // opacity 0 → fully opaque black everywhere (no hole, a no-op layer)
-        // opacity 1 → fully transparent at the center (a real hole)
-        const covered = 1 - opacity;
-        return `radial-gradient(circle ${r}px at ${x}px ${y}px, rgba(0,0,0,${covered}) 0%, rgba(0,0,0,${covered}) 55%, black 100%)`;
-      }
+      const dot = { x: -9999, y: -9999, opacity: 0 };
+      let touchActive = false;
+      let touchStart = 0;
 
       function renderHeroMask() {
-        const layers = [gradientLayer(mouseDot.x, mouseDot.y, revealRadius, 1)];
-        drops.forEach(d => layers.push(gradientLayer(d.x, d.y, revealRadius, d.opacity)));
-        const value = layers.join(', ');
-        const composite = layers.map((_, i) => (i === 0 ? 'add' : 'intersect')).join(', ');
-        heroPhotoProfessional.style.maskImage = value;
+        const covered = 1 - dot.opacity;
+        const value = `radial-gradient(circle ${revealRadius}px at ${dot.x}px ${dot.y}px, rgba(0,0,0,${covered}) 0%, rgba(0,0,0,${covered}) 55%, black 100%)`;
         heroPhotoProfessional.style.webkitMaskImage = value;
-        heroPhotoProfessional.style.maskComposite = composite;
+        heroPhotoProfessional.style.maskImage = value;
       }
 
       // Desktop: continuously follow the mouse, reusing the same global
-      // mx/my tracked above for the custom cursor. Also decays any active
-      // touch "drops" each frame (grow 150ms, hold, fade 500ms).
+      // mx/my tracked above for the custom cursor. A touch tap takes over
+      // the same dot until its fade finishes (grow 150ms, hold, fade 500ms).
       (function animateHeroReveal() {
         const rect = heroPhotoWrap.getBoundingClientRect();
-        // Only bother updating while the box is at least partly on screen,
-        // and only after a real mouse movement has happened (prevents an
-        // unwanted reveal hole from appearing on touch devices, which never
-        // fire mousemove) — cheap early-out so this does nothing otherwise
-        if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
-          mouseDot.x = mx - rect.left;
-          mouseDot.y = my - rect.top;
+        if (touchActive) {
+          const elapsed = performance.now() - touchStart;
+          if (elapsed < 150) dot.opacity = elapsed / 150;
+          else if (elapsed < 300) dot.opacity = 1;
+          else if (elapsed < 800) dot.opacity = 1 - (elapsed - 300) / 500;
+          else { dot.opacity = 0; touchActive = false; }
+        } else if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
+          // Only bother updating while the box is at least partly on screen,
+          // and only after a real mouse movement has happened (prevents an
+          // unwanted reveal hole from appearing on touch devices, which
+          // never fire mousemove) — cheap early-out so this does nothing.
+          dot.x = mx - rect.left;
+          dot.y = my - rect.top;
+          dot.opacity = 1;
         }
-
-        const now = performance.now();
-        drops.forEach(d => {
-          if (d.start === 0) return;
-          const elapsed = now - d.start;
-          if (elapsed < 150) d.opacity = elapsed / 150;
-          else if (elapsed < 300) d.opacity = 1;
-          else if (elapsed < 800) d.opacity = 1 - (elapsed - 300) / 500;
-          else { d.opacity = 0; d.start = 0; }
-        });
 
         renderHeroMask();
         requestAnimationFrame(animateHeroReveal);
       })();
 
-      // Mobile: each tap "drops" a hole at the touch point that quickly
-      // grows in then fades out on its own — round-robins across the 3
-      // slots above, so up to 3 can be visible at once.
-      let nextDrop = 0;
+      // Mobile: each tap moves the hole to the touch point and re-plays its
+      // grow/fade animation, like a drop of water landing.
       heroPhotoWrap.addEventListener('touchstart', e => {
         const rect = heroPhotoWrap.getBoundingClientRect();
-        for (const touch of e.changedTouches) {
-          const d = drops[nextDrop];
-          nextDrop = (nextDrop + 1) % drops.length;
-          d.x = touch.clientX - rect.left;
-          d.y = touch.clientY - rect.top;
-          d.opacity = 0;
-          d.start = performance.now();
-        }
+        const touch = e.changedTouches[0];
+        dot.x = touch.clientX - rect.left;
+        dot.y = touch.clientY - rect.top;
+        touchActive = true;
+        touchStart = performance.now();
       }, { passive: true });
     }
 
@@ -1511,7 +1486,6 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
-      localStorage.setItem('a11y', isOn ? '1' : '0'); // remembers the choice for next visit
       showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
 
       if (isOn) {
@@ -1529,13 +1503,6 @@
       }
     }
 
-    // On page load, restore the person's saved preference from last visit
-    if (localStorage.getItem('a11y') === '1') {
-      document.body.classList.add('accessible');
-      document.documentElement.classList.add('accessible');
-      toggle.classList.add('active');
-      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') updateA11yNote(true);
-    }
 
     /* ─── ACCESSIBLE MODE — LINE HOVER HIGHLIGHT ───
        Gives each qualifying text block (see selector below) a reading-ruler

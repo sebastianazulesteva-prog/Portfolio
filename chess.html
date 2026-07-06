@@ -268,6 +268,101 @@
       font-style:italic;
     }
 
+    /* ─── HERO IMAGE PAIR — before/after ───
+       Two images side by side (before → after), since the "posing" transform
+       is the whole point of this project. Each .img-slot inside keeps its
+       normal styling; this just arranges them in a 2-up row. Stacks to one
+       column on mobile. */
+    .img-pair{
+      position:relative;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0;
+      margin:2.5rem 0;
+    }
+
+    .img-pair .img-slot{ margin:0; border-radius:0; }
+    .img-pair .img-slot:first-child{ border-top-left-radius:6px; border-bottom-left-radius:6px; }
+    .img-pair .img-slot:last-child{ border-top-right-radius:6px; border-bottom-right-radius:6px; }
+
+    /* Badge sitting right on the seam between the two photos, with arrows
+       pointing inward toward each other — a visual cue that this is a single
+       before/after transformation, not two unrelated images. */
+    /* Stacked "exchange" icon on the seam — top arrow points right (toward
+       the second photo), bottom arrow points left (toward the first) — like
+       a currency-exchange symbol, signaling these are two states of the
+       same object, not two separate images. */
+    .img-pair-transform{
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:0.15rem;
+      width:44px;
+      height:44px;
+      background:var(--bg);
+      border:1.5px solid var(--white);
+      border-radius:50%;
+      font-size:0.95rem;
+      line-height:1;
+      color:var(--white);
+    }
+
+    @media(max-width:768px){
+      .img-pair{ grid-template-columns:1fr; gap:0; }
+      .img-pair .img-slot:first-child{ border-radius:6px 6px 0 0; }
+      .img-pair .img-slot:last-child{ border-radius:0 0 6px 6px; }
+      .img-pair-transform{ width:38px; height:38px; font-size:0.8rem; }
+    }
+
+    /* ─── 2×2 IMAGE COLLAGE ───
+       A single bordered "box" holding 4 images in a grid (top-left,
+       top-right, bottom-left, bottom-right), each with its own small
+       caption underneath. Used in the Prototyping step. */
+    .collage-box{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:0.9rem;
+      background:var(--bg-panel);
+      margin:1.5rem 0;
+    }
+
+    .collage-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0.75rem;
+    }
+
+    .collage-item img{
+      width:100%;
+      display:block;
+      border-radius:6px;
+      aspect-ratio:4/3;
+      object-fit:cover;
+    }
+
+    .collage-item .img-slot-label{ aspect-ratio:4/3; border-radius:6px; padding:1rem; font-size:0.65rem; }
+    .collage-item .img-slot-label strong{ font-size:0.72rem; }
+
+    .collage-caption{
+      margin-top:0.5rem;
+      font-size:0.7rem;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      text-align:center;
+    }
+
+    @media(max-width:768px){
+      .collage-grid{ grid-template-columns:1fr 1fr; gap:0.5rem; }
+      .collage-box{ padding:0.6rem; }
+    }
+
     /* ─── META ROW ─── */
     .meta-row{
       display:flex;
@@ -391,6 +486,23 @@
       color:var(--white-soft);
     }
 
+    /* ─── FINAL SUCCESS SHOT ───
+       Closing image, a cutout with no background — sits directly on the
+       page's own black background rather than in a bordered/cropped
+       .img-slot box, and uses object-fit:contain (not cover) so nothing
+       gets cropped off. */
+    .final-shot{
+      text-align:center;
+      margin:3.5rem 0;
+    }
+
+    .final-shot img{
+      max-width:420px;
+      width:100%;
+      height:auto;
+      display:inline-block;
+    }
+
     /* ─── FOOTER NAV ─── */
     .back-bottom-wrap{ text-align:center; margin-top:4rem; }
 
@@ -438,7 +550,7 @@
       <span class="a11y-dot"></span>
       Accessible
     </button>
-    <a class="back-link" href="index.html#work">← Back to Work</a>
+    <a class="back-link" href="index.html#projects">← Back to Projects</a>
   </nav>
 
   <main>
@@ -448,12 +560,24 @@
       <p class="hero-sub">A Wall-Mounted Chess Set</p>
     </div>
 
-    <!-- ═══ IMAGE SLOT 1 — HERO SHOT ═══
-         Label this file: chess-hero.jpg (or .png)
-         Best pick: your two-photo hero image (chessboard on rug + wall-mounted mechanism close-up)
-    -->
-    <div class="img-slot">
-      <img src="images/chess-hero.jpg" alt="Poser Chess Set — hero shot">
+    <!-- ═══ HERO IMAGE PAIR — before / after ═══
+         Two images side by side since the "posing" transformation is the
+         whole point of the project: the flat/boxed set on the left, the
+         fully posed final set on the right.
+         Left:  chess-hero.jpg (already have this)
+         Right: chess-final-AI-Pieces.jpg (already have this — moved up here
+                from the end of the page) -->
+    <div class="img-pair">
+      <div class="img-slot">
+        <img src="images/chess-hero.jpg" alt="Poser Chess Set — hero shot">
+      </div>
+      <div class="img-slot">
+        <img src="images/chess-final-AI-Pieces.jpg" alt="Poser Chess Set — finished, fully posed set">
+      </div>
+      <div class="img-pair-transform" aria-hidden="true">
+        <span>→</span>
+        <span>←</span>
+      </div>
     </div>
     <p class="hero-caption">Sebastian Esteva — ME 227, Winter 2026</p>
 
@@ -469,10 +593,6 @@
       <div class="meta-item">
         <div class="meta-label">Size</div>
         <div class="meta-value">~20" × 20"</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Status</div>
-        <div class="meta-value">Fully functional</div>
       </div>
     </div>
 
@@ -491,24 +611,60 @@
     <p class="journey-sub">Ideation → Prototyping → Execution</p>
 
     <!-- ═══ NUMBERED STEP SECTIONS ═══
-         Each step below has its own image slot. Circle badges (I, 2, 3) match your reference image style.
+         Each step below has its own image slot. Circle badges are 1, 2, 3.
     -->
     <div class="steps">
 
+      <!-- ═══ STEP 1 — IDEATION ═══
+           ✎ Add your sketch/concept image and drop the filename in below. -->
       <div class="step">
-        <div class="step-badge">I</div>
+        <div class="step-badge">1</div>
+        <div class="step-body">
+          <h3>Ideation</h3>
+          <p>Early sketches and concept exploration — figuring out how a flat, wall-mounted panel could fold and slide out into a fully three-dimensional chess piece, before committing to any physical prototype.</p>
+
+          <div class="img-slot">
+            <img src="images/chess-ideation.jpg" alt="Poser Chess Set — early sketches and concept exploration">
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ STEP 2 — PROTOTYPING (4-image collage) ═══
+           ✎ Add the 3 new images below and drop their filenames in — the
+           original chess-prototyping.jpg is already wired up. -->
+      <div class="step">
+        <div class="step-badge">2</div>
         <div class="step-body">
           <h3>Prototyping</h3>
           <p>Testing every connector, hinge, and mechanism individually before committing to a full print run — a single point of failure at this scale would be costly to redo.</p>
 
-          <div class="img-slot">
-            <img src="images/chess-prototyping.jpg" alt="Chess set prototyping — testing mechanisms and connectors">
+          <div class="collage-box">
+            <div class="collage-grid">
+              <div class="collage-item">
+                <img src="images/chess-prototyping.jpg" alt="Chess set prototyping — testing mechanisms and connectors">
+                <div class="collage-caption">Connector & Hinge Testing</div>
+              </div>
+              <div class="collage-item">
+                <img src="images/chess-fea.jpg" alt="Poser Chess Set — before/after FEA under max expected load">
+                <div class="collage-caption">FEA & Load Analysis</div>
+              </div>
+              <div class="collage-item">
+                <!-- Label this file: chess-mechanism-prototype.jpg
+                     The swivel mechanism that lets each piece rotate/pose out from the wall. -->
+                <div class="img-slot-label"><strong>chess-mechanism-prototype.jpg</strong>Swivel mechanism prototype</div>
+                <div class="collage-caption">Swivel Mechanism Prototype</div>
+              </div>
+              <div class="collage-item">
+                <img src="images/chess-press-insert.jpg" alt="Poser Chess Set — press-fit vs. mid-print insert and joining tests">
+                <div class="collage-caption">Insert & Joining Method Testing</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="step">
-        <div class="step-badge">2</div>
+        <div class="step-badge">3</div>
         <div class="step-body">
           <h3>Execute</h3>
           <p>All 46 individual pieces were tracked and printed, then assembled using 96 embedded magnets to keep every piece correctly oriented when posed out from the wall.</p>
@@ -523,12 +679,12 @@
       <span class="line"></span>
     </div>
 
-    <div class="img-slot">
-      <img src="images/chess-final-AI-Pieces.jpg" alt="Poser Chess Set — finished pieces on the board">
+    <div class="final-shot">
+      <img src="images/chess-final-success.png" alt="Sebastian Esteva holding up the finished Poser Chess Set">
     </div>
 
     <div class="back-bottom-wrap">
-      <a class="back-bottom" href="index.html#work">← Back to Selected Work</a>
+      <a class="back-bottom" href="index.html#projects">← Back to Selected Projects</a>
     </div>
 
   </main>

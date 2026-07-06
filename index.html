@@ -13,7 +13,7 @@
     - Change colors            → edit the :root { } block below
     - Change fonts             → edit --serif and --sans below,
                                   and update the Google Fonts link above
-    - Add/remove a project     → see the "SELECTED WORK" section in <body>
+    - Add/remove a project     → see the "SELECTED PROJECTS" section in <body>
     - Add/remove a job         → open experience.html (a separate file, not in here)
   ═══════════════════════════════════════════════════════════════
 -->
@@ -107,6 +107,20 @@
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* Visually hidden but still in the DOM/accessibility tree — used for
+       small clarifying notes meant for search engines and screen readers,
+       not sighted visitors (e.g. spelling out what a degree abbreviation
+       is equivalent to elsewhere). */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     /* ─── COLOR PALETTE ───
        Change any value here to update that color EVERYWHERE it's used on the page.
@@ -226,6 +240,14 @@
 
     .nav-links a:hover { color: var(--text); }
 
+    /* Thin vertical rule separating "Experience" (a whole separate page)
+       from the in-page anchor links (About/Projects/Contact). */
+    .nav-sep {
+      width: 1px;
+      align-self: stretch;
+      background: var(--border);
+    }
+
     .a11y-toggle {
       display: flex;
       align-items: center;
@@ -257,82 +279,6 @@
     }
 
     .a11y-toggle.active .a11y-dot { background: var(--text); }
-
-    /* ─── MOBILE MENU BUTTON (hamburger icon) ───
-       Hidden on desktop by default — only appears on small screens
-       (see the @media block below). Three small bars that animate
-       into an X when the menu is open. */
-    .mobile-menu-btn {
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      gap: 5px;
-      width: 32px;
-      height: 32px;
-      background: none;
-      border: none;
-      cursor: none;
-      padding: 0;
-    }
-
-    .mobile-menu-btn span {
-      display: block;
-      width: 100%;
-      height: 1.5px;
-      background: var(--text);
-      transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-
-    /* When the menu is open, turn the hamburger into an X */
-    .mobile-menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
-    .mobile-menu-btn.open span:nth-child(2) { opacity: 0; }
-    .mobile-menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
-
-    /* ─── MOBILE MENU OVERLAY ───
-       Full-screen panel with the same links as the desktop nav.
-       Hidden by default (off-screen + invisible); slides/fades in
-       when .mobile-menu.open is toggled by the JS below. */
-    .mobile-menu {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: var(--bg);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2.5rem;
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(-16px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .mobile-menu.open {
-      opacity: 1;
-      pointer-events: auto;
-      transform: none;
-    }
-
-    .mobile-menu a {
-      font-family: var(--serif);
-      font-size: 2rem;
-      color: var(--text);
-      text-decoration: none;
-      letter-spacing: -0.01em;
-    }
-
-    .mobile-menu-close {
-      position: absolute;
-      top: 2rem;
-      right: 2rem;
-      background: none;
-      border: none;
-      color: var(--text);
-      font-size: 1.3rem;
-      cursor: none;
-      padding: 0.5rem;
-    }
 
     #hero {
       min-height: 100vh;
@@ -618,7 +564,7 @@
       color: var(--muted2);
     }
 
-    /* ─── SELECTED WORK ─── */
+    /* ─── SELECTED PROJECTS ─── */
     .work-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -760,7 +706,8 @@
        <script> — search for "CONTACT PHOTO SLIDESHOW" further down this file. */
     .contact-photo-wrap {
       position: relative;
-      width: 220px;
+      width: auto;
+      height: 340px; /* fallback until JS matches it to .contact-big's height */
       aspect-ratio: 4 / 5;
       border-radius: 8px;
       overflow: hidden;
@@ -818,7 +765,10 @@
       transition: opacity 0.2s;
     }
 
-    .contact-photo-nav-half:hover .contact-photo-nav-arrow { opacity: 1; }
+    /* Arrows only ever appear in Accessible mode — otherwise they'd just be
+       a discoverability hint most people don't need; the photo is still
+       fully clickable either way, just without the visual affordance. */
+    body.accessible .contact-photo-nav-half:hover .contact-photo-nav-arrow { opacity: 1; }
 
     .contact-layout {
       display: flex;
@@ -942,8 +892,14 @@
 
     @media (max-width: 768px) {
       nav { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-      .nav-links { display: none; }
-      .mobile-menu-btn { display: flex; }
+      .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .nav-links a { font-size: 0.6rem; letter-spacing: 0.04em; }
+      .nav-sep { display: none; }
       #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }
@@ -952,9 +908,9 @@
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
-      .hero-photo-wrap { width: 100vw; opacity: 0.9 !important; --reveal-radius: 80px; }
+      .hero-photo-wrap { width: 100vw; top: 34%; opacity: 0.9 !important; --reveal-radius: 80px; }
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
-      .contact-photo-wrap { width: 160px; }
+      .contact-photo-wrap { width: auto; height: 220px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
     }
 
@@ -1016,41 +972,23 @@
   <!-- ═══ NAV BAR ═══
        "SE" logo (top left) links back to the top of the page.
        The 4 links jump to each section further down this file (About, Experience, Work, Contact).
-       The "Accessible" button on the right toggles the easier-to-read font — see toggleAccessible() in the script. -->
+       The "Accessible" button on the right toggles the easier-to-read font — see toggleAccessible() in the script.
+       On mobile, the links wrap onto their own row instead of collapsing into a hamburger menu (see the
+       @media block further down for .nav-links). -->
   <nav>
     <a class="nav-logo" href="#hero">SE</a>
     <ul class="nav-links">
       <li><a href="#about">About</a></li>
-      <li><a href="experience.html">Experience</a></li>
-      <li><a href="#work">Work</a></li>
+      <li><a href="#projects">Projects</a></li>
       <li><a href="#contact">Contact</a></li>
+      <li class="nav-sep" aria-hidden="true"></li>
+      <li><a href="experience.html">Experience</a></li>
     </ul>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
       Accessible
     </button>
-
-    <!-- ═══ MOBILE MENU BUTTON (hamburger) ═══
-         Only visible on small screens (see .mobile-menu-btn CSS) — the
-         normal nav-links list is hidden on mobile, so this button opens
-         a full-screen menu instead. -->
-    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="Open menu">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
   </nav>
-
-  <!-- ═══ MOBILE MENU OVERLAY ═══
-       Hidden by default. Opens full-screen when the hamburger button above
-       is tapped on mobile. Same links as the desktop nav. -->
-  <div class="mobile-menu" id="mobileMenu">
-    <button class="mobile-menu-close" onclick="toggleMobileMenu()" aria-label="Close menu">✕</button>
-    <a href="#about" onclick="toggleMobileMenu()">About</a>
-    <a href="experience.html">Experience</a>
-    <a href="#work" onclick="toggleMobileMenu()">Work</a>
-    <a href="#contact" onclick="toggleMobileMenu()">Contact</a>
-  </div>
 
   <!-- ═══ HERO SECTION (top of page) ═══
        - "Scroll" indicator on the left with an animated line (top-to-bottom fill loop)
@@ -1103,7 +1041,7 @@
         <span class="word second" id="word2"></span>
       </h1>
       <!-- ✎ EDIT YOUR TAGLINE HERE -->
-      <p class="hero-tagline">Bring wonder through technology.</p>
+      <p class="hero-tagline">Bringing wonder through technology.</p>
     </div>
   </section>
 
@@ -1120,10 +1058,10 @@
     </div>
     <div class="about-grid">
       <div class="about-text reveal reveal-delay-1">
-        <p>I bring three core strengths to any team: an <strong>interdisciplinary skill set</strong> that bridges media, engineering, law, government, and education; a <strong>deep curiosity</strong> that drives me to understand complex problems from every angle; and <strong>strong communication skills</strong> developed through hands-on experience — after 300+ cold calls, I can connect, adapt, and persist.</p>
-        <p>Two things pulled me toward engineering early on. The first was my grandfather — an engineer back in Mexico I mostly knew through family stories, which gave the word "engineer" a kind of mystery. Every time I built a paper airplane or clicked together magnetic toys as a kid, that connection came up: <em>he was an engineer too.</em></p>
+        <p>I bring three core strengths to any team: an <strong>interdisciplinary skill set</strong> spanning engineering, human performance, and design — systems, community, and product alike; a <strong>deep curiosity</strong> that drives me to understand complex problems from every angle; and <strong>strong communication skills</strong> developed through hands-on experience — after 300+ cold calls, I can connect, adapt, and persist.</p>
+        <p>Two things pulled me toward engineering early on. The first was my grandfather — an <strong>award-winning, world-traveled engineer</strong> back in Mexico I mostly knew through family stories, which gave the word "engineer" a kind of mystery. Every time I built a paper airplane or clicked together magnetic toys as a kid, that connection came up: <em>he was an engineer too.</em></p>
         <p>The second was fantasy — <strong>Percy Jackson</strong>, <strong>Avatar: The Last Airbender</strong>, any world built on magic. I knew I'd never actually bend water or meet a demigod, but I realized I could <strong>build</strong> things that captured that same sense of wonder. That's still what drives me today.</p>
-        <p>Whether it's a side project, a collaboration, or a wild experiment, I'm always looking for the next thing worth making.</p>
+        <p>Whether it's a physical object, a community, or a system, I'm always looking for the next thing worth making.</p>
       </div>
       <div class="reveal reveal-delay-2">
         <div class="stat-row">
@@ -1132,7 +1070,7 @@
         </div>
         <div class="stat-row">
           <span class="stat-label">Degrees</span>
-          <span class="stat-value">BS Biomechanical Eng. · MA Media Comms</span>
+          <span class="stat-value">BS Biomechanical Engineering · MA Media Comms<span class="sr-only"> — Stanford's Biomechanical Engineering program is essentially its Biomedical Engineering degree.</span></span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Location</span>
@@ -1147,7 +1085,7 @@
           <span class="stat-value">Engineering · Strategy · Comms · VR</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Fun fact</span>
+          <span class="stat-label">Discipline</span>
           <span class="stat-value">18-year Aikido practitioner · Black Belt</span>
         </div>
       </div>
@@ -1158,7 +1096,7 @@
 
   <div class="divider"></div>
 
-  <!-- ═══ SELECTED WORK SECTION ═══
+  <!-- ═══ SELECTED PROJECTS SECTION ═══
        Each project is a clickable image card that links to its own page (chess.html,
        slipdoor.html, baston.html, timecollector.html — each one is a separate file
        in this same folder, with its own colors/fonts/layout).
@@ -1172,10 +1110,10 @@
          - work-card-tag  → short category text under the title
 
        To remove a project: delete its whole <a class="work-card">...</a> block. -->
-  <section id="work">
+  <section id="projects">
     <div class="section-header reveal">
-      <h2 class="section-title">Selected<br><em>work.</em></h2>
-      <span class="section-num">02 — Work</span>
+      <h2 class="section-title">Selected<br><em>projects.</em></h2>
+      <span class="section-num">02 — Projects</span>
     </div>
 
     <div class="work-grid">
@@ -1279,7 +1217,7 @@
   <!-- ═══ FOOTER — the small line at the very bottom of the page ═══ -->
   <footer>
     <span>© 2026 Sebastian Esteva</span>
-    <span>Bring wonder through technology</span>
+    <span>Bringing wonder through technology</span>
   </footer>
 
   <!-- ═══════════════════════════════════════════════════════════════
@@ -1459,15 +1397,6 @@
       sessionStorage.setItem('heroAnimPlayed', '1');
     }
 
-    /* ─── MOBILE MENU TOGGLE ───
-       Opens/closes the full-screen mobile navigation menu (hamburger icon
-       in the top-right on small screens). Tapping any link inside the menu
-       also closes it automatically before jumping to that section. */
-    function toggleMobileMenu() {
-      document.getElementById('mobileMenuBtn').classList.toggle('open');
-      document.getElementById('mobileMenu').classList.toggle('open');
-    }
-
     /* ─── ACCESSIBLE MODE TOGGLE ───
        Handles the "Accessible" button in the nav bar: switches fonts, bumps
        text size, shows a confirmation banner + explainer card, and remembers
@@ -1599,6 +1528,18 @@
         showSlide(currentSlide + 1);
         startSlideshow();
       });
+
+      // Size the photo to visually match the height of the "Let's build
+      // something together." heading beside it, so the two feel like one
+      // balanced pair rather than a big headline next to a small thumbnail.
+      const contactBig = document.querySelector('.contact-big');
+      if (contactBig) {
+        const matchPhotoHeight = () => {
+          photoWrap.style.height = contactBig.getBoundingClientRect().height + 'px';
+        };
+        matchPhotoHeight();
+        window.addEventListener('resize', matchPhotoHeight);
+      }
     }
 
     /* ─── SCROLL REVEAL ───

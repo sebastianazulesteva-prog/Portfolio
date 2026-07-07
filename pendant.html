@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Poser Chess Set — Sebastian Esteva</title>
+  <title>Graduation Pendant — Sebastian Esteva</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
-  <meta name="description" content="Poser Chess Set: a wall-mounted, 3D-printed chess set by Sebastian Esteva, featuring 46 printed pieces and 96 embedded magnets. Built for ME 227 at Stanford.">
+  <meta name="description" content="A cast sterling silver pendant marking the Class of 2026 — designed in CAD, wax-printed, lost-wax cast, and hand-finished by Sebastian Esteva for DESIGN 223 (formerly ME 248) at Stanford.">
   <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://sesteva.com/chess.html" />
+  <link rel="canonical" href="https://sesteva.com/pendant.html" />
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Poser Chess Set — Sebastian Esteva">
-  <meta property="og:description" content="A wall-mounted, 3D-printed chess set with 46 printed pieces and 96 embedded magnets.">
-  <meta property="og:image" content="https://sesteva.com/images/chess-hero.jpg">
-  <meta property="og:url" content="https://sesteva.com/chess.html">
+  <meta property="og:title" content="Graduation Pendant — Sebastian Esteva">
+  <meta property="og:description" content="A cast sterling silver pendant marking the Class of 2026 — two orbs, six orbs.">
+  <meta property="og:image" content="https://sesteva.com/images/pendant-hero.jpg">
+  <meta property="og:url" content="https://sesteva.com/pendant.html">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Poser Chess Set — Sebastian Esteva">
-  <meta name="twitter:image" content="https://sesteva.com/images/chess-hero.jpg">
+  <meta name="twitter:title" content="Graduation Pendant — Sebastian Esteva">
+  <meta name="twitter:image" content="https://sesteva.com/images/pendant-hero.jpg">
 
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="images/favicon.ico">
@@ -36,13 +36,21 @@
 
     button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
 
+    /* ─── LIGHT / SLEEK THEME ───
+       A deliberate departure from the dark theme used on other project
+       pages — white studio background, ink-black type, soft shadows in
+       place of dark panel fills. Same class names as the rest of the site
+       (nav, hero, img-slot, meta-row, steps, etc.) so this still drops
+       into the same structural system; only the palette changes. */
     :root{
-      --bg:#000000;
-      --bg-panel:#0e0e0e;
-      --white:#f7f5f0;
-      --white-soft:rgba(247,245,240,0.72);
-      --white-faint:rgba(247,245,240,0.4);
-      --line:rgba(247,245,240,0.15);
+      --bg:#ffffff;
+      --bg-panel:#f7f6f3;
+      --ink:#161513;
+      --ink-soft:rgba(22,21,19,0.68);
+      --ink-faint:rgba(22,21,19,0.42);
+      --line:rgba(22,21,19,0.13);
+      --line-strong:rgba(22,21,19,0.28);
+      --shadow:0 2px 24px rgba(22,21,19,0.06);
       --serif:'Playfair Display', Georgia, serif;
       --sans:'Poppins', system-ui, sans-serif;
     }
@@ -62,7 +70,7 @@
 
     body{
       background:var(--bg);
-      color:var(--white);
+      color:var(--ink);
       font-family:var(--sans);
       font-weight:300;
       line-height:1.7;
@@ -77,7 +85,7 @@
       align-items:center;
       justify-content:space-between;
       padding:1.75rem 3rem;
-      background:rgba(0,0,0,0.85);
+      background:rgba(255,255,255,0.85);
       -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border-bottom:1px solid var(--line);
@@ -86,7 +94,7 @@
     .nav-logo{
       font-family:var(--serif);
       font-size:1.1rem;
-      color:var(--white);
+      color:var(--ink);
       text-decoration:none;
       letter-spacing:0.02em;
     }
@@ -96,7 +104,7 @@
       font-weight:500;
       letter-spacing:0.1em;
       text-transform:uppercase;
-      color:var(--white-soft);
+      color:var(--ink-soft);
       text-decoration:none;
       padding:0.6rem 1.3rem;
       border:1px solid var(--line);
@@ -104,7 +112,7 @@
       transition:border-color 0.2s, color 0.2s;
     }
 
-    .back-link:hover{ border-color:var(--white); color:var(--white); }
+    .back-link:hover{ border-color:var(--ink); color:var(--ink); }
 
     /* ─── ACCESSIBLE MODE TOGGLE + BANNER + EXPLAINER CARD ───
        See index.html for the full write-up — same behavior here. */
@@ -116,7 +124,7 @@
       border:1px solid var(--line);
       border-radius:100px;
       padding:0.4rem 0.9rem;
-      color:var(--white-soft);
+      color:var(--ink-soft);
       font-family:var(--sans);
       font-size:0.65rem;
       letter-spacing:0.1em;
@@ -125,18 +133,18 @@
       transition:border-color 0.2s, color 0.2s, background 0.2s;
     }
 
-    .a11y-toggle:hover{ border-color:var(--white); color:var(--white); }
-    .a11y-toggle.active{ border-color:var(--white); color:var(--white); background:rgba(247,245,240,0.08); }
+    .a11y-toggle:hover{ border-color:var(--ink); color:var(--ink); }
+    .a11y-toggle.active{ border-color:var(--ink); color:var(--ink); background:rgba(22,21,19,0.05); }
 
     .a11y-dot{
       width:6px; height:6px;
       border-radius:50%;
-      background:var(--white-faint);
+      background:var(--ink-faint);
       transition:background 0.2s;
       flex-shrink:0;
     }
 
-    .a11y-toggle.active .a11y-dot{ background:var(--white); }
+    .a11y-toggle.active .a11y-dot{ background:var(--ink); }
 
     .a11y-note{
       position:fixed;
@@ -144,7 +152,7 @@
       right:1.5rem;
       z-index:150;
       width:min(280px, calc(100vw - 3rem));
-      background:var(--bg-panel);
+      background:#fff;
       border:1px solid var(--line);
       border-radius:12px;
       padding:1rem 1.1rem;
@@ -152,12 +160,13 @@
       transform:translateY(-12px);
       pointer-events:none;
       transition:opacity 0.3s ease, transform 0.3s ease;
+      box-shadow:var(--shadow);
     }
 
     .a11y-note.visible{ opacity:1; transform:none; pointer-events:auto; }
-    .a11y-note p{ font-size:0.72rem; line-height:1.55; color:var(--white-soft); }
-    .a11y-note strong{ color:var(--white); }
-    .a11y-note a{ color:var(--white); }
+    .a11y-note p{ font-size:0.72rem; line-height:1.55; color:var(--ink-soft); }
+    .a11y-note strong{ color:var(--ink); }
+    .a11y-note a{ color:var(--ink); }
 
     .a11y-note-close{
       position:absolute;
@@ -165,20 +174,20 @@
       right:0.6rem;
       background:none;
       border:none;
-      color:var(--white-soft);
+      color:var(--ink-soft);
       font-size:1rem;
       line-height:1;
       cursor:pointer;
       padding:0.2rem;
     }
 
-    .a11y-note-close:hover{ color:var(--white); }
+    .a11y-note-close:hover{ color:var(--ink); }
 
     .a11y-line-overlay{
       position:absolute;
       inset:0;
       z-index:-1;
-      background:rgba(247,245,240,0.12);
+      background:rgba(22,21,19,0.08);
       pointer-events:none;
       clip-path:inset(0 0 100% 0);
     }
@@ -187,6 +196,26 @@
 
     /* ─── HERO ─── */
     .hero{ text-align:center; margin-bottom:3rem; }
+
+    .hero-eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:0.5rem;
+      font-family:var(--sans);
+      font-size:0.7rem;
+      font-weight:600;
+      letter-spacing:0.2em;
+      text-transform:uppercase;
+      color:var(--ink-faint);
+      margin-bottom:1.1rem;
+    }
+
+    .hero-eyebrow::before, .hero-eyebrow::after{
+      content:'';
+      width:22px;
+      height:1px;
+      background:var(--line-strong);
+    }
 
     .hero-title{
       font-family:var(--serif);
@@ -197,7 +226,7 @@
       margin-bottom:1rem;
     }
 
-    .hero-title em{ font-style:italic; font-weight:400; color:var(--white-soft); }
+    .hero-title em{ font-style:italic; font-weight:400; color:var(--ink-soft); }
 
     .hero-sub{
       font-family:var(--sans);
@@ -205,22 +234,23 @@
       font-size:clamp(0.85rem,1.6vw,1rem);
       letter-spacing:0.14em;
       text-transform:uppercase;
-      color:var(--white-faint);
+      color:var(--ink-faint);
     }
 
-    /* ─── IMAGE SLOT (placeholder styling — replace img src later) ─── */
+    /* ─── IMAGE SLOT ─── soft shadow instead of dark-panel fill, so photos
+         shot on white backgrounds sit naturally against the page. */
     .img-slot{
       position:relative;
-      border-radius:6px;
+      border-radius:10px;
       overflow:hidden;
       border:1px solid var(--line);
       margin:2.5rem 0;
       background:var(--bg-panel);
+      box-shadow:var(--shadow);
     }
 
     .img-slot img{ width:100%; height:auto; display:block; }
 
-    /* Visual placeholder shown until a real image is dropped in */
     .img-slot-label{
       display:flex;
       flex-direction:column;
@@ -228,7 +258,7 @@
       justify-content:center;
       gap:0.5rem;
       aspect-ratio:16/10;
-      color:var(--white-faint);
+      color:var(--ink-faint);
       font-family:var(--sans);
       font-size:0.78rem;
       letter-spacing:0.08em;
@@ -239,7 +269,7 @@
     }
 
     .img-slot-label strong{
-      color:var(--white-soft);
+      color:var(--ink-soft);
       font-size:0.85rem;
       display:block;
       margin-bottom:0.3rem;
@@ -247,113 +277,9 @@
 
     .hero-caption{
       font-size:0.85rem;
-      color:var(--white-faint);
+      color:var(--ink-faint);
       text-align:center;
       font-style:italic;
-    }
-
-    /* ─── HERO IMAGE PAIR — before/after ───
-       Two images side by side (before → after), since the "posing" transform
-       is the whole point of this project. Each .img-slot inside keeps its
-       normal styling; this just arranges them in a 2-up row. Stacks to one
-       column on mobile. */
-    .img-pair{
-      position:relative;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:0;
-      margin:2.5rem 0;
-    }
-
-    .img-pair .img-slot{ margin:0; border-radius:0; }
-    .img-pair .img-slot:first-child{ border-top-left-radius:6px; border-bottom-left-radius:6px; }
-    .img-pair .img-slot:last-child{ border-top-right-radius:6px; border-bottom-right-radius:6px; }
-
-    /* Badge sitting right on the seam between the two photos, with arrows
-       pointing inward toward each other — a visual cue that this is a single
-       before/after transformation, not two unrelated images. */
-    /* Stacked "exchange" icon on the seam — top arrow points right (toward
-       the second photo), bottom arrow points left (toward the first) — like
-       a currency-exchange symbol, signaling these are two states of the
-       same object, not two separate images. */
-    .img-pair-transform{
-      position:absolute;
-      top:50%;
-      left:50%;
-      transform:translate(-50%,-50%);
-      z-index:2;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:0.15rem;
-      width:44px;
-      height:44px;
-      background:var(--bg);
-      border:1.5px solid var(--white);
-      border-radius:50%;
-      font-size:0.95rem;
-      line-height:1;
-      color:var(--white);
-    }
-
-    /* The badge always stacks its two glyphs in a column, but which pair of
-       glyphs it shows depends on whether the photos are side-by-side
-       (→ over ←, pointing at each other horizontally) or stacked on mobile
-       (↓ over ↑, pointing at each other vertically) — the arrows should
-       always point between the two images, not just default to horizontal. */
-    .img-pair-transform .arrow-vertical{ display:none; }
-
-    @media(max-width:768px){
-      .img-pair{ grid-template-columns:1fr; gap:0; }
-      .img-pair .img-slot:first-child{ border-radius:6px 6px 0 0; }
-      .img-pair .img-slot:last-child{ border-radius:0 0 6px 6px; }
-      .img-pair-transform{ width:38px; height:38px; font-size:0.8rem; }
-      .img-pair-transform .arrow-horizontal{ display:none; }
-      .img-pair-transform .arrow-vertical{ display:inline; }
-    }
-
-    /* ─── 2×2 IMAGE COLLAGE ───
-       A single bordered "box" holding 4 images in a grid (top-left,
-       top-right, bottom-left, bottom-right), each with its own small
-       caption underneath. Used in the Prototyping step. */
-    .collage-box{
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:0.9rem;
-      background:var(--bg-panel);
-      margin:1.5rem 0;
-    }
-
-    .collage-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      align-items:start;
-      gap:0.75rem;
-    }
-
-    .collage-item img{
-      width:100%;
-      height:auto;
-      display:block;
-      border-radius:6px;
-    }
-
-    .collage-item .img-slot-label{ aspect-ratio:4/3; border-radius:6px; padding:1rem; font-size:0.65rem; }
-    .collage-item .img-slot-label strong{ font-size:0.72rem; }
-
-    .collage-caption{
-      margin-top:0.5rem;
-      font-size:0.7rem;
-      letter-spacing:0.06em;
-      text-transform:uppercase;
-      color:var(--white-faint);
-      text-align:center;
-    }
-
-    @media(max-width:768px){
-      .collage-grid{ grid-template-columns:1fr 1fr; gap:0.5rem; }
-      .collage-box{ padding:0.6rem; }
     }
 
     /* ─── META ROW ─── */
@@ -382,14 +308,14 @@
       font-weight:500;
       letter-spacing:0.14em;
       text-transform:uppercase;
-      color:var(--white-faint);
+      color:var(--ink-faint);
       margin-bottom:0.5rem;
     }
 
     .meta-value{
       font-family:var(--serif);
       font-size:1.05rem;
-      color:var(--white);
+      color:var(--ink);
     }
 
     /* ─── STORY ─── */
@@ -398,11 +324,42 @@
     .story p{
       position:relative;
       font-size:1.05rem;
-      color:var(--white-soft);
+      color:var(--ink-soft);
       margin-bottom:1.5rem;
     }
 
-    .story p strong{ color:var(--white); font-weight:600; }
+    .story p strong{ color:var(--ink); font-weight:600; }
+
+    /* ─── "26" ORB MOTIF ───
+       A quiet visual echo of the pendant's own design — two dots, then six
+       dots, styled like the two rows of embedded silver orbs on the piece
+       itself. Sits between the story and the journey section. */
+    .orb-motif{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:2.2rem;
+      margin:3rem 0;
+    }
+
+    .orb-group{ display:flex; gap:0.45rem; }
+
+    .orb{
+      width:11px;
+      height:11px;
+      border-radius:50%;
+      background:radial-gradient(circle at 35% 30%, #fdfdfc, #cfcdc7 55%, #9a978f 100%);
+      border:1px solid var(--line-strong);
+      box-shadow:0 1px 3px rgba(22,21,19,0.15);
+    }
+
+    .orb-motif-label{
+      font-size:0.65rem;
+      font-weight:600;
+      letter-spacing:0.18em;
+      text-transform:uppercase;
+      color:var(--ink-faint);
+    }
 
     /* ─── DIVIDER ─── */
     .divider-row{
@@ -414,7 +371,7 @@
     }
 
     .divider-row .line{ flex:1; max-width:220px; height:1px; background:var(--line); }
-    .divider-row .mark{ font-family:var(--serif); font-style:italic; color:var(--white-faint); font-size:1.1rem; }
+    .divider-row .mark{ font-family:var(--serif); font-style:italic; color:var(--ink-faint); font-size:1.1rem; }
 
     /* ─── JOURNEY ─── */
     .journey-heading{
@@ -425,7 +382,7 @@
       margin-bottom:0.5rem;
     }
 
-    .journey-heading em{ font-style:italic; font-weight:400; color:var(--white-soft); }
+    .journey-heading em{ font-style:italic; font-weight:400; color:var(--ink-soft); }
 
     .journey-sub{
       text-align:center;
@@ -433,11 +390,11 @@
       font-weight:500;
       letter-spacing:0.16em;
       text-transform:uppercase;
-      color:var(--white-faint);
+      color:var(--ink-faint);
       margin-bottom:3rem;
     }
 
-    /* ─── NUMBERED STEPS (matches circle-badge style from reference) ─── */
+    /* ─── NUMBERED STEPS ─── */
     .steps{
       display:flex;
       flex-direction:column;
@@ -455,14 +412,15 @@
       width:64px;
       height:64px;
       border-radius:50%;
-      border:1.5px solid var(--white);
+      border:1.5px solid var(--ink);
       display:flex;
       align-items:center;
       justify-content:center;
       font-family:var(--serif);
       font-size:1.5rem;
-      color:var(--white);
+      color:var(--ink);
       flex-shrink:0;
+      background:#fff;
     }
 
     .step-body h3{
@@ -476,14 +434,11 @@
     .step-body p{
       position:relative;
       font-size:0.95rem;
-      color:var(--white-soft);
+      color:var(--ink-soft);
     }
 
-    /* ─── FINAL SUCCESS SHOT ───
-       Closing image, a cutout with no background — sits directly on the
-       page's own black background rather than in a bordered/cropped
-       .img-slot box, and uses object-fit:contain (not cover) so nothing
-       gets cropped off. */
+    /* ─── FINAL SUCCESS SHOT ─── closing image, sits directly on the
+         page's own white background — no border box, object-fit:contain. */
     .final-shot{
       text-align:center;
       margin:3.5rem 0;
@@ -494,6 +449,15 @@
       width:100%;
       height:auto;
       display:inline-block;
+    }
+
+    .final-caption{
+      font-family:var(--serif);
+      font-style:italic;
+      font-size:1.1rem;
+      color:var(--ink-soft);
+      text-align:center;
+      margin-top:1rem;
     }
 
     /* ─── FOOTER NAV ─── */
@@ -507,15 +471,15 @@
       font-weight:500;
       letter-spacing:0.08em;
       text-transform:uppercase;
-      color:var(--white);
+      color:var(--ink);
       text-decoration:none;
       padding:1rem 2rem;
-      border:1px solid var(--white);
+      border:1px solid var(--ink);
       border-radius:100px;
       transition:background 0.2s, color 0.2s;
     }
 
-    .back-bottom:hover{ background:var(--white); color:var(--bg); }
+    .back-bottom:hover{ background:var(--ink); color:#fff; }
 
     /* ─── MORE PROJECTS ─── */
     .more-projects{ margin-top:5rem; }
@@ -525,7 +489,7 @@
       font-size:0.75rem;
       letter-spacing:0.14em;
       text-transform:uppercase;
-      color:var(--white-faint);
+      color:var(--ink-faint);
       text-align:center;
       margin-bottom:1.75rem;
     }
@@ -543,8 +507,9 @@
       color:inherit;
       aspect-ratio:4/3;
       overflow:hidden;
-      border-radius:4px;
+      border-radius:8px;
       background:var(--bg-panel);
+      box-shadow:var(--shadow);
     }
 
     .mini-card img, .mini-card video{
@@ -552,7 +517,7 @@
       height:100%;
       object-fit:cover;
       display:block;
-      filter:grayscale(30%) brightness(0.9);
+      filter:grayscale(15%) brightness(0.97);
       transition:filter 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
     }
 
@@ -562,7 +527,7 @@
       content:'';
       position:absolute;
       inset:0;
-      background:linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.1) 45%, rgba(0,0,0,0.02) 100%);
+      background:linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.08) 45%, rgba(0,0,0,0.01) 100%);
       pointer-events:none;
     }
 
@@ -595,20 +560,21 @@
       width:26px;
       height:26px;
       border-radius:50%;
-      background:rgba(0,0,0,0.5);
+      background:rgba(255,255,255,0.85);
       -webkit-backdrop-filter:blur(4px);
       backdrop-filter:blur(4px);
       display:flex;
       align-items:center;
       justify-content:center;
-      color:#fff;
+      color:#161513;
       font-size:0.8rem;
       transform:rotate(-45deg);
       transition:transform 0.35s cubic-bezier(0.16,1,0.3,1), background 0.3s;
       z-index:2;
+      box-shadow:0 1px 4px rgba(0,0,0,0.15);
     }
 
-    .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+    .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; }
 
     @media(max-width:768px){
       nav{ padding:1.25rem 1.5rem; }
@@ -621,6 +587,7 @@
       .meta-item:first-child{ border-top:none; }
       .step{ grid-template-columns:56px 1fr; gap:1.25rem; }
       .step-badge{ width:52px; height:52px; font-size:1.2rem; }
+      .orb-motif{ gap:1.4rem; }
     }
   </style>
 </head>
@@ -644,39 +611,19 @@
   <article>
 
     <div class="hero">
-      <h1 class="hero-title">Poser <em>Chess Set</em></h1>
-      <p class="hero-sub">A Wall-Mounted Chess Set, Made to Show Off Your Game</p>
+      <span class="hero-eyebrow">Class of 2026</span>
+      <h1 class="hero-title">Graduation <em>Pendant</em></h1>
+      <p class="hero-sub">A Cast Sterling Silver Keepsake, Designed and Finished by Hand</p>
     </div>
 
-    <!-- ═══ HERO IMAGE PAIR — before / after ═══
-         Two images side by side since the "posing" transformation is the
-         whole point of the project: the flat/boxed set on the left, the
-         fully posed final set on the right.
-         Left:  chess-hero.jpg (already have this)
-         Right: chess-final-AI-Pieces.jpg (already have this — moved up here
-                from the end of the page) -->
-    <div class="img-pair">
-      <div class="img-slot">
-        <img src="images/chess-hero.jpg" alt="Poser Chess Set wall panel unfolding from flat to 3D" width="5712" height="4284">
-      </div>
-      <div class="img-slot">
-        <img src="images/chess-final-AI-Pieces.jpg" alt="Poser Chess Set fully extended with pieces set up for a game" width="896" height="1195">
-      </div>
-      <div class="img-pair-transform" aria-hidden="true">
-        <span class="arrow-horizontal">→</span>
-        <span class="arrow-horizontal">←</span>
-        <span class="arrow-vertical">↓</span>
-        <span class="arrow-vertical">↑</span>
-      </div>
+    <!-- ═══ HERO SHOT ═══
+         ✎ Call this file images/pendant-hero.jpg — the finished pendant on
+         its chain, shot on white (the photo you attached in chat). Reused
+         again at the bottom as the closing shot. -->
+    <div class="img-slot">
+      <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024">
     </div>
-    <p class="hero-caption">Sebastian Esteva — ME 227, Winter 2026</p>
-
-    <div style="text-align:center; margin-top:1.5rem;">
-      <a href="https://canva.link/7iz5vqdo5poc2wv" class="back-bottom" target="_blank" rel="noopener">
-        <span>View Full Slideshow</span>
-        <span>↗</span>
-      </a>
-    </div>
+    <p class="hero-caption">Sebastian Esteva — DESIGN 223 (formerly ME 248)</p>
 
     <div class="meta-row">
       <div class="meta-item">
@@ -685,17 +632,34 @@
       </div>
       <div class="meta-item">
         <div class="meta-label">Materials</div>
-        <div class="meta-value">3D-printed PLA + magnets</div>
+        <div class="meta-value">Cast sterling silver</div>
       </div>
       <div class="meta-item">
-        <div class="meta-label">Size</div>
-        <div class="meta-value">~20" × 20"</div>
+        <div class="meta-label">Milestone</div>
+        <div class="meta-value">Class of 2026</div>
       </div>
     </div>
 
     <div class="story">
-      <p>A wall-mounted chess set where every piece <strong>poses itself</strong> — sliding out from a flat magnetic backing into a fully three-dimensional chess piece. The set is functional to actually play with, but also designed to be displayed proudly on a wall between games.</p>
-      <p>The biggest design challenge was scale: the full board needed to be roughly <strong>20 inches by 20 inches</strong>, which was too large for a single print bed. That meant breaking the entire board and every piece into printable sections, then reassembling them with <strong>96 embedded magnets</strong> to keep everything correctly oriented and connected.</p>
+      <p>Two orbs. Six orbs. <strong>26</strong> — my graduation year, cast in silver.</p>
+    </div>
+
+    <!-- ═══ "26" ORB MOTIF ═══ a small graphic echo of the two-orb / six-orb
+         design on the pendant itself. Purely decorative, no images needed. -->
+    <div class="orb-motif" aria-hidden="true">
+      <div class="orb-group">
+        <span class="orb"></span>
+        <span class="orb"></span>
+      </div>
+      <span class="orb-motif-label">✦</span>
+      <div class="orb-group">
+        <span class="orb"></span>
+        <span class="orb"></span>
+        <span class="orb"></span>
+        <span class="orb"></span>
+        <span class="orb"></span>
+        <span class="orb"></span>
+      </div>
     </div>
 
     <div class="divider-row">
@@ -705,64 +669,60 @@
     </div>
 
     <h2 class="journey-heading">The <em>Journey</em></h2>
-    <p class="journey-sub">Ideation → Prototyping → Execution</p>
+    <p class="journey-sub">CAD → Wax Print → Cast → Finish</p>
 
     <!-- ═══ NUMBERED STEP SECTIONS ═══
-         Each step below has its own image slot. Circle badges are 1, 2, 3.
+         Each step below has its own image slot. Circle badges are 1, 2, 3, 4.
     -->
     <div class="steps">
 
-      <!-- ═══ STEP 1 — IDEATION ═══
-           ✎ Add your sketch/concept image and drop the filename in below. -->
+      <!-- ═══ STEP 1 — DESIGN & CAD ═══
+           No image slot for this one — text only. ✎ Add a screenshot of the
+           CAD model here later if you want one; just copy the .img-slot
+           pattern from Step 2 below. -->
       <div class="step">
         <div class="step-badge">1</div>
         <div class="step-body">
-          <h3>Ideation</h3>
-          <p>Early sketches and concept exploration — figuring out how a flat, wall-mounted panel could fold and slide out into a fully three-dimensional chess piece, before committing to any physical prototype.</p>
-
-          <div class="img-slot">
-            <img src="images/chess-ideation.jpg" alt="Reference photos of a wall-mounted chessboard concept and a standard 3D chess set" width="752" height="708" loading="lazy">
-          </div>
+          <h3>Design & CAD</h3>
+          <p>Designed as a 3D model — two beaded rows, framed in silver.</p>
         </div>
       </div>
 
-      <!-- ═══ STEP 2 — PROTOTYPING (4-image collage) ═══
-           ✎ Add the 3 new images below and drop their filenames in — the
-           original chess-prototyping.jpg is already wired up. -->
+      <!-- ═══ STEP 2 — WAX 3D PRINT ═══
+           ✎ Call this file images/pendant-wax-print.jpg — photo of the wax
+           3D print, ideally also shot on white to match the hero. -->
       <div class="step">
         <div class="step-badge">2</div>
         <div class="step-body">
-          <h3>Prototyping</h3>
-          <p>Testing every connector, hinge, and mechanism individually before committing to a full print run — a single point of failure at this scale would be costly to redo.</p>
+          <h3>Wax 3D Print</h3>
+          <p>Printed in wax — a sacrificial pattern for the cast to come.</p>
 
-          <div class="collage-box">
-            <div class="collage-grid">
-              <div class="collage-item">
-                <img src="images/chess-prototyping.jpg" alt="3D-printed connector and hinge parts laid out for testing" width="5712" height="4284" loading="lazy">
-                <div class="collage-caption">Connector & Hinge Testing</div>
-              </div>
-              <div class="collage-item">
-                <img src="images/chess-fea.jpg" alt="Finite element analysis results showing stress and displacement on a hinge part" width="1920" height="1080" loading="lazy">
-                <div class="collage-caption">FEA & Load Analysis</div>
-              </div>
-              <div class="collage-item">
-                <img src="images/chess-mechanism-prototype.jpg" alt="3D-printed swivel mechanism prototype for the chess piece" width="1216" height="706" loading="lazy">
-                <div class="collage-caption">Swivel Mechanism Prototype</div>
-              </div>
-              <div class="collage-item">
-                <img src="images/chess-press-insert.jpg" alt="3D-printed insert and joining pieces being tested by hand" width="768" height="1024" loading="lazy">
-                <div class="collage-caption">Insert & Joining Method Testing</div>
-              </div>
-            </div>
+          <div class="img-slot">
+            <img src="images/pendant-wax-print.jpg" alt="Wax 3D-printed pattern of the pendant design before investment casting" width="1024" height="1024" loading="lazy">
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ STEP 3 — LOST-WAX CASTING ═══
+           ✎ Call this file images/pendant-cast-raw.jpg — the piece straight
+           out of the mold, before any hand-finishing. -->
+      <div class="step">
+        <div class="step-badge">3</div>
+        <div class="step-body">
+          <h3>Lost-Wax Casting</h3>
+          <p>The wax is lost, replaced with molten sterling silver.</p>
+
+          <div class="img-slot">
+            <img src="images/pendant-cast-raw.jpg" alt="Raw cast silver pendant straight out of the investment mold, before finishing" width="1024" height="1024" loading="lazy">
           </div>
         </div>
       </div>
 
       <div class="step">
-        <div class="step-badge">3</div>
+        <div class="step-badge">4</div>
         <div class="step-body">
-          <h3>Execute</h3>
-          <p>All 46 individual pieces were tracked and printed, then assembled using 96 embedded magnets to keep every piece correctly oriented when posed out from the wall.</p>
+          <h3>Hand-Finishing</h3>
+          <p>Filed, sanded, and polished to a finish, entirely by hand.</p>
         </div>
       </div>
 
@@ -774,8 +734,19 @@
       <span class="line"></span>
     </div>
 
+    <!-- ═══ FINAL SUCCESS SHOT ═══
+         ✎ Reuses images/pendant-hero.jpg as the closing shot. -->
     <div class="final-shot">
-      <img src="images/chess-final-success.png" alt="Sebastian Esteva holding up the tilted Poser Chess Set panel" width="750" height="1000" loading="lazy">
+      <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, photographed on a white background" width="768" height="1024" loading="lazy">
+      <p class="final-caption">Two orbs. Six orbs. Class of '26.</p>
+    </div>
+
+    <!-- ═══ WORN SHOT ═══
+         ✎ Call this file images/pendant-worn.jpg — a photo of you wearing
+         the pendant. Sized a bit wider than the final-shot cutout since
+         it'll likely be a fuller photo rather than a product cutout. -->
+    <div class="img-slot" style="max-width:480px; margin:3.5rem auto;">
+      <img src="images/pendant-worn.jpg" alt="Sebastian Esteva wearing the finished graduation pendant" width="1024" height="1280" loading="lazy">
     </div>
 
   </article>
@@ -783,14 +754,6 @@
     <div class="more-projects">
       <h3 class="more-projects-title">More Projects</h3>
       <div class="more-projects-grid">
-        <a href="pendant.html" class="mini-card">
-          <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024" loading="lazy">
-          <span class="mini-card-arrow">↗</span>
-          <div class="mini-card-info">
-            <p class="mini-card-title">Graduation Pendant</p>
-            <span class="mini-card-tag">Metalworking · Class of 2026</span>
-          </div>
-        </a>
         <a href="slipdoor.html" class="mini-card">
           <video aria-label="3D render of The Slip Door wooden frame prototype" width="1280" height="720" autoplay loop muted playsinline disableRemotePlayback preload="auto">
             <source src="images/slipdoor-final-result.webm" type="video/webm">
@@ -808,6 +771,14 @@
           <div class="mini-card-info">
             <p class="mini-card-title">Bastón</p>
             <span class="mini-card-tag">Woodworking · Family</span>
+          </div>
+        </a>
+        <a href="timecollector.html" class="mini-card">
+          <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gears and marble mechanism" width="966" height="1192" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Time Collector</p>
+            <span class="mini-card-tag">Team Project · Kinetic Sculpture</span>
           </div>
         </a>
       </div>

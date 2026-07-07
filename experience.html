@@ -43,7 +43,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -187,27 +189,6 @@
     }
 
     .a11y-toggle.active .a11y-dot { background: var(--text); }
-
-    .a11y-banner {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--bg3);
-      border: 1px solid var(--border-hover);
-      border-radius: 100px;
-      padding: 0.6rem 1.4rem;
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      z-index: 200;
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .a11y-banner.visible { transform: translateX(-50%) translateY(0); }
 
     .a11y-note {
       position: fixed;
@@ -394,8 +375,6 @@
   <div class="cursor" id="cursor"></div>
   <div class="cursor-ring" id="cursorRing"></div>
 
-  <div class="a11y-banner" id="a11yBanner"></div>
-
   <div class="a11y-note" id="a11yNote">
     <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
     <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go — <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
@@ -419,7 +398,7 @@
 
     <div style="margin-bottom:3rem;">
       <a href="https://canva.link/t3jqobabksdbv33" class="back-bottom" target="_blank" rel="noopener">
-        <span>View All Projects in One Place</span>
+        <span>4 of My Projects in a Single Slidedeck</span>
         <span>↗</span>
       </a>
     </div>
@@ -601,17 +580,8 @@
     document.querySelectorAll('.exp-item').forEach(el => observer.observe(el));
 
     /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
-    const banner = document.getElementById('a11yBanner');
     const toggle = document.getElementById('a11yToggle');
     const a11yNote = document.getElementById('a11yNote');
-    let bannerTimer;
-
-    function showBanner(msg) {
-      banner.textContent = msg;
-      banner.classList.add('visible');
-      clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
-    }
 
     function updateA11yNote(show) {
       if (a11yNote) a11yNote.classList.toggle('visible', show);
@@ -626,7 +596,6 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
-      showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
 
       if (isOn) {
         sessionStorage.removeItem('a11yNoteDismissed');

@@ -37,6 +37,23 @@
     }
   </script>
 
+  <!-- ═══ INSTANT JUMP FOR CROSS-PAGE "BACK TO HOME" LINKS ═══
+       Arriving here with a #hash (e.g. from a project page's "Back to
+       Selected Projects" link) should snap straight to that section — the
+       CSS smooth-scroll below is meant for in-page nav clicks, not for a
+       jarring animated scroll right after a full page load. Setting this
+       inline (before the browser resolves the initial scroll-to-fragment)
+       temporarily overrides the stylesheet's scroll-behavior; removed again
+       once the page finishes loading so normal in-page smooth scroll returns. -->
+  <script>
+    if (location.hash) {
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.addEventListener('load', () => {
+        document.documentElement.style.scrollBehavior = '';
+      });
+    }
+  </script>
+
   <title>Sebastian Esteva — Engineer &amp; Communicator | Portfolio</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══
@@ -79,8 +96,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <!-- Fonts used on this page: Playfair Display (headlines), Syne (body text),
-       Atkinson Hyperlegible (used only when "Accessible" mode is on) -->
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+       Atkinson Hyperlegible (used only when "Accessible" mode is on).
+       Loaded non-blocking (preload + swap to stylesheet once fetched, with a
+       <noscript> fallback) so this request doesn't delay first paint — the
+       fonts already use display=swap, so text still renders immediately in
+       a fallback font and swaps in once ready, same as before. -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Syne:wght@300;400;500&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
 
   <!-- ═══ STRUCTURED DATA (JSON-LD) ═══
        Tells Google "this page is about a Person" in a machine-readable
@@ -217,6 +240,10 @@
       align-items: center;
       justify-content: space-between;
       padding: 2rem 3rem;
+      background: rgba(8,8,8,0.85);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
     }
 
     .nav-logo {
@@ -256,11 +283,11 @@
       display: flex;
       align-items: center;
       gap: 0.6rem;
-      background: none;
-      border: 1px solid var(--border);
+      background: rgba(245,245,240,0.04);
+      border: 1px solid var(--border-hover);
       border-radius: 100px;
       padding: 0.4rem 0.9rem;
-      color: var(--muted);
+      color: rgba(245,245,240,0.7);
       font-family: var(--sans);
       font-size: 0.65rem;
       letter-spacing: 0.1em;
@@ -271,13 +298,13 @@
       animation: fadeUp 0.6s 2.2s forwards;
     }
 
-    .a11y-toggle:hover { border-color: var(--border-hover); color: var(--text); }
+    .a11y-toggle:hover { border-color: var(--text); color: var(--text); }
     .a11y-toggle.active { border-color: var(--text); color: var(--text); background: rgba(245,245,240,0.05); }
 
     .a11y-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
-      background: var(--muted);
+      background: rgba(245,245,240,0.7);
       transition: background 0.2s;
       flex-shrink: 0;
     }
@@ -623,7 +650,7 @@
       background: var(--bg3);
     }
 
-    .work-card img {
+    .work-card img, .work-card video {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -632,7 +659,7 @@
       transition: filter 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .work-card:hover img {
+    .work-card:hover img, .work-card:hover video {
       filter: grayscale(0%) brightness(1);
       transform: scale(1.04);
     }
@@ -650,15 +677,6 @@
       left: 0; right: 0; bottom: 0;
       padding: 1.75rem;
       z-index: 2;
-    }
-
-    .work-card-num {
-      font-size: 0.65rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(245,245,240,0.6);
-      margin-bottom: 0.5rem;
-      display: block;
     }
 
     .work-card-title {
@@ -701,6 +719,44 @@
       background: var(--text);
       color: var(--bg);
     }
+
+    .work-grid-extra {
+      margin-top: 1.5rem;
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, margin-top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .work-grid-extra.visible {
+      max-height: 800px;
+      opacity: 1;
+    }
+
+    .more-toggle-wrap { text-align: center; margin-top: 3rem; }
+
+    .more-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.75rem 1.6rem;
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .more-toggle:hover { border-color: var(--border-hover); color: var(--text); }
+
+    .more-toggle-arrow { display: inline-block; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .more-toggle.open .more-toggle-arrow { transform: rotate(180deg); }
 
     #contact { min-height: 55vh; display: flex; flex-direction: column; justify-content: center; }
 
@@ -820,27 +876,6 @@
       gap: 3rem;
       flex-wrap: wrap;
     }
-
-    .a11y-banner {
-      position: fixed;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--bg3);
-      border: 1px solid var(--border-hover);
-      border-radius: 100px;
-      padding: 0.6rem 1.4rem;
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      z-index: 200;
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .a11y-banner.visible { transform: translateX(-50%) translateY(0); }
 
     /* ─── ACCESSIBLE MODE — EXPLAINER CARD ───
        Small card that appears near the top-right of the nav whenever
@@ -1001,9 +1036,6 @@
   <div class="cursor" id="cursor"></div>
   <div class="cursor-ring" id="cursorRing"></div>
 
-  <!-- Small popup that appears bottom-center when you toggle Accessible mode on/off -->
-  <div class="a11y-banner" id="a11yBanner"></div>
-
   <!-- ═══ ACCESSIBLE MODE EXPLAINER CARD ═══
        Shown/hidden by updateA11yNote() in the script whenever Accessible
        mode is on (and not dismissed this session) — see toggleAccessible(). -->
@@ -1151,11 +1183,14 @@
        then edit:
          - href           → the project's html filename
          - <img src>      → path to its thumbnail image (must be in the images/ folder)
-         - work-card-num  → the number shown (01, 02, 03...)
          - work-card-title → project name
          - work-card-tag  → short category text under the title
 
-       To remove a project: delete its whole <a class="work-card">...</a> block. -->
+       To remove a project from the always-visible grid: move its
+       <a class="work-card">...</a> block into the "EXTRA PROJECTS" grid
+       further down instead of deleting it — that grid is hidden behind the
+       "More Projects" button so the card is still reachable without
+       cluttering the main view. -->
   <section id="projects">
     <div class="section-header reveal">
       <h2 class="section-title">Selected<br><em>projects.</em></h2>
@@ -1164,21 +1199,22 @@
 
     <div class="work-grid">
 
-      <a href="chess.html" class="work-card reveal">
-        <img src="images/chess-hero.jpg" alt="Wall-mounted magnetic chess set mechanism with sliding panels" width="5712" height="4284">
+      <a href="pendant.html" class="work-card reveal">
+        <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
-          <span class="work-card-num">01</span>
-          <p class="work-card-title">Poser Chess Set</p>
-          <span class="work-card-tag">3D Printing · ME 227</span>
+          <p class="work-card-title">Graduation Pendant</p>
+          <span class="work-card-tag">Metalworking · Class of 2026</span>
         </div>
       </a>
 
       <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
-        <img src="images/slipdoor-final-result.gif" alt="3D render of The Slip Door wooden frame prototype" width="1280" height="720">
+        <video aria-label="3D render of The Slip Door wooden frame prototype" width="1280" height="720" autoplay loop muted playsinline disableRemotePlayback>
+          <source src="images/slipdoor-final-result.webm" type="video/webm">
+          <source src="images/slipdoor-final-result.mp4" type="video/mp4">
+        </video>
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
-          <span class="work-card-num">02</span>
           <p class="work-card-title">The Slip Door</p>
           <span class="work-card-tag">Team Project · Accessibility</span>
         </div>
@@ -1188,7 +1224,6 @@
         <img src="images/baston-hero.jpg" alt="Close-up of the Bastón foldable cane handle and joints" width="5184" height="3058">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
-          <span class="work-card-num">03</span>
           <p class="work-card-title">Bastón</p>
           <span class="work-card-tag">Woodworking · Family</span>
         </div>
@@ -1198,12 +1233,34 @@
         <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gears and marble mechanism" width="966" height="1192">
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
-          <span class="work-card-num">04</span>
           <p class="work-card-title">Time Collector</p>
           <span class="work-card-tag">Team Project · Kinetic Sculpture</span>
         </div>
       </a>
 
+    </div>
+
+    <!-- ═══ EXTRA PROJECTS ═══ hidden until "More Projects" is clicked. -->
+    <div class="work-grid-extra" id="extraProjects">
+      <div class="work-grid">
+
+        <a href="chess.html" class="work-card">
+          <img src="images/chess-hero.jpg" alt="Wall-mounted magnetic chess set mechanism with sliding panels" width="5712" height="4284" loading="lazy">
+          <span class="work-card-arrow">↗</span>
+          <div class="work-card-info">
+            <p class="work-card-title">Poser Chess Set</p>
+            <span class="work-card-tag">3D Printing · ME 227</span>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+    <div class="more-toggle-wrap">
+      <button class="more-toggle" id="moreToggleBtn" onclick="toggleExtraProjects()" aria-expanded="false" aria-controls="extraProjects">
+        <span id="moreToggleLabel">More Projects</span>
+        <span class="more-toggle-arrow">↓</span>
+      </button>
     </div>
   </section>
 
@@ -1461,19 +1518,10 @@
 
     /* ─── ACCESSIBLE MODE TOGGLE ───
        Handles the "Accessible" button in the nav bar: switches fonts, bumps
-       text size, shows a confirmation banner + explainer card, and remembers
-       the choice next time the person visits (via localStorage). */
-    const banner = document.getElementById('a11yBanner');
+       text size, shows an explainer card, and remembers the choice next
+       time the person visits (via localStorage). */
     const toggle = document.getElementById('a11yToggle');
     const a11yNote = document.getElementById('a11yNote');
-    let bannerTimer;
-
-    function showBanner(msg) {
-      banner.textContent = msg;
-      banner.classList.add('visible');
-      clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
-    }
 
     // Explainer card: shown whenever accessible mode is on, unless the
     // person already dismissed it earlier this browser session.
@@ -1499,7 +1547,6 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
-      showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
 
       if (isOn) {
         // Re-show the explainer even if it was dismissed earlier — the
@@ -1612,6 +1659,19 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    /* ─── MORE PROJECTS TOGGLE ───
+       Extra project cards stay collapsed (max-height:0) until this button
+       is clicked, so the homepage always shows exactly 4 cards by default. */
+    function toggleExtraProjects() {
+      const extra = document.getElementById('extraProjects');
+      const btn = document.getElementById('moreToggleBtn');
+      const label = document.getElementById('moreToggleLabel');
+      const isOpen = extra.classList.toggle('visible');
+      btn.classList.toggle('open', isOpen);
+      btn.setAttribute('aria-expanded', isOpen);
+      label.textContent = isOpen ? 'Show Fewer' : 'More Projects';
+    }
   </script>
 </body>
 </html>

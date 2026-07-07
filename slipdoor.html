@@ -27,7 +27,9 @@
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
 
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -136,27 +138,6 @@
 
     .a11y-toggle.active .a11y-dot{ background:var(--white); }
 
-    .a11y-banner{
-      position:fixed;
-      bottom:2rem;
-      left:50%;
-      transform:translateX(-50%) translateY(80px);
-      background:var(--ink);
-      border:1px solid var(--ink);
-      border-radius:100px;
-      padding:0.6rem 1.4rem;
-      font-size:0.7rem;
-      letter-spacing:0.04em;
-      text-transform:uppercase;
-      color:var(--white);
-      z-index:200;
-      transition:transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      white-space:nowrap;
-      pointer-events:none;
-    }
-
-    .a11y-banner.visible{ transform:translateX(-50%) translateY(0); }
-
     .a11y-note{
       position:fixed;
       top:5.5rem;
@@ -229,7 +210,7 @@
       background:var(--vwblue-soft);
     }
 
-    .hero-img-wrap img{ width:100%; height:auto; display:block; }
+    .hero-img-wrap img, .hero-img-wrap video{ width:100%; height:auto; display:block; }
 
     .hero-caption{
       max-width:1300px;
@@ -358,6 +339,99 @@
 
     .back-bottom:hover{ background:var(--ink); color:var(--white); }
 
+    /* ─── MORE PROJECTS ─── */
+    .more-projects{ margin-top:5rem; padding:0 3rem; }
+
+    .more-projects-title{
+      font-weight:700;
+      font-size:0.75rem;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--ink-faint);
+      text-align:center;
+      margin-bottom:1.75rem;
+    }
+
+    .more-projects-grid{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:1.25rem;
+    }
+
+    .mini-card{
+      position:relative;
+      display:block;
+      text-decoration:none;
+      color:inherit;
+      aspect-ratio:4/3;
+      overflow:hidden;
+      border-radius:4px;
+      background:rgba(20,20,20,0.06);
+    }
+
+    .mini-card img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      filter:grayscale(30%) brightness(0.9);
+      transition:filter 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .mini-card:hover img{ filter:grayscale(0%) brightness(1); transform:scale(1.05); }
+
+    .mini-card::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.1) 45%, rgba(0,0,0,0.02) 100%);
+      pointer-events:none;
+    }
+
+    .mini-card-info{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      padding:1rem;
+      z-index:2;
+    }
+
+    .mini-card-title{
+      font-weight:700;
+      font-size:0.92rem;
+      color:#f5f5f0;
+      line-height:1.2;
+      margin-bottom:0.2rem;
+    }
+
+    .mini-card-tag{
+      font-size:0.6rem;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:rgba(245,245,240,0.7);
+    }
+
+    .mini-card-arrow{
+      position:absolute;
+      top:0.65rem;
+      right:0.65rem;
+      width:26px;
+      height:26px;
+      border-radius:50%;
+      background:rgba(0,0,0,0.5);
+      -webkit-backdrop-filter:blur(4px);
+      backdrop-filter:blur(4px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:0.8rem;
+      transform:rotate(-45deg);
+      transition:transform 0.35s cubic-bezier(0.16,1,0.3,1), background 0.3s;
+      z-index:2;
+    }
+
+    .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+
     @media(max-width:768px){
       nav{ padding:1.2rem 1.5rem; }
       .a11y-toggle{ font-size:0.78rem; padding:0.55rem 1.1rem; }
@@ -366,12 +440,12 @@
       .hero-caption, .link-bar{ padding-left:1.5rem; padding-right:1.5rem; }
       .block{ grid-template-columns:1fr; padding:2rem 1.5rem; gap:1rem; }
       .idea-imgs{ grid-template-columns:1fr; }
+      .more-projects{ padding:0 1.5rem; }
+      .more-projects-grid{ grid-template-columns:1fr; gap:1rem; }
     }
   </style>
 </head>
 <body>
-
-  <div class="a11y-banner" id="a11yBanner"></div>
 
   <div class="a11y-note" id="a11yNote">
     <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
@@ -396,7 +470,10 @@
          The final result GIF, front and center so the moving demo is the
          first thing people see. -->
     <div class="hero-img-wrap">
-      <img src="images/slipdoor-final-result.gif" alt="3D CAD render of The Slip Door wooden frame structure" width="1280" height="720">
+      <video aria-label="3D CAD render of The Slip Door wooden frame structure" width="1280" height="720" autoplay loop muted playsinline disableRemotePlayback>
+        <source src="images/slipdoor-final-result.webm" type="video/webm">
+        <source src="images/slipdoor-final-result.mp4" type="video/mp4">
+      </video>
     </div>
   </div>
 
@@ -456,6 +533,36 @@
 
   </article>
 
+  <div class="more-projects">
+    <h3 class="more-projects-title">More Projects</h3>
+    <div class="more-projects-grid">
+      <a href="baston.html" class="mini-card">
+        <img src="images/baston-hero.jpg" alt="Close-up of the Bastón foldable cane handle and joints" width="5184" height="3058" loading="lazy">
+        <span class="mini-card-arrow">↗</span>
+        <div class="mini-card-info">
+          <p class="mini-card-title">Bastón</p>
+          <span class="mini-card-tag">Woodworking · Family</span>
+        </div>
+      </a>
+      <a href="timecollector.html" class="mini-card">
+        <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gears and marble mechanism" width="966" height="1192" loading="lazy">
+        <span class="mini-card-arrow">↗</span>
+        <div class="mini-card-info">
+          <p class="mini-card-title">Time Collector</p>
+          <span class="mini-card-tag">Team Project · Kinetic Sculpture</span>
+        </div>
+      </a>
+      <a href="chess.html" class="mini-card">
+        <img src="images/chess-hero.jpg" alt="Wall-mounted magnetic chess set mechanism with sliding panels" width="5712" height="4284" loading="lazy">
+        <span class="mini-card-arrow">↗</span>
+        <div class="mini-card-info">
+          <p class="mini-card-title">Poser Chess Set</p>
+          <span class="mini-card-tag">3D Printing · ME 227</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
   <div class="back-bottom-wrap">
     <a class="back-bottom" href="index.html#projects">← Back to Selected Projects</a>
   </div>
@@ -463,17 +570,8 @@
 
   <script>
     /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
-    const banner = document.getElementById('a11yBanner');
     const toggle = document.getElementById('a11yToggle');
     const a11yNote = document.getElementById('a11yNote');
-    let bannerTimer;
-
-    function showBanner(msg) {
-      banner.textContent = msg;
-      banner.classList.add('visible');
-      clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(() => banner.classList.remove('visible'), 3000);
-    }
 
     function updateA11yNote(show) {
       if (a11yNote) a11yNote.classList.toggle('visible', show);
@@ -488,7 +586,6 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
-      showBanner(isOn ? '✦ Accessible mode on — Atkinson Hyperlegible' : 'Accessible mode off');
 
       if (isOn) {
         sessionStorage.removeItem('a11yNoteDismissed');

@@ -745,6 +745,61 @@
       opacity: 1;
     }
 
+    /* ─── QUICK LINKS ─── small single-line entries for work samples that
+         don't have a full project page (yet). Sits in the "extra projects"
+         grid next to any full-size cards, filling out that row instead of
+         leaving it empty. To add another: copy one <a class="quick-link">
+         block in the EXTRA PROJECTS section below. */
+    .quick-links {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.6rem;
+      height: 100%;
+    }
+
+    .quick-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .quick-link:hover { border-color: var(--border-hover); background: rgba(245,245,240,0.03); }
+
+    .quick-link-title {
+      font-family: var(--serif);
+      font-size: 1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .quick-link-tag {
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .quick-link-arrow {
+      font-size: 0.9rem;
+      color: var(--muted);
+      transform: rotate(0deg);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s;
+    }
+
+    .quick-link:hover .quick-link-arrow { transform: rotate(45deg); color: var(--text); }
+
     .more-toggle-wrap { text-align: center; margin-top: 3rem; }
 
     .more-toggle {
@@ -1217,7 +1272,7 @@
         <span class="work-card-arrow">↗</span>
         <div class="work-card-info">
           <p class="work-card-title">Graduation Pendant</p>
-          <span class="work-card-tag">Metalworking · Class of 2026</span>
+          <span class="work-card-tag">Design · Class of 2026</span>
         </div>
       </a>
 
@@ -1265,6 +1320,16 @@
             <span class="work-card-tag">3D Printing · ME 227</span>
           </div>
         </a>
+
+        <!-- ═══ QUICK LINKS ═══ work samples without a full page yet.
+             To add another: copy one <a class="quick-link"> block. -->
+        <div class="quick-links">
+          <a href="Sebastian_Esteva_HP_Reckoning_Writing_Sample.pdf" class="quick-link" target="_blank" rel="noopener">
+            <span class="quick-link-title">HP's Reckoning with Company Values</span>
+            <span class="quick-link-tag">Strategic Thinking Example</span>
+            <span class="quick-link-arrow">↗</span>
+          </a>
+        </div>
 
       </div>
     </div>

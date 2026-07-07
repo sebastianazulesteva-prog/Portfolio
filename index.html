@@ -37,6 +37,18 @@
     }
   </script>
 
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══
+       Accessible mode is a persistent site-wide preference (via localStorage,
+       not sessionStorage) so it stays on when navigating from page to page,
+       not just within one page. Applied to <html> here, before the page
+       paints, so there's no flash of the normal font/size before it switches.
+       See toggleAccessible() further down for where this is written. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
   <!-- ═══ INSTANT JUMP FOR CROSS-PAGE "BACK TO HOME" LINKS ═══
        Arriving here with a #hash (e.g. from a project page's "Back to
        Selected Projects" link) should snap straight to that section — the
@@ -1029,6 +1041,7 @@
   </style>
 </head>
 <body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
 
   <!-- These two divs are the custom mouse cursor (a small dot + a trailing ring).
        They're just empty here — all their movement is handled in the <script> at
@@ -1529,6 +1542,17 @@
       if (a11yNote) a11yNote.classList.toggle('visible', show);
     }
 
+    // The <html>/<body> classes are already applied by the early inline
+    // scripts in <head> and right after <body> (so there's no flash), but
+    // the toggle button and explainer card only exist now — sync them to
+    // match whatever was carried over from the last page.
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
     function dismissA11yNote() {
       sessionStorage.setItem('a11yNoteDismissed', '1');
       updateA11yNote(false);
@@ -1549,11 +1573,13 @@
       toggle.classList.toggle('active', isOn);
 
       if (isOn) {
+        localStorage.setItem('a11yMode', '1');
         // Re-show the explainer even if it was dismissed earlier — the
         // person just deliberately turned the mode back on.
         sessionStorage.removeItem('a11yNoteDismissed');
         updateA11yNote(true);
       } else {
+        localStorage.removeItem('a11yMode');
         updateA11yNote(false);
         // Clear any stale reading-ruler highlight left over from hovering
         // text right as the mode was switched off.

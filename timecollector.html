@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
   <title>Time Collector — Sebastian Esteva</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
@@ -445,7 +454,7 @@
 
     .more-projects-grid{
       display:grid;
-      grid-template-columns:repeat(3, 1fr);
+      grid-template-columns:repeat(4, 1fr);
       gap:1.25rem;
     }
 
@@ -531,11 +540,12 @@
       .meta-row{ gap:0.75rem; }
       .plaque{ min-width:125px; padding:0.8rem 1.1rem; }
       .process-grid{ grid-template-columns:1fr; }
-      .more-projects-grid{ grid-template-columns:1fr; gap:1rem; }
+      .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
     }
   </style>
 </head>
 <body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
 
   <div class="a11y-note" id="a11yNote">
     <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
@@ -661,6 +671,14 @@
             <span class="mini-card-tag">Team Project · Accessibility</span>
           </div>
         </a>
+        <a href="baston.html" class="mini-card">
+          <img src="images/baston-hero.jpg" alt="Close-up of the Bastón foldable cane handle and joints" width="5184" height="3058" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Bastón</p>
+            <span class="mini-card-tag">Woodworking · Family</span>
+          </div>
+        </a>
       </div>
     </div>
 
@@ -683,15 +701,26 @@
       updateA11yNote(false);
     }
 
+    // Sync the toggle button + explainer card to whatever accessible-mode
+    // state was already applied by the early inline scripts (head + body).
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
 
       if (isOn) {
+        localStorage.setItem('a11yMode', '1');
         sessionStorage.removeItem('a11yNoteDismissed');
         updateA11yNote(true);
       } else {
+        localStorage.removeItem('a11yMode');
         updateA11yNote(false);
         document.querySelectorAll('.a11y-line-overlay').forEach(o => {
           o.style.clipPath = 'inset(0 0 100% 0)';

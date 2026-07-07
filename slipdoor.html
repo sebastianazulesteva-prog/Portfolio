@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
   <title>The Slip Door — Sebastian Esteva</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
@@ -354,7 +363,7 @@
 
     .more-projects-grid{
       display:grid;
-      grid-template-columns:repeat(3, 1fr);
+      grid-template-columns:repeat(4, 1fr);
       gap:1.25rem;
     }
 
@@ -441,11 +450,12 @@
       .block{ grid-template-columns:1fr; padding:2rem 1.5rem; gap:1rem; }
       .idea-imgs{ grid-template-columns:1fr; }
       .more-projects{ padding:0 1.5rem; }
-      .more-projects-grid{ grid-template-columns:1fr; gap:1rem; }
+      .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
     }
   </style>
 </head>
 <body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
 
   <div class="a11y-note" id="a11yNote">
     <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
@@ -536,6 +546,14 @@
   <div class="more-projects">
     <h3 class="more-projects-title">More Projects</h3>
     <div class="more-projects-grid">
+      <a href="pendant.html" class="mini-card">
+        <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024" loading="lazy">
+        <span class="mini-card-arrow">↗</span>
+        <div class="mini-card-info">
+          <p class="mini-card-title">Graduation Pendant</p>
+          <span class="mini-card-tag">Metalworking · Class of 2026</span>
+        </div>
+      </a>
       <a href="baston.html" class="mini-card">
         <img src="images/baston-hero.jpg" alt="Close-up of the Bastón foldable cane handle and joints" width="5184" height="3058" loading="lazy">
         <span class="mini-card-arrow">↗</span>
@@ -582,15 +600,26 @@
       updateA11yNote(false);
     }
 
+    // Sync the toggle button + explainer card to whatever accessible-mode
+    // state was already applied by the early inline scripts (head + body).
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
 
       if (isOn) {
+        localStorage.setItem('a11yMode', '1');
         sessionStorage.removeItem('a11yNoteDismissed');
         updateA11yNote(true);
       } else {
+        localStorage.removeItem('a11yMode');
         updateA11yNote(false);
         document.querySelectorAll('.a11y-line-overlay').forEach(o => {
           o.style.clipPath = 'inset(0 0 100% 0)';

@@ -3,6 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
   <title>Graduation Pendant — Sebastian Esteva</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
@@ -238,13 +247,17 @@
     }
 
     /* ─── IMAGE SLOT ─── soft shadow instead of dark-panel fill, so photos
-         shot on white backgrounds sit naturally against the page. */
+         shot on white backgrounds sit naturally against the page. Capped at
+         a smaller max-width (in line with the other project pages, e.g.
+         Bastón's hero shot) since these were rendering much larger than
+         every other project's photos. */
     .img-slot{
       position:relative;
       border-radius:10px;
       overflow:hidden;
       border:1px solid var(--line);
-      margin:2.5rem 0;
+      margin:2.5rem auto;
+      max-width:420px;
       background:var(--bg-panel);
       box-shadow:var(--shadow);
     }
@@ -273,13 +286,6 @@
       font-size:0.85rem;
       display:block;
       margin-bottom:0.3rem;
-    }
-
-    .hero-caption{
-      font-size:0.85rem;
-      color:var(--ink-faint);
-      text-align:center;
-      font-style:italic;
     }
 
     /* ─── META ROW ─── */
@@ -437,29 +443,6 @@
       color:var(--ink-soft);
     }
 
-    /* ─── FINAL SUCCESS SHOT ─── closing image, sits directly on the
-         page's own white background — no border box, object-fit:contain. */
-    .final-shot{
-      text-align:center;
-      margin:3.5rem 0;
-    }
-
-    .final-shot img{
-      max-width:420px;
-      width:100%;
-      height:auto;
-      display:inline-block;
-    }
-
-    .final-caption{
-      font-family:var(--serif);
-      font-style:italic;
-      font-size:1.1rem;
-      color:var(--ink-soft);
-      text-align:center;
-      margin-top:1rem;
-    }
-
     /* ─── FOOTER NAV ─── */
     .back-bottom-wrap{ text-align:center; margin-top:4rem; }
 
@@ -496,7 +479,7 @@
 
     .more-projects-grid{
       display:grid;
-      grid-template-columns:repeat(3, 1fr);
+      grid-template-columns:repeat(4, 1fr);
       gap:1.25rem;
     }
 
@@ -582,7 +565,7 @@
       .back-link{ font-size:0.78rem; padding:0.7rem 1.3rem; }
       main{ padding:3rem 1.5rem 5rem; }
       .meta-row{ flex-direction:column; }
-      .more-projects-grid{ grid-template-columns:1fr; gap:1rem; }
+      .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
       .meta-item{ border-left:none; border-top:1px solid var(--line); }
       .meta-item:first-child{ border-top:none; }
       .step{ grid-template-columns:56px 1fr; gap:1.25rem; }
@@ -592,6 +575,7 @@
   </style>
 </head>
 <body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
 
   <div class="a11y-note" id="a11yNote">
     <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
@@ -618,26 +602,9 @@
 
     <!-- ═══ HERO SHOT ═══
          ✎ Call this file images/pendant-hero.jpg — the finished pendant on
-         its chain, shot on white (the photo you attached in chat). Reused
-         again at the bottom as the closing shot. -->
+         its chain, shot on white (the photo you attached in chat). -->
     <div class="img-slot">
       <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024">
-    </div>
-    <p class="hero-caption">Sebastian Esteva — DESIGN 223 (formerly ME 248)</p>
-
-    <div class="meta-row">
-      <div class="meta-item">
-        <div class="meta-label">Team</div>
-        <div class="meta-value">Solo project</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Materials</div>
-        <div class="meta-value">Cast sterling silver</div>
-      </div>
-      <div class="meta-item">
-        <div class="meta-label">Milestone</div>
-        <div class="meta-value">Class of 2026</div>
-      </div>
     </div>
 
     <div class="story">
@@ -659,6 +626,21 @@
         <span class="orb"></span>
         <span class="orb"></span>
         <span class="orb"></span>
+      </div>
+    </div>
+
+    <div class="meta-row">
+      <div class="meta-item">
+        <div class="meta-label">Team</div>
+        <div class="meta-value">Solo project</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Materials</div>
+        <div class="meta-value">Cast sterling silver</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Milestone</div>
+        <div class="meta-value">Class of 2026</div>
       </div>
     </div>
 
@@ -734,18 +716,10 @@
       <span class="line"></span>
     </div>
 
-    <!-- ═══ FINAL SUCCESS SHOT ═══
-         ✎ Reuses images/pendant-hero.jpg as the closing shot. -->
-    <div class="final-shot">
-      <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, photographed on a white background" width="768" height="1024" loading="lazy">
-      <p class="final-caption">Two orbs. Six orbs. Class of '26.</p>
-    </div>
-
     <!-- ═══ WORN SHOT ═══
          ✎ Call this file images/pendant-worn.jpg — a photo of you wearing
-         the pendant. Sized a bit wider than the final-shot cutout since
-         it'll likely be a fuller photo rather than a product cutout. -->
-    <div class="img-slot" style="max-width:480px; margin:3.5rem auto;">
+         the pendant. -->
+    <div class="img-slot">
       <img src="images/pendant-worn.jpg" alt="Sebastian Esteva wearing the finished graduation pendant" width="1024" height="1280" loading="lazy">
     </div>
 
@@ -781,6 +755,14 @@
             <span class="mini-card-tag">Team Project · Kinetic Sculpture</span>
           </div>
         </a>
+        <a href="chess.html" class="mini-card">
+          <img src="images/chess-hero.jpg" alt="Wall-mounted magnetic chess set mechanism with sliding panels" width="5712" height="4284" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Poser Chess Set</p>
+            <span class="mini-card-tag">3D Printing · ME 227</span>
+          </div>
+        </a>
       </div>
     </div>
 
@@ -803,15 +785,26 @@
       updateA11yNote(false);
     }
 
+    // Sync the toggle button + explainer card to whatever accessible-mode
+    // state was already applied by the early inline scripts (head + body).
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
 
       if (isOn) {
+        localStorage.setItem('a11yMode', '1');
         sessionStorage.removeItem('a11yNoteDismissed');
         updateA11yNote(true);
       } else {
+        localStorage.removeItem('a11yMode');
         updateA11yNote(false);
         document.querySelectorAll('.a11y-line-overlay').forEach(o => {
           o.style.clipPath = 'inset(0 0 100% 0)';
@@ -852,7 +845,7 @@
       });
     }
 
-    initA11yLineHighlight('.hero-title, .hero-sub, .hero-caption, .meta-label, .meta-value, .journey-heading, .journey-sub, .step-body h3, .story p, .step-body p');
+    initA11yLineHighlight('.hero-title, .hero-sub, .meta-label, .meta-value, .journey-heading, .journey-sub, .step-body h3, .story p, .step-body p');
   </script>
 </body>
 </html>

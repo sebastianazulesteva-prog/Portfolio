@@ -19,6 +19,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
   <title>Experience — Sebastian Esteva</title>
 
   <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
@@ -371,6 +380,7 @@
   </style>
 </head>
 <body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
 
   <div class="cursor" id="cursor"></div>
   <div class="cursor-ring" id="cursorRing"></div>
@@ -592,15 +602,26 @@
       updateA11yNote(false);
     }
 
+    // Sync the toggle button + explainer card to whatever accessible-mode
+    // state was already applied by the early inline scripts (head + body).
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
     function toggleAccessible() {
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
 
       if (isOn) {
+        localStorage.setItem('a11yMode', '1');
         sessionStorage.removeItem('a11yNoteDismissed');
         updateA11yNote(true);
       } else {
+        localStorage.removeItem('a11yMode');
         updateA11yNote(false);
         document.querySelectorAll('.a11y-line-overlay').forEach(o => {
           o.style.clipPath = 'inset(0 0 100% 0)';

@@ -350,6 +350,7 @@
       padding:0 0.15rem;
     }
 
+
     /* ─── GEAR DIVIDER ─── */
     .gear-divider{
       display:flex;
@@ -407,6 +408,7 @@
     .process-tag{
       position:absolute;
       top:0.9rem; left:0.9rem;
+      max-width:calc(100% - 1.8rem);
       background:var(--highlight-gold);
       border:1.5px solid var(--ink);
       border-radius:100px;
@@ -414,8 +416,12 @@
       font-size:0.72rem;
       font-weight:600;
       color:var(--ink);
+      text-decoration:none;
       z-index:2;
     }
+
+    a.process-tag{ transition:background 0.2s; }
+    a.process-tag:hover{ background:var(--highlight-pink); }
 
     /* ─── FOOTER NAV ─── */
     .back-bottom-wrap{ text-align:center; margin-top:3rem; }
@@ -633,7 +639,7 @@
       </div>
 
       <div class="process-card">
-        <span class="process-tag">Force Analysis</span>
+        <a href="Sebastian_Esteva_TimeCollector_FEA_Analysis.pdf" class="process-tag" target="_blank" rel="noopener">Force Analysis — Also See FEA Analysis</a>
         <img src="images/timecollector-fbd-full.png" alt="Hand-written force analysis calculations for the Time Collector's gear train" width="1758" height="1324" loading="lazy">
       </div>
 

@@ -463,10 +463,22 @@
        whole photo — hairline to collar — is always on-screen, never
        reliant on the section being tall enough to "center" it into view. */
     @media (min-width: 769px) {
+      :root {
+        /* Bigger than one viewport on purpose — the photo is meant to run
+           past the fold so scrolling reveals more of it. #hero's min-height
+           below is grown to match this exact value, so the section always
+           fully contains the photo; overflow:hidden on #hero never has to
+           clip it, which is what would let it bleed into the About section
+           as a backdrop behind that text. */
+        --hero-photo-h: min(125vh, 1150px);
+      }
       .hero-photo-wrap {
         top: calc(var(--nav-h) + 1.5rem);
         transform: none;
-        height: min(calc(100vh - var(--nav-h) - 3rem), 1000px);
+        height: var(--hero-photo-h);
+      }
+      #hero {
+        min-height: calc(var(--nav-h) + var(--hero-photo-h) + 3rem);
       }
     }
 

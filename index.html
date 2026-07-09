@@ -1124,6 +1124,11 @@
       .skills-expand-btn { padding: 0.9rem 0; }
       .contact-link { padding: 0.9rem 0 0.6rem; }
       .nav-sep { display: none; }
+      /* The base clamp()'s 4rem floor is still too big on narrow phones
+         (<~375px) and breaks "Sebastian" mid-word — same root cause as the
+         Accessible Mode case below, just without the 115% bump needed to
+         trigger it. Lower the floor here so it always fits on one line. */
+      .hero-name { font-size: clamp(2.8rem, 11.5vw, 9rem); }
       /* Accessible Mode's 115% font bump (see body.accessible above) pushes
          the hero name's clamp() past the viewport width on narrow phones,
          breaking "Sebastian" mid-word. Cap it separately here so it always
@@ -1136,7 +1141,14 @@
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
-      .hero-photo-wrap { width: 100vw; top: 34%; opacity: 0.9 !important; --reveal-radius: 80px; }
+      /* width:100vw + height:auto lets the inherited aspect-ratio (682/1024)
+         compute height directly from width, so the full photo always shows
+         with no object-fit:cover cropping. top is anchored below the
+         (2-row, ~144px tall) mobile nav explicitly instead of the old
+         top:34%/translateY(-50%) centering — that combo was tuned for a
+         shorter box and started pushing the top of the photo off the top
+         of the page (negative offset) once the box got taller. */
+      .hero-photo-wrap { width: 100vw; height: auto; top: 190px; transform: none; opacity: 0.9 !important; --reveal-radius: 80px; }
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: auto; height: 220px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }

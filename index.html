@@ -172,6 +172,9 @@
     */
     :root {
       --base-font-size: 17px; /* one notch above the 16px browser default */
+      --nav-h: 102px; /* nav's actual rendered height — constant regardless
+        of viewport size, since it's padding+content based, not vh-based.
+        Used to keep the hero photo from ever drifting up under the nav. */
       --bg: #080808;
       --bg2: #0f0f0f;
       --bg3: #161616;
@@ -347,7 +350,13 @@
       display: grid;
       grid-template-columns: auto 1fr;
       align-items: end;
-      padding: 0 3rem 3rem;
+      /* Top padding reserves space for the fixed nav. Nav is
+         position:fixed (floats over the document, isn't part of normal
+         flow), so without this, content that starts at document y:0 — the
+         name text on short/wide viewports where align-items:end has no
+         extra room to push it down — renders directly underneath the nav
+         instead of below it. */
+      padding: var(--nav-h) 3rem 3rem;
       gap: 3rem;
       position: relative;
       /* The photo is tall (aspect-ratio 4/5) and vertically centered — on
@@ -445,6 +454,22 @@
       --reveal-radius: 130px;
     }
 
+    /* On short/wide desktop windows, centering purely off 50%/85vh could
+       drift the box up underneath the fixed nav (nav is position:fixed, so
+       #hero's own height math has no idea it's there) — e.g. an 1800×400
+       window centered a small box with its top edge above the nav's bottom
+       edge, hiding the top of the photo. Anchor explicitly below the nav
+       instead and fill down to the section's bottom, which also means the
+       whole photo — hairline to collar — is always on-screen, never
+       reliant on the section being tall enough to "center" it into view. */
+    @media (min-width: 769px) {
+      .hero-photo-wrap {
+        top: calc(var(--nav-h) + 1.5rem);
+        transform: none;
+        height: min(calc(100vh - var(--nav-h) - 3rem), 1000px);
+      }
+    }
+
     .hero-photo-mosaic,
     .hero-photo-professional {
       position: absolute;
@@ -495,7 +520,12 @@
       position: relative;
       z-index: 1;
       font-family: var(--serif);
-      font-size: clamp(4rem, 10vw, 9rem);
+      /* min(10vw, 22vh) instead of a plain 10vw — on a wide-but-short
+         window (e.g. a laptop with a shallow browser height), 10vw alone
+         doesn't care how little vertical room there is and can grow large
+         enough to run under the fixed nav above it. Capping by vh too
+         keeps it in proportion to whichever dimension is actually tight. */
+      font-size: clamp(4rem, min(10vw, 22vh), 9rem);
       line-height: 0.95;
       letter-spacing: -0.02em;
       margin-bottom: 2.5rem;

@@ -1146,6 +1146,15 @@
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: auto; height: 220px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
+      /* The title and tag were fighting for the same row's width, and the
+         tag (fixed-width, never shrinks) was winning — squeezing long
+         titles down to almost nothing or hiding them entirely. Give the
+         title its own full-width row with the arrow, and drop the tag to
+         a second row below instead of sharing space with it. */
+      .quick-link { flex-wrap: wrap; row-gap: 0.3rem; }
+      .quick-link-title { order: 1; flex: 1 1 0%; }
+      .quick-link-arrow { order: 2; flex: 0 0 auto; }
+      .quick-link-tag { order: 3; flex: 1 1 100%; margin-left: 0; }
     }
 
     /* ─── RETURNING VISIT: SKIP ENTRANCE ANIMATIONS ───

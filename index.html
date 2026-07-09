@@ -434,6 +434,16 @@
     .hero-photo-wrap {
       position: absolute;
       top: 50%;
+      /* #hero is a grid (auto 1fr — the "SCROLL" indicator, then the name/
+         tagline content); left:0 alone would sit flush against #hero's own
+         edge, one whole column + gap to the left of the text. Absolutely
+         positioned grid items still honor grid-column for placement even
+         though they're out of flow, so this anchors left:0 to the start of
+         column 2 instead — exactly where the text starts — without having
+         to hardcode a pixel offset that depends on "SCROLL"'s rendered
+         width. Mobile collapses to a single column and resets left:0
+         directly for its intentional full-bleed look. */
+      grid-column: 2;
       left: 0;
       transform: translateY(-50%);
       /* Sized by HEIGHT (not width) so the box always fits inside #hero's
@@ -1132,7 +1142,7 @@
          top:34%/translateY(-50%) centering — that combo was tuned for a
          shorter box and started pushing the top of the photo off the top
          of the page (negative offset) once the box got taller. */
-      .hero-photo-wrap { width: 100vw; height: auto; top: 190px; transform: none; opacity: 0.9 !important; --reveal-radius: 80px; }
+      .hero-photo-wrap { grid-column: auto; width: 100vw; height: auto; top: 190px; left: 0; transform: none; opacity: 0.9 !important; --reveal-radius: 80px; }
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: auto; height: 220px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }

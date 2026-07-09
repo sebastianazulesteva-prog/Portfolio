@@ -1,25 +1,32 @@
 # Sebastian Esteva
 
-> TODO: 1-2 sentence summary of who you are and what this site is — this
-> is the single most important line for an AI reading this file, since it's
-> often the only part that gets used if the model doesn't fetch further.
+> Stanford-trained engineer and communicator who builds at the intersection of human experience, technology, and design — and chooses his work by what he believes will make the world better.
 
-TODO: optional short paragraph with any extra context an AI assistant
-should know before answering questions about you (e.g. what you're
-currently focused on, how you'd like to be described, anything you
-want emphasized or de-emphasized).
+Sebastian Esteva holds a B.S. in Biomechanical Engineering from Stanford (2026) and is completing an M.A. in Communication — Media Studies (anticipated 2027). He works across product design, wearable technology, VR/AR research, and strategic communications — always following work he finds genuinely inspiring. He is a Research Assistant at Stanford's Virtual Human Interaction Lab (VHIL), studying how virtual and augmented reality shape human behavior and decision-making. His capstone research examines how specific technology variables — degrees of freedom, fidelity, and related hardware/software features — affect sense of presence in virtual worlds.
+
+He is also a Maker on Duty at Maker Nexus (Stanford's fabrication space), a Teaching Assistant for Stanford's Neurobiology of Pain course, and a founding Resident Leader of Explore Energy, Stanford's energy-focused residential community.
+
+Sebastian brings the same intensity to his civic work. He has advocated for gun-violence prevention at national conferences in New York City and Washington, D.C. — rooms that included President Biden and NYC Mayor Eric Adams — as a Community Engagement Intern at Everytown for Gun Safety. He is strongly principled, hard-working, and drawn to problems that matter.
+
+Beyond his technical and professional work, Sebastian has 18 years of Aikido practice (Black Belt), a deep love of film — both watching and making it, and is a fluent Spanish speaker born in Mexico and raised in the United States. He is motivated by the intersection of human experience and the creation of wonder through design — asking not just "does it work?" but "what does it say?"
+
+This portfolio was built from scratch and deployed via GitHub. It reflects his aesthetic sensibility: minimal, dark, typographically deliberate.
 
 ## Pages
 
-- [Home](https://sesteva.com/): TODO: one-line description
-- [Where I've Worked](https://sesteva.com/experience.html): TODO: one-line description
-- [Graduation Pendant](https://sesteva.com/pendant.html): TODO: one-line description
-- [Poser Chess Set](https://sesteva.com/chess.html): TODO: one-line description
-- [The Slip Door](https://sesteva.com/slipdoor.html): TODO: one-line description
-- [Bastón](https://sesteva.com/baston.html): TODO: one-line description
-- [Time Collector](https://sesteva.com/timecollector.html): TODO: one-line description
+- [Home](https://sesteva.com/): Portfolio landing page with featured projects, work experience highlights, and contact. Dark, Apple-inspired aesthetic with scroll-triggered animations.
+- [Where I've Worked](https://sesteva.com/experience.html): Full work history spanning Stanford research labs, startups, nonprofits, and community organizations — including VHIL, Guidewheel, ExploreTech, and Everytown for Gun Safety.
+- [Poser Chess Set](https://sesteva.com/chess.html): A hand-crafted chess set built as a physical fabrication project, exploring form, material, and process.
+- [Graduation Pendant](https://sesteva.com/pendant.html): A custom silver pendant cast in the shape of "26" — his graduation year. Intentionally light-themed and image-led; the piece speaks for itself.
+- [The Slip Door](https://sesteva.com/slipdoor.html): A fully operational, full-scale prototype of an accessible automatic sliding car door, built for Volkswagen's Future of Entry challenge. Increased entrance volume by 253% for mobility-impaired drivers. Built with a team of four Stanford engineers.
+- [Bastón](https://sesteva.com/baston.html): A hand-built, foldable wooden cane designed and machined for his grandmother — combining lathe-turned wood with a precision metal folding mechanism. A personal project at the intersection of engineering and care.
+- [Time Collector](https://sesteva.com/timecollector.html): A 24-inch kinetic marble clock sculpture built with a team of four, combining laser-cut wood and 3D-printed gears into a fully functional timekeeping mechanism.
 
-## Optional
+## Contact
 
-- [Résumé](https://sesteva.com/Sebastian_Esteva_Resume.pdf): TODO: only
-  include this if/when the résumé is actually published on the live site.
+- Email: sesteva@stanford.edu
+- LinkedIn: https://linkedin.com/in/sebastian-esteva/
+
+## Note
+
+Sebastian is currently finishing his M.A. at Stanford (graduating June 2027) and is actively building his body of work. He has professional experience across startups, nonprofits, and research labs, and is open to opportunities that bridge engineering, design, and communication.

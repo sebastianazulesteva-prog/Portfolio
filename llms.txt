@@ -12,7 +12,7 @@ want emphasized or de-emphasized).
 ## Pages
 
 - [Home](https://sesteva.com/): TODO: one-line description
-- [Experience](https://sesteva.com/experience.html): TODO: one-line description
+- [Where I've Worked](https://sesteva.com/experience.html): TODO: one-line description
 - [Graduation Pendant](https://sesteva.com/pendant.html): TODO: one-line description
 - [Poser Chess Set](https://sesteva.com/chess.html): TODO: one-line description
 - [The Slip Door](https://sesteva.com/slipdoor.html): TODO: one-line description

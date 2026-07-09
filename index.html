@@ -323,7 +323,7 @@
     .a11y-toggle.active .a11y-dot { background: var(--text); }
 
     #hero {
-      min-height: 70vh;
+      min-height: 88vh;
       display: grid;
       grid-template-columns: auto 1fr;
       align-items: end;
@@ -438,6 +438,26 @@
     .hero-photo-professional {
       filter: grayscale(100%) contrast(1.15) brightness(0.65);
     }
+
+    /* ─── MOBILE WATER-DROP EFFECT ─── each tap creates one of these: a
+       small circular "porthole" (position/size set inline per-tap in JS)
+       containing a full-size clone of the mosaic photo shifted so the
+       right window of it lines up under the circle. Grows in from
+       scale(0) on tap, shrinks back out when evicted (oldest of 3). */
+    .hero-drop {
+      position: absolute;
+      /* Soft-edged circle instead of a hard clip — same fade curve (solid
+         until 55%, then feathering out) as the desktop hover reveal, so
+         both feel like the same effect. */
+      -webkit-mask-image: radial-gradient(circle closest-side, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 100%);
+      mask-image: radial-gradient(circle closest-side, black 0%, black 55%, transparent 100%);
+      transform: scale(0);
+      opacity: 0;
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+      pointer-events: none;
+    }
+
+    .hero-drop.visible { transform: scale(1); opacity: 1; }
 
     .hero-name {
       position: relative;
@@ -1047,14 +1067,14 @@
       }
       .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 0.5rem 0; }
       .nav-sep { display: none; }
-      #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; min-height: 78vh; }
+      #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; min-height: 92vh; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }
       section { padding: 5rem 1.5rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
-      .hero-photo-wrap { width: 100vw; top: 16%; opacity: 0.9 !important; --reveal-radius: 80px; }
+      .hero-photo-wrap { width: 100vw; top: 26%; opacity: 0.9 !important; --reveal-radius: 80px; }
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: auto; height: 220px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
@@ -1460,9 +1480,6 @@
       window.addEventListener('resize', readRevealRadius);
 
       const dot = { x: -9999, y: -9999, opacity: 0 };
-      let touchDragging = false;
-      let fadeStart = null;
-      const FADE_MS = 450;
 
       // Skip the mask entirely while nothing is being revealed, rather than
       // pointing a radial-gradient at a far off-screen coordinate (the old
@@ -1481,23 +1498,14 @@
         heroPhotoProfessional.style.maskImage = value;
       }
 
-      // Desktop: continuously follow the mouse, reusing the same global
-      // mx/my tracked above for the custom cursor. On touch, dragging a
-      // finger does the same thing in real time; lifting it fades the hole
-      // out instead of snapping it away.
+      // Desktop only: continuously follow the mouse, reusing the same
+      // global mx/my tracked above for the custom cursor. Touch devices
+      // never fire mousemove, so hasMouseMoved stays false there and this
+      // is a no-op — see the water-drop effect further down for mobile.
       (function animateHeroReveal() {
         const rect = heroPhotoWrap.getBoundingClientRect();
-        if (touchDragging) {
-          dot.opacity = 1;
-        } else if (fadeStart !== null) {
-          const elapsed = performance.now() - fadeStart;
-          if (elapsed < FADE_MS) dot.opacity = 1 - elapsed / FADE_MS;
-          else { dot.opacity = 0; fadeStart = null; }
-        } else if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
-          // Only bother updating while the box is at least partly on screen,
-          // and only after a real mouse movement has happened (prevents an
-          // unwanted reveal hole from appearing on touch devices, which
-          // never fire mousemove) — cheap early-out so this does nothing.
+        if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
+          // Only bother updating while the box is at least partly on screen.
           dot.x = mx - rect.left;
           dot.y = my - rect.top;
           dot.opacity = 1;
@@ -1507,43 +1515,73 @@
         requestAnimationFrame(animateHeroReveal);
       })();
 
-      // Mobile: drag a finger around the photo to reveal it, same as moving
-      // the mouse on desktop. Listens on the whole document (rather than
-      // heroPhotoWrap itself, which has pointer-events:none) and checks the
-      // touch coordinates against the wrap's own bounding box, so it works
-      // regardless of pointer-events and doesn't interfere with tapping
-      // anything else on the page.
+      // Mobile: dragging a finger around fought with the page's own scroll
+      // gesture, so touch instead gets its own "water drop" effect — each
+      // tap opens a small round porthole onto the mosaic photo right where
+      // you tapped, growing in from nothing. Up to 3 can be open at once;
+      // a 4th tap shrinks the oldest one away to make room. Listens on the
+      // whole document (rather than heroPhotoWrap itself, which has
+      // pointer-events:none) and checks the touch coordinates against the
+      // wrap's own bounding box, so it works regardless of pointer-events
+      // and doesn't interfere with tapping anything else on the page.
+      const heroPhotoMosaic = document.querySelector('.hero-photo-mosaic');
+      const MAX_DROPS = 3;
+      const DROP_REMOVE_MS = 450;
+      let drops = [];
+
       function touchInsideWrap(touch, rect) {
         return touch.clientX >= rect.left && touch.clientX <= rect.right &&
                touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+      }
+
+      function spawnDrop(clientX, clientY) {
+        const rect = heroPhotoWrap.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const size = revealRadius * 2;
+
+        const drop = document.createElement('div');
+        drop.className = 'hero-drop';
+        drop.style.left = (x - revealRadius) + 'px';
+        drop.style.top = (y - revealRadius) + 'px';
+        drop.style.width = size + 'px';
+        drop.style.height = size + 'px';
+
+        // A full-size clone of the mosaic photo, shifted so the correct
+        // window of it sits under this small circle — same technique as a
+        // magnifying glass/porthole, and reuses object-fit:cover from the
+        // .hero-photo-mosaic class instead of hand-computing cover math.
+        const img = document.createElement('img');
+        img.className = 'hero-photo-mosaic';
+        img.src = heroPhotoMosaic.currentSrc || heroPhotoMosaic.src;
+        img.alt = '';
+        img.style.left = -(x - revealRadius) + 'px';
+        img.style.top = -(y - revealRadius) + 'px';
+        img.style.width = rect.width + 'px';
+        img.style.height = rect.height + 'px';
+
+        drop.appendChild(img);
+        heroPhotoWrap.appendChild(drop);
+
+        // Start at scale(0) and grow on the next frame — changing the
+        // transform in the same frame the element is created would skip
+        // the transition entirely.
+        requestAnimationFrame(() => drop.classList.add('visible'));
+
+        drops.push(drop);
+        if (drops.length > MAX_DROPS) {
+          const oldest = drops.shift();
+          oldest.classList.remove('visible');
+          setTimeout(() => oldest.remove(), DROP_REMOVE_MS);
+        }
       }
 
       document.addEventListener('touchstart', e => {
         const rect = heroPhotoWrap.getBoundingClientRect();
         const touch = e.touches[0];
         if (!touch || !touchInsideWrap(touch, rect)) return;
-        dot.x = touch.clientX - rect.left;
-        dot.y = touch.clientY - rect.top;
-        touchDragging = true;
-        fadeStart = null;
+        spawnDrop(touch.clientX, touch.clientY);
       }, { passive: true });
-
-      document.addEventListener('touchmove', e => {
-        if (!touchDragging) return;
-        const touch = e.touches[0];
-        if (!touch) return;
-        const rect = heroPhotoWrap.getBoundingClientRect();
-        dot.x = touch.clientX - rect.left;
-        dot.y = touch.clientY - rect.top;
-      }, { passive: true });
-
-      const endTouchDrag = () => {
-        if (!touchDragging) return;
-        touchDragging = false;
-        fadeStart = performance.now();
-      };
-      document.addEventListener('touchend', endTouchDrag, { passive: true });
-      document.addEventListener('touchcancel', endTouchDrag, { passive: true });
     }
 
     document.querySelectorAll('a, button').forEach(el => {

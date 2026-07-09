@@ -323,13 +323,18 @@
     .a11y-toggle.active .a11y-dot { background: var(--text); }
 
     #hero {
-      min-height: 88vh;
+      min-height: 100vh;
       display: grid;
       grid-template-columns: auto 1fr;
       align-items: end;
       padding: 0 3rem 3rem;
       gap: 3rem;
       position: relative;
+      /* The photo is tall (aspect-ratio 4/5) and vertically centered — on
+         wide/short viewports it can overflow past this section entirely and
+         bleed into the About section below it as an unwanted background.
+         Keep it strictly confined to its own section. */
+      overflow: hidden;
     }
 
     .hero-scroll {
@@ -453,7 +458,7 @@
       mask-image: radial-gradient(circle closest-side, black 0%, black 55%, transparent 100%);
       transform: scale(0);
       opacity: 0;
-      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+      transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
       pointer-events: none;
     }
 
@@ -1067,14 +1072,14 @@
       }
       .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 0.5rem 0; }
       .nav-sep { display: none; }
-      #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; min-height: 92vh; }
+      #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }
       section { padding: 5rem 1.5rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
-      .hero-photo-wrap { width: 100vw; top: 26%; opacity: 0.9 !important; --reveal-radius: 80px; }
+      .hero-photo-wrap { width: 100vw; top: 34%; opacity: 0.9 !important; --reveal-radius: 80px; }
       .contact-layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
       .contact-photo-wrap { width: auto; height: 220px; }
       footer { flex-direction: column; gap: 0.5rem; padding: 1.5rem; }
@@ -1173,8 +1178,8 @@
            Desktop: move your mouse over this area — the top photo (grayscale)
            has a soft hole that follows the cursor, revealing the mosaic photo
            underneath in full color.
-           Mobile/touch: each tap moves the hole there and it quickly fades
-           away on its own, like a drop of water landing.
+           Mobile/touch: each tap opens a small soft-edged "water drop" window
+           onto the mosaic photo where you tapped (up to 3 at once).
            Both images must be the same crop/aspect ratio to line up — see the
            CSS comment above class="hero-photo-wrap" for exact filenames.
            The single hole is built as a plain CSS radial-gradient in JS — see
@@ -1441,7 +1446,18 @@
     cursor.style.opacity = '0';
     ring.style.opacity = '0';
 
-    document.addEventListener('mousemove', e => {
+    // Listens for 'pointermove' rather than 'mousemove' specifically: iOS
+    // Safari fires a synthetic mousemove (among other synthetic mouse
+    // events) shortly after a tap, as a compatibility shim for sites that
+    // only listen for mouse events. That synthetic event was flipping
+    // hasMouseMoved to true after the first tap, which reactivated the
+    // desktop single-hole reveal at that frozen tap position — since that
+    // hole's screen position doesn't scroll with the page the way the
+    // water-drop elements do, it looked like "a circle following you" while
+    // scrolling. Real pointermove events from touch report
+    // pointerType:'touch', so filtering to 'mouse' avoids this entirely.
+    document.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse') return;
       mx = e.clientX; my = e.clientY;
       hasMouseMoved = true;
       cursor.style.left = mx + 'px';

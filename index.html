@@ -1461,10 +1461,21 @@
       window.addEventListener('resize', readRevealRadius);
 
       const dot = { x: -9999, y: -9999, opacity: 0 };
-      let touchActive = false;
-      let touchStart = 0;
+      let touchDragging = false;
+      let fadeStart = null;
+      const FADE_MS = 450;
 
+      // Skip the mask entirely while nothing is being revealed, rather than
+      // pointing a radial-gradient at a far off-screen coordinate (the old
+      // idle state) — Safari can render that as a faint seam across the
+      // photo, since the gradient center sits thousands of pixels outside
+      // the visible canvas.
       function renderHeroMask() {
+        if (dot.opacity <= 0) {
+          heroPhotoProfessional.style.webkitMaskImage = 'none';
+          heroPhotoProfessional.style.maskImage = 'none';
+          return;
+        }
         const covered = 1 - dot.opacity;
         const value = `radial-gradient(circle ${revealRadius}px at ${dot.x}px ${dot.y}px, rgba(0,0,0,${covered}) 0%, rgba(0,0,0,${covered}) 55%, black 100%)`;
         heroPhotoProfessional.style.webkitMaskImage = value;
@@ -1472,16 +1483,17 @@
       }
 
       // Desktop: continuously follow the mouse, reusing the same global
-      // mx/my tracked above for the custom cursor. A touch tap takes over
-      // the same dot until its fade finishes (grow 150ms, hold, fade 500ms).
+      // mx/my tracked above for the custom cursor. On touch, dragging a
+      // finger does the same thing in real time; lifting it fades the hole
+      // out instead of snapping it away.
       (function animateHeroReveal() {
         const rect = heroPhotoWrap.getBoundingClientRect();
-        if (touchActive) {
-          const elapsed = performance.now() - touchStart;
-          if (elapsed < 150) dot.opacity = elapsed / 150;
-          else if (elapsed < 300) dot.opacity = 1;
-          else if (elapsed < 800) dot.opacity = 1 - (elapsed - 300) / 500;
-          else { dot.opacity = 0; touchActive = false; }
+        if (touchDragging) {
+          dot.opacity = 1;
+        } else if (fadeStart !== null) {
+          const elapsed = performance.now() - fadeStart;
+          if (elapsed < FADE_MS) dot.opacity = 1 - elapsed / FADE_MS;
+          else { dot.opacity = 0; fadeStart = null; }
         } else if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
           // Only bother updating while the box is at least partly on screen,
           // and only after a real mouse movement has happened (prevents an
@@ -1496,16 +1508,43 @@
         requestAnimationFrame(animateHeroReveal);
       })();
 
-      // Mobile: each tap moves the hole to the touch point and re-plays its
-      // grow/fade animation, like a drop of water landing.
-      heroPhotoWrap.addEventListener('touchstart', e => {
+      // Mobile: drag a finger around the photo to reveal it, same as moving
+      // the mouse on desktop. Listens on the whole document (rather than
+      // heroPhotoWrap itself, which has pointer-events:none) and checks the
+      // touch coordinates against the wrap's own bounding box, so it works
+      // regardless of pointer-events and doesn't interfere with tapping
+      // anything else on the page.
+      function touchInsideWrap(touch, rect) {
+        return touch.clientX >= rect.left && touch.clientX <= rect.right &&
+               touch.clientY >= rect.top && touch.clientY <= rect.bottom;
+      }
+
+      document.addEventListener('touchstart', e => {
         const rect = heroPhotoWrap.getBoundingClientRect();
-        const touch = e.changedTouches[0];
+        const touch = e.touches[0];
+        if (!touch || !touchInsideWrap(touch, rect)) return;
         dot.x = touch.clientX - rect.left;
         dot.y = touch.clientY - rect.top;
-        touchActive = true;
-        touchStart = performance.now();
+        touchDragging = true;
+        fadeStart = null;
       }, { passive: true });
+
+      document.addEventListener('touchmove', e => {
+        if (!touchDragging) return;
+        const touch = e.touches[0];
+        if (!touch) return;
+        const rect = heroPhotoWrap.getBoundingClientRect();
+        dot.x = touch.clientX - rect.left;
+        dot.y = touch.clientY - rect.top;
+      }, { passive: true });
+
+      const endTouchDrag = () => {
+        if (!touchDragging) return;
+        touchDragging = false;
+        fadeStart = performance.now();
+      };
+      document.addEventListener('touchend', endTouchDrag, { passive: true });
+      document.addEventListener('touchcancel', endTouchDrag, { passive: true });
     }
 
     document.querySelectorAll('a, button').forEach(el => {

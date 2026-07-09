@@ -537,7 +537,7 @@
          doesn't care how little vertical room there is and can grow large
          enough to run under the fixed nav above it. Capping by vh too
          keeps it in proportion to whichever dimension is actually tight. */
-      font-size: clamp(4rem, min(10vw, 22vh), 9rem);
+      font-size: clamp(3.2rem, min(8vw, 17.6vh), 7.2rem); /* 20% smaller than clamp(4rem, min(10vw,22vh), 9rem) */
       line-height: 0.95;
       letter-spacing: -0.02em;
       margin-bottom: 2.5rem;
@@ -1140,12 +1140,12 @@
          (<~375px) and breaks "Sebastian" mid-word — same root cause as the
          Accessible Mode case below, just without the 115% bump needed to
          trigger it. Lower the floor here so it always fits on one line. */
-      .hero-name { font-size: clamp(2.8rem, 11.5vw, 9rem); }
+      .hero-name { font-size: clamp(2.24rem, 9.2vw, 7.2rem); }
       /* Accessible Mode's 115% font bump (see body.accessible above) pushes
          the hero name's clamp() past the viewport width on narrow phones,
          breaking "Sebastian" mid-word. Cap it separately here so it always
          fits on one line per word. */
-      body.accessible .hero-name { font-size: clamp(2.6rem, 11.5vw, 9rem); }
+      body.accessible .hero-name { font-size: clamp(2.08rem, 9.2vw, 7.2rem); }
       #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }

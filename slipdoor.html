@@ -46,6 +46,7 @@
     button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
 
     :root{
+      --base-font-size: 17px;
       --white:#ffffff;
       --vwblue:#cdeffa;
       --vwblue-soft:#e3f6fc;
@@ -57,10 +58,13 @@
       --sans:'Poppins', system-ui, sans-serif;
     }
 
-    html{scroll-behavior:smooth}
+    html{font-size:var(--base-font-size);scroll-behavior:smooth}
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:0.01ms!important; animation-iteration-count:1!important; transition-duration:0.01ms!important; scroll-behavior:auto!important; }
+    }
 
     /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
-    html.accessible{ font-size:115%; }
+    html.accessible{ font-size:calc(var(--base-font-size) * 1.15); }
 
     body.accessible{
       --sans:'Atkinson Hyperlegible', sans-serif;
@@ -443,8 +447,8 @@
 
     @media(max-width:768px){
       nav{ padding:1rem 1rem; }
-      .a11y-toggle{ font-size:0.6rem; padding:0.4rem 0.7rem; white-space:nowrap; }
-      .back-link{ font-size:0.62rem; padding:0.5rem 0.9rem; white-space:nowrap; }
+      .a11y-toggle{ font-size:0.6rem; padding:0.75rem 0.7rem; white-space:nowrap; }
+      .back-link{ font-size:0.62rem; padding:0.85rem 0.9rem; white-space:nowrap; }
       .hero{ grid-template-columns:1fr; padding:2.5rem 1.5rem 0; gap:1rem; }
       .hero-caption, .link-bar{ padding-left:1.5rem; padding-right:1.5rem; }
       .block{ grid-template-columns:1fr; padding:2rem 1.5rem; gap:1rem; }

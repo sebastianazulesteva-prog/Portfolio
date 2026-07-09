@@ -32,7 +32,8 @@
        window is fully closed — a fresh browsing session gets the animation
        again, but clicking around the site within one session does not. -->
   <script>
-    if (sessionStorage.getItem('heroAnimPlayed') === '1') {
+    if (sessionStorage.getItem('heroAnimPlayed') === '1'
+        || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       document.documentElement.classList.add('no-hero-anim');
     }
   </script>
@@ -170,6 +171,7 @@
        --border    = thin divider lines between sections
     */
     :root {
+      --base-font-size: 17px; /* one notch above the 16px browser default */
       --bg: #080808;
       --bg2: #0f0f0f;
       --bg3: #161616;
@@ -191,7 +193,7 @@
        since nearly every size on this page is set in rem, this scales the
        whole page's text up proportionally. */
     html.accessible {
-      font-size: 115%;
+      font-size: calc(var(--base-font-size) * 1.15);
     }
 
     body.accessible {
@@ -202,7 +204,15 @@
       line-height: 1.8;
     }
 
-    html { scroll-behavior: smooth; }
+    html { font-size: var(--base-font-size); scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
 
     body {
       background: var(--bg);
@@ -255,6 +265,16 @@
       background: rgba(8,8,8,0.85);
       -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
+      /* iOS Safari fast-scroll fix: fast flicks trigger a rubber-band
+         overscroll that briefly shifts the viewport above top:0. Since this
+         bar only paints from top:0 down, that sliver was left uncovered,
+         flashing the hero content behind it. The box-shadow bleeds solid
+         color upward to cover it, and translateZ forces this bar onto its
+         own GPU layer so it stays in sync with the scroll instead of
+         lagging a frame behind. */
+      box-shadow: 0 -100vh 0 0 rgba(8,8,8,0.85);
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
     }
 
     .nav-logo {
@@ -407,8 +427,15 @@
       top: 50%;
       left: 0;
       transform: translateY(-50%);
-      width: min(90vw, 900px);
-      aspect-ratio: 4 / 5;
+      /* Sized by HEIGHT (not width) so the box always fits inside #hero's
+         vertical space without needing object-fit:cover to crop anything.
+         aspect-ratio matches the source photos' real dimensions (682×1024 —
+         see the file list above) exactly, so nothing gets cropped top/
+         bottom — previously this was 4/5, a wider ratio than the actual
+         2:3-ish photos, which silently cropped the chin off the bottom. */
+      height: min(85vh, 1000px);
+      width: auto;
+      aspect-ratio: 682 / 1024;
       z-index: 0;
       pointer-events: none;
       opacity: 0;
@@ -506,14 +533,6 @@
       align-items: flex-start;
       justify-content: space-between;
       margin-bottom: 5rem;
-    }
-
-    .section-num {
-      font-size: 0.65rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted2);
-      margin-top: 0.6rem;
     }
 
     .section-title {
@@ -1070,8 +1089,16 @@
         justify-content: space-between;
         gap: 0.5rem;
       }
-      .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 0.5rem 0; }
+      .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 1rem 0.25rem; margin: -1rem -0.25rem; }
+      .a11y-toggle { padding: 0.85rem 0.9rem; }
+      .skills-expand-btn { padding: 0.9rem 0; }
+      .contact-link { padding: 0.9rem 0 0.6rem; }
       .nav-sep { display: none; }
+      /* Accessible Mode's 115% font bump (see body.accessible above) pushes
+         the hero name's clamp() past the viewport width on narrow phones,
+         breaking "Sebastian" mid-word. Cap it separately here so it always
+         fits on one line per word. */
+      body.accessible .hero-name { font-size: clamp(2.6rem, 11.5vw, 9rem); }
       #hero { grid-template-columns: 1fr; padding: 0 1.5rem 2rem; }
       .hero-scroll { flex-direction: column; justify-content: flex-start; }
       .hero-scroll-line { width: 1px; height: 36px; }
@@ -1173,22 +1200,29 @@
       Scroll
     </div>
 
-    <div class="hero-content">
-      <!-- ═══ HERO BACKGROUND PHOTO — MOSAIC REVEAL ═══
-           Desktop: move your mouse over this area — the top photo (grayscale)
-           has a soft hole that follows the cursor, revealing the mosaic photo
-           underneath in full color.
-           Mobile/touch: each tap opens a small soft-edged "water drop" window
-           onto the mosaic photo where you tapped (up to 3 at once).
-           Both images must be the same crop/aspect ratio to line up — see the
-           CSS comment above class="hero-photo-wrap" for exact filenames.
-           The single hole is built as a plain CSS radial-gradient in JS — see
-           "HERO PHOTO MOSAIC REVEAL" further down in the <script>. -->
-      <div class="hero-photo-wrap" id="heroPhotoWrap">
-        <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="" width="682" height="1024">
-        <img class="hero-photo-professional" src="images/contact-photo-framed-for-mosaic.jpg" alt="Sebastian Esteva portrait with a digital mosaic and VR headset illustration overlaid on one eye" width="682" height="1024">
-      </div>
+    <!-- ═══ HERO BACKGROUND PHOTO — MOSAIC REVEAL ═══
+         Desktop: move your mouse over this area — the top photo (grayscale)
+         has a soft hole that follows the cursor, revealing the mosaic photo
+         underneath in full color.
+         Mobile/touch: each tap opens a small soft-edged "water drop" window
+         onto the mosaic photo where you tapped (up to 3 at once).
+         Both images must be the same crop/aspect ratio to line up — see the
+         CSS comment above class="hero-photo-wrap" for exact filenames.
+         The single hole is built as a plain CSS radial-gradient in JS — see
+         "HERO PHOTO MOSAIC REVEAL" further down in the <script>.
+         ✎ This lives directly in #hero (a sibling of .hero-content, not
+         nested inside it) so its "top: 50%" centers against the FULL hero
+         section height. .hero-content is only as tall as the name/tagline
+         text and sits pinned to the bottom of the section — nesting the
+         photo inside it centered the photo against that short box instead,
+         which pushed it down far enough that #hero's overflow:hidden (see
+         comment on #hero above) clipped the chin off the bottom. -->
+    <div class="hero-photo-wrap" id="heroPhotoWrap">
+      <img class="hero-photo-mosaic" src="images/contact-photo-mosaic.jpg" alt="" width="682" height="1024">
+      <img class="hero-photo-professional" src="images/contact-photo-framed-for-mosaic.jpg" alt="Sebastian Esteva portrait with a digital mosaic and VR headset illustration overlaid on one eye" width="682" height="1024" fetchpriority="high">
+    </div>
 
+    <div class="hero-content">
       <!-- The name below is real, static text (not injected by JS) so it's
            visible to search engines/AI crawlers and shows up even if
            JavaScript fails to load. The letter-scatter animation script
@@ -1210,7 +1244,6 @@
   <section id="about">
     <div class="section-header reveal">
       <h2 class="section-title">Engineer.<br><em>Communicator.</em><br>Builder.</h2>
-      <span class="section-num">01 — About</span>
     </div>
     <div class="about-grid">
       <div class="about-text reveal reveal-delay-1">
@@ -1288,7 +1321,6 @@
   <section id="projects">
     <div class="section-header reveal">
       <h2 class="section-title">Selected<br><em>projects.</em></h2>
-      <span class="section-num">02 — Projects</span>
     </div>
 
     <div class="work-grid">
@@ -1355,6 +1387,16 @@
             <span class="quick-link-tag">Strategic Thinking Example</span>
             <span class="quick-link-arrow">↗</span>
           </a>
+          <a href="Sebastian_Esteva_Algorithmic_Modeling_HW.pdf" class="quick-link" target="_blank" rel="noopener">
+            <span class="quick-link-title">Algorithmic Modeling</span>
+            <span class="quick-link-tag">Coursework Sample</span>
+            <span class="quick-link-arrow">↗</span>
+          </a>
+          <a href="Sebastian_Esteva_3d_Print_Glasses_frames.pdf" class="quick-link" target="_blank" rel="noopener">
+            <span class="quick-link-title">3D-Printed Glasses Frames</span>
+            <span class="quick-link-tag">Multimaterial 3D Print · Design Project</span>
+            <span class="quick-link-arrow">↗</span>
+          </a>
         </div>
 
       </div>
@@ -1370,8 +1412,6 @@
 
   <!-- ═══ CONTACT SECTION (bottom of page) ═══ -->
   <section id="contact">
-    <span class="section-num reveal" style="display:block;margin-bottom:3rem;">03 — Contact</span>
-
     <div class="contact-layout">
       <div>
         <!-- ✎ EDIT YOUR CLOSING HEADLINE HERE -->

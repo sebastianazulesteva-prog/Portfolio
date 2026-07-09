@@ -464,13 +464,14 @@
        reliant on the section being tall enough to "center" it into view. */
     @media (min-width: 769px) {
       :root {
-        /* Bigger than one viewport on purpose — the photo is meant to run
-           past the fold so scrolling reveals more of it. #hero's min-height
-           below is grown to match this exact value, so the section always
-           fully contains the photo; overflow:hidden on #hero never has to
-           clip it, which is what would let it bleed into the About section
-           as a backdrop behind that text. */
-        --hero-photo-h: min(125vh, 1150px);
+        /* Fits within one viewport on purpose — the name/tagline text sits
+           at the bottom of #hero via align-items:end, so keeping the photo
+           (and #hero itself) no taller than the fold means the whole hero
+           — photo, name, and tagline — is visible on load with no scroll
+           needed. A previous version let this run past the fold, which
+           also meant #hero grew taller than one viewport and pushed the
+           bottom-anchored text down out of the initial view. */
+        --hero-photo-h: min(calc(100vh - var(--nav-h) - 5rem), 880px);
       }
       .hero-photo-wrap {
         top: calc(var(--nav-h) + 1.5rem);
@@ -478,7 +479,7 @@
         height: var(--hero-photo-h);
       }
       #hero {
-        min-height: calc(var(--nav-h) + var(--hero-photo-h) + 3rem);
+        min-height: 100vh;
       }
     }
 

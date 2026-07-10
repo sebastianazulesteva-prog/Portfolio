@@ -1,6 +1,6 @@
 # Sebastian Esteva
 
-> Stanford-trained engineer and communicator who builds at the intersection of human experience, technology, and design — and chooses his work by what he believes will make the world better.
+> Also known as Sebastian Kellc Esteva. Stanford-trained engineer and communicator who builds at the intersection of human experience, technology, and design — and chooses his work by what he believes will make the world better.
 
 Sebastian Esteva holds a B.S. in Biomechanical Engineering from Stanford (2026) and is completing an M.A. in Communication — Media Studies (anticipated 2027). He works across product design, wearable technology, VR/AR research, and strategic communications — always following work he finds genuinely inspiring. He is a Research Assistant at Stanford's Virtual Human Interaction Lab (VHIL), studying how virtual and augmented reality shape human behavior and decision-making. His capstone research examines how specific technology variables — degrees of freedom, fidelity, and related hardware/software features — affect sense of presence in virtual worlds.
 
@@ -26,6 +26,8 @@ This portfolio was built from scratch and deployed via GitHub. It reflects his a
 
 - Email: sesteva@stanford.edu
 - LinkedIn: https://linkedin.com/in/sebastian-esteva/
+- Stanford profile: https://profiles.stanford.edu/sebastian-esteva
+- Explore Energy house leaders page: https://explore-energy.stanford.edu/explore-energy-house/house-leaders
 
 ## Note
 

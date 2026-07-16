@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
+  <title>Social Engineering via Predictive Algorithms — Sebastian Esteva</title>
+
+  <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
+  <meta name="description" content="Academic paper by Sebastian Esteva (Stanford) examining how predictive algorithms enable social engineering, political micro-targeting, and shifts in democratic citizenship.">
+  <meta name="keywords" content="predictive algorithms, social engineering, political micro-targeting, Cambridge Analytica, algorithmic manipulation, digital democracy, Sebastian Esteva, Stanford">
+  <meta name="author" content="Sebastian Esteva">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://sesteva.com/social-engineering-predictive-algorithms.html" />
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Social Engineering via Predictive Algorithms — Sebastian Esteva">
+  <meta property="og:description" content="How predictive algorithms enable unprecedented social engineering and reshape democratic citizenship.">
+  <meta property="og:image" content="https://sesteva.com/images/contact-photo-professional.jpg">
+  <meta property="og:url" content="https://sesteva.com/social-engineering-predictive-algorithms.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Social Engineering via Predictive Algorithms — Sebastian Esteva">
+  <meta name="twitter:image" content="https://sesteva.com/images/contact-photo-professional.jpg">
+
+  <!-- Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ScholarlyArticle",
+    "headline": "Social Engineering via Predictive Algorithms",
+    "author": { "@type": "Person", "name": "Sebastian Esteva", "url": "https://sesteva.com" },
+    "datePublished": "2023-01",
+    "description": "Examines how predictive algorithms enable social engineering, political micro-targeting, and shifts in democratic citizenship.",
+    "keywords": "predictive algorithms, social engineering, Cambridge Analytica, digital democracy",
+    "url": "https://sesteva.com/social-engineering-predictive-algorithms.html"
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="images/android-chrome-512x512.png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Syne:wght@400;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Syne:wght@400;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Syne:wght@400;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    button { appearance: none; -webkit-appearance: none; font: inherit; color: inherit; }
+
+    :root {
+      --bg: #080808;
+      --bg-panel: #111111;
+      --white: #e8e8e8;
+      --white-soft: rgba(232,232,232,0.72);
+      --white-faint: rgba(232,232,232,0.4);
+      --line: rgba(232,232,232,0.15);
+      --serif: 'Playfair Display', Georgia, serif;
+      --sans: 'Syne', system-ui, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    html.accessible { font-size: 115%; }
+
+    body.accessible {
+      --serif: 'Atkinson Hyperlegible', sans-serif;
+      --sans: 'Atkinson Hyperlegible', sans-serif;
+      letter-spacing: 0.01em;
+      word-spacing: 0.05em;
+      line-height: 1.9;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.75rem 3rem;
+      background: rgba(8,8,8,0.85);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-logo {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      color: var(--white);
+      text-decoration: none;
+      letter-spacing: 0.02em;
+    }
+
+    .back-link {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--white-soft);
+      text-decoration: none;
+      padding: 0.6rem 1.3rem;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .back-link:hover { border-color: var(--white); color: var(--white); }
+
+    /* ─── ACCESSIBLE MODE TOGGLE + EXPLAINER CARD ───
+       See index.html for the full write-up — same behavior here. */
+    .a11y-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: none;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      padding: 0.4rem 0.9rem;
+      color: var(--white-soft);
+      font-family: var(--sans);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .a11y-toggle:hover { border-color: var(--white); color: var(--white); }
+    .a11y-toggle.active { border-color: var(--white); color: var(--white); background: rgba(232,232,232,0.08); }
+
+    .a11y-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--white-faint);
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .a11y-toggle.active .a11y-dot { background: var(--white); }
+
+    .a11y-note {
+      position: fixed;
+      top: 5.5rem;
+      right: 1.5rem;
+      z-index: 150;
+      width: min(280px, calc(100vw - 3rem));
+      background: var(--bg-panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .a11y-note.visible { opacity: 1; transform: none; pointer-events: auto; }
+    .a11y-note p { font-size: 0.72rem; line-height: 1.55; color: var(--white-soft); }
+    .a11y-note strong { color: var(--white); }
+    .a11y-note a { color: var(--white); }
+
+    .a11y-note-close {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.6rem;
+      background: none;
+      border: none;
+      color: var(--white-soft);
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0.2rem;
+    }
+
+    .a11y-note-close:hover { color: var(--white); }
+
+    .a11y-line-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: rgba(232,232,232,0.12);
+      pointer-events: none;
+      clip-path: inset(0 0 100% 0);
+    }
+
+    main { padding: 3rem 1.5rem 5rem; }
+
+    .container { max-width: 780px; margin: 0 auto; }
+
+    .label {
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--white-faint);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+
+    .meta { font-size: 0.85rem; color: var(--white-faint); margin-bottom: 2rem; }
+
+    .description {
+      position: relative;
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--white-soft);
+      border-left: 2px solid var(--line);
+      padding-left: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    h2 {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      font-weight: 400;
+      color: var(--white-faint);
+      margin-bottom: 1.75rem;
+    }
+
+    /* Always-visible download/open link — PDF embeds inside <iframe> often
+       fail silently on mobile browsers (no inline PDF viewer, no visible
+       error), so this can't be a fallback hidden inside the iframe; it has
+       to be a normal, always-present link. */
+    .pdf-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--white);
+      text-decoration: none;
+      padding: 0.85rem 1.5rem;
+      border: 1px solid var(--white);
+      border-radius: 100px;
+      margin-bottom: 1.5rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .pdf-download:hover { background: var(--white); color: var(--bg); }
+
+    .pdf-embed {
+      display: block;
+      width: 100%;
+      height: 80vh;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--bg-panel);
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1rem; }
+      .a11y-toggle { font-size: 0.6rem; padding: 0.4rem 0.7rem; white-space: nowrap; }
+      .back-link { font-size: 0.62rem; padding: 0.5rem 0.9rem; white-space: nowrap; }
+      .pdf-embed { height: 70vh; }
+    }
+  </style>
+</head>
+<body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
+
+  <div class="a11y-note" id="a11yNote">
+    <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
+    <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go — <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
+  </div>
+
+  <nav>
+    <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html#projects">← Back to Projects</a>
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+      <span class="a11y-dot"></span>
+      Accessible
+    </button>
+  </nav>
+
+  <main>
+    <div class="container">
+      <p class="label">Writing — Winter 2023</p>
+
+      <h1>Social Engineering via Predictive Algorithms</h1>
+
+      <p class="meta">Sebastian Esteva &nbsp;·&nbsp; Stanford University &nbsp;·&nbsp; Communication &amp; Media Studies</p>
+
+      <div class="description">
+        <p>Algorithms don't force you to act — they shape what you want. This paper starts with Obama's 2008 campaign (the first serious use of data-driven voter targeting) and works forward to Cambridge Analytica, Q-Anon, and the question of what it even means to be a citizen when your feed is tuned to nudge you. The scary part isn't a shadowy actor pulling levers. It's that the nudging mostly happens with no specific direction at all.</p>
+      </div>
+
+      <h2>Key topics: algorithmic profiling · political micro-targeting · Cambridge Analytica · surveillance capitalism · democratic citizenship</h2>
+
+      <a class="pdf-download" href="Social_Engineering_via_Predictive_Algorithms_.pdf" target="_blank" rel="noopener">Open PDF in New Tab ↗</a>
+
+      <iframe
+        class="pdf-embed"
+        src="Social_Engineering_via_Predictive_Algorithms_.pdf"
+        title="Social Engineering via Predictive Algorithms by Sebastian Esteva"
+        loading="lazy"
+      ></iframe>
+    </div>
+  </main>
+
+  <script>
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    const toggle = document.getElementById('a11yToggle');
+    const a11yNote = document.getElementById('a11yNote');
+
+    function updateA11yNote(show) {
+      if (a11yNote) a11yNote.classList.toggle('visible', show);
+    }
+
+    function dismissA11yNote() {
+      sessionStorage.setItem('a11yNoteDismissed', '1');
+      updateA11yNote(false);
+    }
+
+    // Sync the toggle button + explainer card to whatever accessible-mode
+    // state was already applied by the early inline scripts (head + body).
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
+    function toggleAccessible() {
+      const isOn = document.body.classList.toggle('accessible');
+      document.documentElement.classList.toggle('accessible', isOn);
+      toggle.classList.toggle('active', isOn);
+
+      if (isOn) {
+        localStorage.setItem('a11yMode', '1');
+        sessionStorage.removeItem('a11yNoteDismissed');
+        updateA11yNote(true);
+      } else {
+        localStorage.removeItem('a11yMode');
+        updateA11yNote(false);
+        document.querySelectorAll('.a11y-line-overlay').forEach(o => {
+          o.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      }
+    }
+
+    function initA11yLineHighlight(selector) {
+      document.querySelectorAll(selector).forEach(el => {
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        if (getComputedStyle(el).zIndex === 'auto') el.style.zIndex = '0';
+
+        const overlay = document.createElement('span');
+        overlay.className = 'a11y-line-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        el.appendChild(overlay);
+
+        el.addEventListener('mousemove', e => {
+          if (!document.body.classList.contains('accessible')) return;
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+          const rect = el.getBoundingClientRect();
+          const line = Math.floor((e.clientY - rect.top) / lineHeight);
+          const top = Math.max(line, 0) * lineHeight;
+          const bottom = Math.max(rect.height - top - lineHeight, 0);
+          overlay.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
+        });
+
+        el.addEventListener('mouseleave', () => {
+          overlay.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      });
+    }
+
+    initA11yLineHighlight('h1, .meta, .description p, h2');
+  </script>
+</body>
+</html>

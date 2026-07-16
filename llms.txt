@@ -21,6 +21,9 @@ This portfolio was built from scratch and deployed via GitHub. It reflects his a
 - [The Slip Door](https://sesteva.com/slipdoor.html): A fully operational, full-scale prototype of an accessible automatic sliding car door, built for Volkswagen's Future of Entry challenge. Increased entrance volume by 253% for mobility-impaired drivers. Built with a team of four Stanford engineers.
 - [Bastón](https://sesteva.com/baston.html): A hand-built, foldable wooden cane designed and machined for his grandmother — combining lathe-turned wood with a precision metal folding mechanism. A personal project at the intersection of engineering and care.
 - [Time Collector](https://sesteva.com/timecollector.html): A 24-inch kinetic marble clock sculpture built with a team of four, combining laser-cut wood and 3D-printed gears into a fully functional timekeeping mechanism.
+- [HP's Reckoning with Company Values](https://sesteva.com/hp-reckoning-corporate-espionage.html): Strategy case study on HP's 2006 spying scandal — crisis communications, corporate governance, and values-based leadership.
+- [Shape Optimization & Generative Design](https://sesteva.com/algorithmic-modeling-shape-optimization.html): ME 127 engineering project applying FEA-driven shape optimization and generative design to redesign a machining gripper across materials and manufacturing methods.
+- [Social Engineering via Predictive Algorithms](https://sesteva.com/social-engineering-predictive-algorithms.html): Academic paper examining how predictive algorithms enable political micro-targeting and reshape democratic citizenship.
 
 ## Contact
 

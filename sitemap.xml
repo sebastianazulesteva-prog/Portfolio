@@ -61,4 +61,25 @@
     <priority>0.7</priority>
   </url>
 
+  <url>
+    <loc>https://sesteva.com/hp-reckoning-corporate-espionage.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://sesteva.com/algorithmic-modeling-shape-optimization.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://sesteva.com/social-engineering-predictive-algorithms.html</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
 </urlset>

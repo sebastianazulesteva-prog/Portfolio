@@ -24,6 +24,7 @@ This portfolio was built from scratch and deployed via GitHub. It reflects his a
 - [HP's Reckoning with Company Values](https://sesteva.com/hp-reckoning-corporate-espionage.html): Strategy case study on HP's 2006 spying scandal — crisis communications, corporate governance, and values-based leadership.
 - [Shape Optimization & Generative Design](https://sesteva.com/algorithmic-modeling-shape-optimization.html): ME 127 engineering project applying FEA-driven shape optimization and generative design to redesign a machining gripper across materials and manufacturing methods.
 - [Social Engineering via Predictive Algorithms](https://sesteva.com/social-engineering-predictive-algorithms.html): Academic paper examining how predictive algorithms enable political micro-targeting and reshape democratic citizenship.
+- [3D Printed Glasses Frames](https://sesteva.com/3d-printed-glasses-frames.html): ME 227 design project — custom-fit 3D printed eyeglasses frames with a multi-material PLA/TPU hinge, prototyped on a Bambu Lab H2C.
 
 ## Contact
 

@@ -518,6 +518,10 @@
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:rgba(245,245,240,0.7);
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .mini-card-arrow{
@@ -541,6 +545,35 @@
     }
 
     .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+
+    /* ─── QUICK LINKS ROW — writing/coursework samples without a full
+         project page (yet). Sits below the mini-card grid, small and
+         compact. To add another: copy one <a class="quick-link-mini">. */
+    .quick-links-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0.6rem;
+      margin-top:1.25rem;
+    }
+
+    .quick-link-mini{
+      display:inline-flex;
+      align-items:center;
+      gap:0.4rem;
+      padding:0.5rem 1rem;
+      border:1.5px solid var(--ink);
+      border-radius:100px;
+      font-family:var(--display);
+      font-size:0.68rem;
+      font-weight:600;
+      text-decoration:none;
+      color:var(--ink);
+      white-space:nowrap;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .quick-link-mini:hover{ background:var(--ink); color:var(--cream-light); }
 
     @media(max-width:768px){
       nav{ padding:1rem 1rem; }
@@ -567,7 +600,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      Accessible
+      Turn on Accessibility
     </button>
   </nav>
 
@@ -612,8 +645,8 @@
     </div>
 
     <div class="story">
-      <p>A 24-inch tall <strong>kinetic marble clock</strong> — part sculpture, part functioning mechanism. A wheel of marbles rotates through a gear train, with each marble eventually depositing into a collector at the base, marking the passage of time visually rather than with hands or numbers.</p>
-      <p>The project moved through distinct phases: heavy early sketching and ideation, force and load analysis with free body diagrams of the marble wheel system, a <strong>rapid prototype</strong> to validate the mechanism, then scaling up to the full-sized final design. We also ran finite element analysis comparing the old vs. new backboard design to make sure the structure could handle the load.</p>
+      <p>A 24-inch tall <strong>kinetic marble clock</strong> — part sculpture, part functioning clock. A wheel of marbles rotates through a gear train, with each marble eventually depositing into a collector at the base, marking the passage of time visually rather than with hands or numbers.</p>
+      <p>The project moved through distinct phases: heavy early sketching and ideation, force and load analysis with free body diagrams of the marble wheel system, three rounds of <strong>prototyping</strong> to validate the mechanism — starting with cardboard, then two rounds of 3D-printed iterations — then scaling up to the full-sized final design. We also ran finite element analysis comparing the old vs. new backboard design to make sure the structure could handle the load.</p>
     </div>
 
     <div class="gear-divider">
@@ -659,7 +692,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Poser Chess Set</p>
-            <span class="mini-card-tag">3D Printing · ME 227</span>
+            <span class="mini-card-tag">3D Printing · Transformative Design</span>
           </div>
         </a>
         <a href="pendant.html" class="mini-card">
@@ -667,7 +700,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Graduation Pendant</p>
-            <span class="mini-card-tag">Design · Class of 2026</span>
+            <span class="mini-card-tag">Silver · Metalworking · Design</span>
           </div>
         </a>
         <a href="slipdoor.html" class="mini-card">
@@ -678,7 +711,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">The Slip Door</p>
-            <span class="mini-card-tag">Team Project · Accessibility</span>
+            <span class="mini-card-tag">Team Project · Accessibility · Volkswagen</span>
           </div>
         </a>
         <a href="baston.html" class="mini-card">
@@ -686,14 +719,21 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Bastón</p>
-            <span class="mini-card-tag">Woodworking · Family</span>
+            <span class="mini-card-tag">Woodworking · Metalworking</span>
           </div>
         </a>
+      </div>
+
+      <div class="quick-links-row">
+        <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+        <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+        <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
+        <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
       </div>
     </div>
 
     <div class="back-bottom-wrap">
-      <a class="back-bottom" href="index.html#projects">← Back to Selected Projects</a>
+      <a class="back-bottom" href="index.html#projects">← Back to Main Page</a>
     </div>
 
   </main>

@@ -538,6 +538,10 @@
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:rgba(245,245,240,0.7);
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .mini-card-arrow{
@@ -562,6 +566,34 @@
     }
 
     .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; }
+
+    /* ─── QUICK LINKS ROW — writing/coursework samples without a full
+         project page (yet). Sits below the mini-card grid, small and
+         compact. To add another: copy one <a class="quick-link-mini">. */
+    .quick-links-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0.6rem;
+      margin-top:1.25rem;
+    }
+
+    .quick-link-mini{
+      display:inline-flex;
+      align-items:center;
+      gap:0.4rem;
+      padding:0.5rem 1rem;
+      border:1.5px solid var(--ink);
+      border-radius:100px;
+      font-size:0.68rem;
+      font-weight:500;
+      text-decoration:none;
+      color:var(--ink);
+      white-space:nowrap;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .quick-link-mini:hover{ background:var(--ink); color:#fff; }
 
     @media(max-width:768px){
       nav{ padding:1rem 1rem; }
@@ -591,7 +623,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      Accessible
+      Turn on Accessibility
     </button>
   </nav>
 
@@ -640,7 +672,7 @@
       </div>
       <div class="meta-item">
         <div class="meta-label">Materials</div>
-        <div class="meta-value">Cast sterling silver</div>
+        <div class="meta-value">Sterling silver</div>
       </div>
       <div class="meta-item">
         <div class="meta-label">Milestone</div>
@@ -662,26 +694,14 @@
     -->
     <div class="steps">
 
-      <!-- ═══ STEP 1 — DESIGN & CAD ═══
-           No image slot for this one — text only. ✎ Add a screenshot of the
-           CAD model here later if you want one; just copy the .img-slot
-           pattern from Step 2 below. -->
-      <div class="step">
-        <div class="step-badge">1</div>
-        <div class="step-body">
-          <h3>Design & CAD</h3>
-          <p>Designed as a 3D model — two beaded rows, framed in silver.</p>
-        </div>
-      </div>
-
-      <!-- ═══ STEP 2 — WAX 3D PRINT ═══
+      <!-- ═══ STEP 1 — WAX 3D PRINT ═══
            ✎ Call this file images/pendant-wax-print.jpg — photo of the wax
            3D print, ideally also shot on white to match the hero. -->
       <div class="step">
-        <div class="step-badge">2</div>
+        <div class="step-badge">1</div>
         <div class="step-body">
           <h3>Wax 3D Print</h3>
-          <p>Printed in wax — a sacrificial pattern for the cast to come.</p>
+          <p>The wax is lost, replaced with molten sterling silver — raw silver is all that's left in the end.</p>
 
           <div class="img-slot">
             <img src="images/pendant-wax-print.jpg" alt="Wax 3D-printed pattern of the pendant design before investment casting" width="1024" height="1024" loading="lazy">
@@ -693,7 +713,7 @@
            ✎ Call this file images/pendant-cast-raw.jpg — the piece straight
            out of the mold, before any hand-finishing. -->
       <div class="step">
-        <div class="step-badge">3</div>
+        <div class="step-badge">2</div>
         <div class="step-body">
           <h3>Lost-Wax Casting</h3>
           <p>The wax is lost, replaced with molten sterling silver — raw silver is all that's left.</p>
@@ -705,26 +725,20 @@
       </div>
 
       <div class="step">
-        <div class="step-badge">4</div>
+        <div class="step-badge">3</div>
         <div class="step-body">
           <h3>Hand-Finishing</h3>
           <p>Filed, sanded, and polished to a finish, entirely by hand.</p>
+
+          <!-- ═══ WORN SHOT ═══
+               ✎ Call this file images/pendant-worn.jpg — a photo of you
+               wearing the pendant. -->
+          <div class="img-slot">
+            <img src="images/pendant-worn.jpg" alt="Sebastian Esteva wearing the finished graduation pendant" width="1024" height="1280" loading="lazy">
+          </div>
         </div>
       </div>
 
-    </div>
-
-    <div class="divider-row">
-      <span class="line"></span>
-      <span class="mark">✦</span>
-      <span class="line"></span>
-    </div>
-
-    <!-- ═══ WORN SHOT ═══
-         ✎ Call this file images/pendant-worn.jpg — a photo of you wearing
-         the pendant. -->
-    <div class="img-slot">
-      <img src="images/pendant-worn.jpg" alt="Sebastian Esteva wearing the finished graduation pendant" width="1024" height="1280" loading="lazy">
     </div>
 
   </article>
@@ -740,7 +754,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">The Slip Door</p>
-            <span class="mini-card-tag">Team Project · Accessibility</span>
+            <span class="mini-card-tag">Team Project · Accessibility · Volkswagen</span>
           </div>
         </a>
         <a href="baston.html" class="mini-card">
@@ -748,7 +762,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Bastón</p>
-            <span class="mini-card-tag">Woodworking · Family</span>
+            <span class="mini-card-tag">Woodworking · Metalworking</span>
           </div>
         </a>
         <a href="timecollector.html" class="mini-card">
@@ -764,14 +778,21 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Poser Chess Set</p>
-            <span class="mini-card-tag">3D Printing · ME 227</span>
+            <span class="mini-card-tag">3D Printing · Transformative Design</span>
           </div>
         </a>
+      </div>
+
+      <div class="quick-links-row">
+        <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+        <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+        <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
+        <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
       </div>
     </div>
 
     <div class="back-bottom-wrap">
-      <a class="back-bottom" href="index.html#projects">← Back to Selected Projects</a>
+      <a class="back-bottom" href="index.html#projects">← Back to Main Page</a>
     </div>
 
   </main>

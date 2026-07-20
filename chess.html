@@ -599,6 +599,10 @@
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:rgba(245,245,240,0.7);
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .mini-card-arrow{
@@ -622,6 +626,34 @@
     }
 
     .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+
+    /* ─── QUICK LINKS ROW — writing/coursework samples without a full
+         project page (yet). Sits below the mini-card grid, small and
+         compact. To add another: copy one <a class="quick-link-mini">. */
+    .quick-links-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0.6rem;
+      margin-top:1.25rem;
+    }
+
+    .quick-link-mini{
+      display:inline-flex;
+      align-items:center;
+      gap:0.4rem;
+      padding:0.5rem 1rem;
+      border:1.5px solid var(--white);
+      border-radius:100px;
+      font-size:0.68rem;
+      font-weight:500;
+      text-decoration:none;
+      color:var(--white);
+      white-space:nowrap;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .quick-link-mini:hover{ background:var(--white); color:var(--bg); }
 
     @media(max-width:768px){
       nav{ padding:1rem 1rem; }
@@ -650,7 +682,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      Accessible
+      Turn on Accessibility
     </button>
   </nav>
 
@@ -659,7 +691,7 @@
 
     <div class="hero">
       <h1 class="hero-title">Poser <em>Chess Set</em></h1>
-      <p class="hero-sub">A Wall-Mounted Chess Set, Made to Show Off Your Game</p>
+      <p class="hero-sub">A Chess Board That Transforms Into a Wall-Mounted Display</p>
     </div>
 
     <!-- ═══ HERO IMAGE PAIR — before / after ═══
@@ -683,11 +715,9 @@
         <span class="arrow-vertical">↑</span>
       </div>
     </div>
-    <p class="hero-caption">Sebastian Esteva — ME 227, Winter 2026</p>
-
     <div style="text-align:center; margin-top:1.5rem;">
       <a href="https://canva.link/7iz5vqdo5poc2wv" class="back-bottom" target="_blank" rel="noopener">
-        <span>View Full Slideshow</span>
+        <span>Complete Breakdown of Project</span>
         <span>↗</span>
       </a>
     </div>
@@ -699,7 +729,7 @@
       </div>
       <div class="meta-item">
         <div class="meta-label">Materials</div>
-        <div class="meta-value">3D-printed PLA + magnets</div>
+        <div class="meta-value">46 PLA Pieces + Mid-Print Inserts</div>
       </div>
       <div class="meta-item">
         <div class="meta-label">Size</div>
@@ -708,8 +738,8 @@
     </div>
 
     <div class="story">
-      <p>A wall-mounted chess set where every piece <strong>poses itself</strong> — sliding out from a flat magnetic backing into a fully three-dimensional chess piece. The set is functional to actually play with, but also designed to be displayed proudly on a wall between games.</p>
-      <p>The biggest design challenge was scale: the full board needed to be roughly <strong>20 inches by 20 inches</strong>, which was too large for a single print bed. That meant breaking the entire board and every piece into printable sections, then reassembling them with <strong>96 embedded magnets</strong> to keep everything correctly oriented and connected.</p>
+      <p>The chess board is designed to be <strong>displayed proudly on a wall</strong> between games.</p>
+      <p>The biggest design challenge was scale: the full board needed to be roughly <strong>20 inches by 20 inches</strong>, which was too large for a single print bed. That meant breaking the entire board and every piece into printable sections, then reassembling them with <strong>96 embedded magnets</strong>.</p>
     </div>
 
     <div class="divider-row">
@@ -732,7 +762,7 @@
         <div class="step-badge">1</div>
         <div class="step-body">
           <h3>Ideation</h3>
-          <p>Early sketches and concept exploration — figuring out how a flat, wall-mounted panel could fold and slide out into a fully three-dimensional chess piece, before committing to any physical prototype.</p>
+          <p>Early sketches and concept exploration — early inspiration from a magnetic wall-mounted chess set, which I wanted to combine with the satisfying nature of a wall-sized regulation chess set.</p>
 
           <div class="img-slot">
             <img src="images/chess-ideation.jpg" alt="Reference photos of a wall-mounted chessboard concept and a standard 3D chess set" width="752" height="708" loading="lazy">
@@ -747,7 +777,7 @@
         <div class="step-badge">2</div>
         <div class="step-body">
           <h3>Prototyping</h3>
-          <p>Testing every connector, hinge, and mechanism individually before committing to a full print run — a single point of failure at this scale would be costly to redo.</p>
+          <p>Testing every connector, hinge, and mechanism individually before committing to a full print run.</p>
 
           <div class="collage-box">
             <div class="collage-grid">
@@ -765,7 +795,7 @@
               </div>
               <div class="collage-item">
                 <img src="images/chess-press-insert.jpg" alt="3D-printed insert and joining pieces being tested by hand" width="768" height="1024" loading="lazy">
-                <div class="collage-caption">Insert & Joining Method Testing</div>
+                <div class="collage-caption">Insert, Joining Method, & Mid-Print Insert Testing</div>
               </div>
             </div>
           </div>
@@ -776,7 +806,7 @@
         <div class="step-badge">3</div>
         <div class="step-body">
           <h3>Execute</h3>
-          <p>All 46 individual pieces were tracked and printed, then assembled using 96 embedded magnets to keep every piece correctly oriented when posed out from the wall.</p>
+          <p>All 46 individual pieces were tracked on a Google Sheet and printed, then assembled using 96 embedded magnets to keep every piece correctly oriented when posed out from the wall.</p>
         </div>
       </div>
 
@@ -802,7 +832,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Graduation Pendant</p>
-            <span class="mini-card-tag">Design · Class of 2026</span>
+            <span class="mini-card-tag">Silver · Metalworking · Design</span>
           </div>
         </a>
         <a href="slipdoor.html" class="mini-card">
@@ -813,7 +843,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">The Slip Door</p>
-            <span class="mini-card-tag">Team Project · Accessibility</span>
+            <span class="mini-card-tag">Team Project · Accessibility · Volkswagen</span>
           </div>
         </a>
         <a href="baston.html" class="mini-card">
@@ -821,7 +851,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Bastón</p>
-            <span class="mini-card-tag">Woodworking · Family</span>
+            <span class="mini-card-tag">Woodworking · Metalworking</span>
           </div>
         </a>
         <a href="timecollector.html" class="mini-card">
@@ -833,10 +863,17 @@
           </div>
         </a>
       </div>
+
+      <div class="quick-links-row">
+        <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+        <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+        <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
+        <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
+      </div>
     </div>
 
     <div class="back-bottom-wrap">
-      <a class="back-bottom" href="index.html#projects">← Back to Selected Projects</a>
+      <a class="back-bottom" href="index.html#projects">← Back to Main Page</a>
     </div>
 
   </main>

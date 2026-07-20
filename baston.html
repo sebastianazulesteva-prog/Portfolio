@@ -444,7 +444,7 @@
       background:rgba(34,16,24,0.06);
     }
 
-    .mini-card img{
+    .mini-card img, .mini-card video{
       width:100%;
       height:100%;
       object-fit:cover;
@@ -453,7 +453,7 @@
       transition:filter 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
     }
 
-    .mini-card:hover img{ filter:grayscale(0%) brightness(1); transform:scale(1.05); }
+    .mini-card:hover img, .mini-card:hover video{ filter:grayscale(0%) brightness(1); transform:scale(1.05); }
 
     .mini-card::after{
       content:'';
@@ -483,6 +483,10 @@
       letter-spacing:0.06em;
       text-transform:uppercase;
       color:rgba(245,245,240,0.7);
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .mini-card-arrow{
@@ -506,6 +510,34 @@
     }
 
     .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+
+    /* ─── QUICK LINKS ROW — writing/coursework samples without a full
+         project page (yet). Sits below the mini-card grid, small and
+         compact. To add another: copy one <a class="quick-link-mini">. */
+    .quick-links-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0.6rem;
+      margin-top:1.25rem;
+    }
+
+    .quick-link-mini{
+      display:inline-flex;
+      align-items:center;
+      gap:0.4rem;
+      padding:0.5rem 1rem;
+      border:1.5px solid var(--ink);
+      border-radius:100px;
+      font-size:0.68rem;
+      font-weight:600;
+      text-decoration:none;
+      color:var(--ink);
+      white-space:nowrap;
+      transition:background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .quick-link-mini:hover{ background:var(--pink); border-color:var(--pink); color:#fff; }
 
     @media(max-width:768px){
       nav{ padding:1rem 1rem; }
@@ -533,7 +565,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      Accessible
+      Turn on Accessibility
     </button>
   </nav>
 
@@ -571,7 +603,7 @@
     </div>
 
     <div class="story">
-      <p>A <strong>foldable cane</strong>, designed and built by hand. The build combined old and new techniques: a hand-turned wooden shaft on the lathe, a machined metal folding mechanism milled and drilled to precise tolerances, and laser-cut links and holding pins to bring it all together.</p>
+      <p>A <strong>foldable cane</strong>, designed and built by hand. The build combined old and new techniques: a hand-turned wooden shaft on the lathe, a machined metal folding mechanism (designed by me) milled and drilled (by me), and water-jet-cut links.</p>
       <p>A 5.8" hole was drilled straight down the center of the hand-turned rod to house the internal folding mechanism — invisible when assembled, essential to how it works. Every joint was tested individually before final assembly: milling the slot, drilling the center bore, lathing both the long and short shaft sections, and shaping the outer wooden shell.</p>
     </div>
 
@@ -642,7 +674,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Poser Chess Set</p>
-            <span class="mini-card-tag">3D Printing · ME 227</span>
+            <span class="mini-card-tag">3D Printing · Transformative Design</span>
           </div>
         </a>
         <a href="pendant.html" class="mini-card">
@@ -650,7 +682,7 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">Graduation Pendant</p>
-            <span class="mini-card-tag">Design · Class of 2026</span>
+            <span class="mini-card-tag">Silver · Metalworking · Design</span>
           </div>
         </a>
         <a href="slipdoor.html" class="mini-card">
@@ -661,14 +693,21 @@
           <span class="mini-card-arrow">↗</span>
           <div class="mini-card-info">
             <p class="mini-card-title">The Slip Door</p>
-            <span class="mini-card-tag">Team Project · Accessibility</span>
+            <span class="mini-card-tag">Team Project · Accessibility · Volkswagen</span>
           </div>
         </a>
+      </div>
+
+      <div class="quick-links-row">
+        <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+        <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+        <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
+        <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
       </div>
     </div>
 
     <div class="back-bottom-wrap">
-      <a class="back-bottom" href="index.html#projects">← Back to Selected Projects</a>
+      <a class="back-bottom" href="index.html#projects">← Back to Main Page</a>
     </div>
 
   </main>

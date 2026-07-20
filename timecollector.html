@@ -564,7 +564,7 @@
 
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
-    <a class="back-link" href="index.html#projects">← Back to Projects</a>
+    <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
       Accessible

@@ -282,6 +282,7 @@
     @media (max-width: 768px) {
       nav { padding: 1rem 1rem; }
       .a11y-toggle { font-size: 0.6rem; padding: 0.4rem 0.7rem; white-space: nowrap; }
+      .a11y-toggle-prefix { display: none; }
       .back-link { font-size: 0.62rem; padding: 0.5rem 0.9rem; white-space: nowrap; }
       .pdf-embed { height: 70vh; }
     }
@@ -300,7 +301,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      Turn on Accessibility
+      <span class="a11y-toggle-prefix">Turn on </span>Accessibility
     </button>
   </nav>
 

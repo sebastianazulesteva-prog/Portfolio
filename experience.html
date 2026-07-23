@@ -296,16 +296,18 @@
     }
 
     .exp-company {
-      font-family: var(--serif);
-      font-size: 1.3rem;
-      letter-spacing: -0.01em;
-      color: var(--text);
+      display: inline-block;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
       text-decoration: none;
-      background-image: linear-gradient(var(--text), var(--text));
+      background-image: linear-gradient(var(--muted), var(--muted));
       background-position: 0 100%;
       background-repeat: no-repeat;
       background-size: 0% 1px;
       transition: background-size 0.3s ease;
+      margin-bottom: 1rem;
     }
 
     .exp-company:hover { background-size: 100% 1px; }
@@ -320,11 +322,10 @@
     }
 
     .exp-role {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 1rem;
+      font-family: var(--serif);
+      font-size: 1.3rem;
+      letter-spacing: -0.01em;
+      color: var(--text);
     }
 
     .exp-bullets {
@@ -378,6 +379,7 @@
     @media (max-width: 768px) {
       nav { padding: 1rem 1rem; }
       .a11y-toggle { font-size: 0.6rem; padding: 0.75rem 0.7rem; white-space: nowrap; }
+      .a11y-toggle-prefix { display: none; }
       .back-link { font-size: 0.62rem; padding: 0.85rem 0.9rem; white-space: nowrap; }
       main { padding: 3rem 1.5rem 5rem; }
       .exp-header { flex-direction: column; gap: 0.25rem; }
@@ -401,7 +403,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Home</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      Turn on Accessibility
+      <span class="a11y-toggle-prefix">Turn on </span>Accessibility
     </button>
   </nav>
 
@@ -429,10 +431,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://www.makernexus.org/" target="_blank" class="exp-company">Maker Nexus</a>
+        <p class="exp-role">Maker on Duty · Stanford, CA</p>
         <span class="exp-date">Jun 2026 — Present</span>
       </div>
-      <p class="exp-role">Maker on Duty · Stanford, CA</p>
+      <a href="https://www.makernexus.org/" target="_blank" class="exp-company">Maker Nexus</a>
       <ul class="exp-bullets">
         <li>Served as on-site technical expert, troubleshooting and supporting members' projects</li>
         <li>Maintained workshop equipment and infrastructure to ensure operational uptime</li>
@@ -442,10 +444,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://exploreintrosems.stanford.edu/opportunities/ouch-it-hurts-comparative-neurobiology-pain" target="_blank" class="exp-company">Stanford University - Comparative Medicine</a>
+        <p class="exp-role">Teaching Assistant, Neurobiology of Pain</p>
         <span class="exp-date">Summer 2026</span>
       </div>
-      <p class="exp-role">Teaching Assistant, Neurobiology of Pain</p>
+      <a href="https://exploreintrosems.stanford.edu/opportunities/ouch-it-hurts-comparative-neurobiology-pain" target="_blank" class="exp-company">Stanford University - Comparative Medicine</a>
       <ul class="exp-bullets">
         <li>Guided students through core curriculum on neurological pathways and pain mechanisms</li>
         <li>Managed administrative and academic logistics for the course</li>
@@ -454,10 +456,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://vhil.stanford.edu/" target="_blank" class="exp-company">Virtual Human Interaction Lab (VHIL)</a>
+        <p class="exp-role">Research Assistant · Stanford University</p>
         <span class="exp-date">Ongoing</span>
       </div>
-      <p class="exp-role">Research Assistant · Stanford University</p>
+      <a href="https://vhil.stanford.edu/" target="_blank" class="exp-company">Virtual Human Interaction Lab (VHIL)</a>
       <ul class="exp-bullets">
         <li>Researched how virtual and augmented reality (VR/AR) shape human behavior, psychological processes, and real-world decision-making</li>
         <li>Supported Virtual Reality Lab demo development and maintenance</li>
@@ -467,10 +469,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://exploretech.ai/" target="_blank" class="exp-company">ExploreTech</a>
+        <p class="exp-role">Strategy & Marketing Intern · AI Mining Start-up</p>
         <span class="exp-date">Jun — Oct 2025</span>
       </div>
-      <p class="exp-role">Strategy & Marketing Intern · AI Mining Start-up</p>
+      <a href="https://exploretech.ai/" target="_blank" class="exp-company">ExploreTech</a>
       <ul class="exp-bullets">
         <li>Self-taught HTML/CSS to overhaul the company website, increasing traffic 52% through unified brand messaging and SEO</li>
         <li>Built core branding infrastructure, including the Brand Style Guide and Communications Playbook</li>
@@ -480,10 +482,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://explore-energy.stanford.edu/" target="_blank" class="exp-company">Stanford Explore Energy</a>
+        <p class="exp-role">Resident Leader · Stanford University</p>
         <span class="exp-date">Sep 2024 — Jun 2026</span>
       </div>
-      <p class="exp-role">Resident Leader · Stanford University</p>
+      <a href="https://explore-energy.stanford.edu/" target="_blank" class="exp-company">Stanford Explore Energy</a>
       <ul class="exp-bullets">
         <li>Co-managed a $60,000+ program budget</li>
         <li>Coordinated off-campus educational tours to industry sites, including the Tesla Gigafactory and NOAA labs</li>
@@ -494,10 +496,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://www.guidewheel.com/" target="_blank" class="exp-company">Guidewheel</a>
+        <p class="exp-role">Go-to-Market Intern · San Francisco, CA</p>
         <span class="exp-date">Jun — Sep 2024</span>
       </div>
-      <p class="exp-role">Go-to-Market Intern · San Francisco, CA</p>
+      <a href="https://www.guidewheel.com/" target="_blank" class="exp-company">Guidewheel</a>
       <ul class="exp-bullets">
         <li>Championed internal process optimization through cross-team interviews and process mapping, streamlining a workflow to ⅓ its original steps</li>
         <li>Supported business-expansion research for a new million-dollar partnership</li>
@@ -507,10 +509,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://opentodebate.org/" target="_blank" class="exp-company">Open to Debate</a>
+        <p class="exp-role">Marketing & Communications Intern · Remote</p>
         <span class="exp-date">Jan — Jun 2024</span>
       </div>
-      <p class="exp-role">Marketing & Communications Intern · Remote</p>
+      <a href="https://opentodebate.org/" target="_blank" class="exp-company">Open to Debate</a>
       <ul class="exp-bullets">
         <li>Grew social media engagement 25% above baseline through SEO-optimized content on X</li>
         <li>Researched and outlined 50+ potential partnership opportunities</li>
@@ -520,10 +522,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://www.stanfordsensa.org/" target="_blank" class="exp-company">Sensa Consulting</a>
+        <p class="exp-role">Consultant · Stanford, CA</p>
         <span class="exp-date">Oct 2023 — Oct 2024</span>
       </div>
-      <p class="exp-role">Consultant · Stanford, CA</p>
+      <a href="https://www.stanfordsensa.org/" target="_blank" class="exp-company">Sensa Consulting</a>
       <ul class="exp-bullets">
         <li>Supported a client's first B2C product launch end-to-end, from ideation through go-to-market strategy</li>
         <li>Conducted in-depth regulatory research on product safety standards</li>
@@ -532,10 +534,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://www.everytown.org/" target="_blank" class="exp-company">Everytown for Gun Safety</a>
+        <p class="exp-role">Community Engagement Intern · Hybrid</p>
         <span class="exp-date">Jul — Sep 2023</span>
       </div>
-      <p class="exp-role">Community Engagement Intern · Hybrid</p>
+      <a href="https://www.everytown.org/" target="_blank" class="exp-company">Everytown for Gun Safety</a>
       <ul class="exp-bullets">
         <li>Advocated for gun-violence prevention at national conferences in New York City and Washington, D.C.</li>
         <li>Performed organizational power-mapping and research on potential partner organizations</li>
@@ -545,10 +547,10 @@
 
     <div class="exp-item">
       <div class="exp-header">
-        <a href="https://mindovermoney.stanford.edu/" target="_blank" class="exp-company">Stanford's Mind Over Money</a>
+        <p class="exp-role">Associate · Stanford, CA</p>
         <span class="exp-date">Feb 2023 — Present</span>
       </div>
-      <p class="exp-role">Associate · Stanford, CA</p>
+      <a href="https://mindovermoney.stanford.edu/" target="_blank" class="exp-company">Stanford's Mind Over Money</a>
       <ul class="exp-bullets">
         <li>Developed and built out residence-hall financial-education programming for the Stanford community</li>
         <li>Served as Teaching Assistant for a Financial Literacy course across two academic terms</li>

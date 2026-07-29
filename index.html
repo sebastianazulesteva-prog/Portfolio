@@ -308,6 +308,26 @@
 
     .nav-links a:hover { color: var(--text); }
 
+    /* Placeholder sitting where the "View in VR" link used to be. The VR
+       version of the site isn't public yet, so this is deliberately plain
+       text — no href, no hover, not clickable. Dimmed a little more than the
+       real nav links so it reads as a note rather than a destination. */
+    .nav-soon {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      cursor: default;
+      opacity: 0;
+      animation: fadeUpDim 0.6s 2.2s forwards;
+    }
+
+    @keyframes fadeUpDim {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 0.6; transform: translateY(0); }
+    }
+
     /* Thin vertical rule separating "Experience" (a whole separate page)
        from the in-page anchor links (About/Projects/Contact). */
     .nav-sep {
@@ -1129,15 +1149,34 @@
     .reveal-delay-2 { transition-delay: 0.24s; }
     .reveal-delay-3 { transition-delay: 0.36s; }
 
+    /* Between phone and full desktop there isn't room for the "coming soon"
+       note beside the four links — it squeezed "Where I've Worked" into a
+       three-line stack. Below ~1200px the note drops to its own line under
+       the links instead. */
+    @media (max-width: 1200px) {
+      .nav-links { flex-wrap: wrap; row-gap: 0.6rem; }
+      .nav-soon { flex-basis: 100%; text-align: center; }
+      /* Keep the toggle on one line — the wider link list would otherwise
+         squeeze "Turn on Accessibility" into a two-line pill. */
+      .a11y-toggle { flex-shrink: 0; white-space: nowrap; }
+    }
+
     @media (max-width: 768px) {
       nav { padding: 1.5rem; flex-wrap: wrap; gap: 1rem; }
       .nav-links {
         order: 3;
         width: 100%;
+        flex-wrap: wrap;
         justify-content: space-between;
-        gap: 0.5rem;
+        /* Tighter column gap so the four real links still share one row once
+           the "coming soon" note below is allowed to wrap; row gap spaces the
+           two lines apart. */
+        gap: 0.9rem 0.35rem;
       }
       .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 1rem 0.25rem; margin: -1rem -0.25rem; }
+      /* Too long to share the row with the four real links (that's what made
+         the nav crowded before), so it drops onto its own centered line. */
+      .nav-soon { flex-basis: 100%; text-align: center; font-size: 0.7rem; letter-spacing: 0.03em; }
       .a11y-toggle { padding: 0.85rem 0.9rem; }
       .a11y-toggle-prefix { display: none; }
       .skills-expand-btn { padding: 0.9rem 0; }
@@ -1191,11 +1230,15 @@
     html.no-hero-anim .nav-logo,
     html.no-hero-anim .nav-links a,
     html.no-hero-anim .a11y-toggle,
+    html.no-hero-anim .nav-soon,
     html.no-hero-anim .hero-scroll,
     html.no-hero-anim .hero-tagline {
       animation: none !important;
       opacity: 1 !important;
     }
+
+    /* Same skip-the-animation treatment, but keep the dimmed resting state. */
+    html.no-hero-anim .nav-soon { opacity: 0.6 !important; }
 
     html.no-hero-anim .hero-photo-wrap {
       animation: none !important;
@@ -1249,6 +1292,7 @@
       <li><a href="#contact">Contact</a></li>
       <li class="nav-sep" aria-hidden="true"></li>
       <li><a href="experience.html">Where I've Worked</a></li>
+      <li class="nav-soon">VR Website Version Coming Soon</li>
     </ul>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>

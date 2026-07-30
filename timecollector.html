@@ -407,6 +407,11 @@
 
     .process-card{
       position:relative;
+      /* Cards in a row stretch to match the tallest one, so shorter images
+         used to sit against the top edge with all the slack below. Centering
+         the grid content splits that slack evenly above and below instead. */
+      display:grid;
+      align-content:center;
       border-radius:6px;
       overflow:hidden;
       border:4px solid var(--brass-dark);
@@ -435,6 +440,48 @@
 
     a.process-tag{ transition:background 0.2s; }
     a.process-tag:hover{ background:var(--highlight-pink); }
+
+    /* Bottom-corner companion to .process-tag, for a card that links out to
+       a document. Same pill, plus the circular arrow from the More Projects
+       cards below — it sits pointing up and swings out to the diagonal on
+       hover (see .mini-card-arrow, which uses the same timing). */
+    .process-link{
+      position:absolute;
+      bottom:0.9rem; left:0.9rem;
+      max-width:calc(100% - 1.8rem);
+      display:inline-flex;
+      align-items:center;
+      gap:0.5rem;
+      background:var(--highlight-gold);
+      border:1.5px solid var(--ink);
+      border-radius:100px;
+      padding:0.3rem 0.35rem 0.3rem 0.9rem;
+      font-size:0.72rem;
+      font-weight:600;
+      color:var(--ink);
+      text-decoration:none;
+      transition:background 0.2s;
+      z-index:2;
+    }
+
+    .process-link:hover{ background:var(--highlight-pink); }
+
+    .process-link-arrow{
+      flex:0 0 auto;
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      background:var(--ink);
+      color:var(--cream-light);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.68rem;
+      transform:rotate(-45deg);
+      transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .process-link:hover .process-link-arrow{ transform:rotate(0deg); }
 
     /* ─── FOOTER NAV ─── */
     .back-bottom-wrap{ text-align:center; margin-top:3rem; }
@@ -607,7 +654,7 @@
 
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
-    <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
+    <a class="back-link" href="index.html#projects">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
       <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
@@ -686,8 +733,9 @@
       </div>
 
       <div class="process-card">
-        <a href="Sebastian_Esteva_TimeCollector_FEA_Analysis.pdf" class="process-tag" target="_blank" rel="noopener">Force Analysis — Also See FEA Analysis</a>
+        <span class="process-tag">Force Analysis</span>
         <img src="images/timecollector-fbd-full.png" alt="Hand-written force analysis calculations for the Time Collector's gear train" width="1758" height="1324" loading="lazy">
+        <a href="Sebastian_Esteva_TimeCollector_FEA_Analysis.pdf" class="process-link" target="_blank" rel="noopener">Also See FEA Analysis <span class="process-link-arrow" aria-hidden="true">↗</span></a>
       </div>
 
     </div>

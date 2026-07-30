@@ -156,6 +156,15 @@
 
     .a11y-toggle.active .a11y-dot{ background:#fff; }
 
+
+    /* The button label reads "Turn on Accessibility" when the mode is off and
+       "Turn off Accessibility" when it's on. Driven purely by the .active
+       class the toggle already carries, so it stays correct on pages loaded
+       with the mode already enabled. */
+    .a11y-word-off { display: none; }
+    .a11y-toggle.active .a11y-word-on { display: none; }
+    .a11y-toggle.active .a11y-word-off { display: inline; }
+
     .a11y-note{
       position:fixed;
       top:5.5rem;
@@ -566,7 +575,7 @@
     <a class="back-link" href="index.html#projects" onclick="if (document.referrer.indexOf(location.origin) === 0) { history.back(); return false; }">← Back to Projects</a>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>
-      <span class="a11y-toggle-prefix">Turn on </span>Accessibility
+      <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
     </button>
   </nav>
 

@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>50 Years of Touch — An Interactive History</title>
+
+<meta name="description" content="An interactive walk through five eras of touchscreen technology. One task — fit the red rectangle into the slot — across D-pads, infrared bezels, early capacitive glass, and modern multi-touch." />
+<meta name="robots" content="noindex, nofollow" />
+<meta name="theme-color" content="#000000" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   PORTRAIT / TOUCH ONLY.
+   Everything is authored for a phone held upright: a 380×650 logical
+   "device" that scales to fit whatever viewport it lands in.
+   ═══════════════════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+:root{
+  --bg:#000;
+  --white:#f7f5f0;
+  --white-soft:rgba(247,245,240,.72);
+  --white-faint:rgba(247,245,240,.42);
+  --line:rgba(247,245,240,.15);
+  --red:#e03131;
+  --red-glow:rgba(224,49,49,.55);
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'Poppins',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --accent:#f7f5f0;        /* set per era by JS */
+}
+
+html{height:100%}
+body{
+  min-height:100%;
+  background:var(--bg);
+  color:var(--white);
+  font-family:var(--sans);
+  font-weight:300;
+  line-height:1.6;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:manipulation;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+
+.screen{
+  position:absolute;inset:0;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 1.5rem) 1.35rem calc(env(safe-area-inset-bottom) + 1.5rem);
+}
+.screen.active{display:flex;animation:fadeUp .45s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+/* ─── card screens: intro / briefing / finale ─── */
+.card{width:100%;max-width:30rem;text-align:center;overflow-y:auto;max-height:100%;padding:.25rem 0}
+.card::-webkit-scrollbar{display:none}
+
+.eyebrow{
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:1.1rem;line-height:1.5;
+}
+.card h1{font-family:var(--serif);font-weight:600;font-size:clamp(1.8rem,8.5vw,2.5rem);line-height:1.14;margin-bottom:1.1rem}
+.card h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.45rem,6.6vw,1.95rem);line-height:1.2;margin-bottom:.95rem}
+.card p{color:var(--white-soft);font-size:.94rem;line-height:1.65;margin:0 auto .9rem;max-width:34ch}
+.card p em{color:var(--white);font-style:normal;font-weight:500}
+
+.cta{
+  margin-top:1.5rem;display:inline-block;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
+  padding:1rem 1.8rem;border:1px solid var(--accent);border-radius:100px;color:var(--accent);
+  transition:background .25s,color .25s,transform .12s;
+}
+.cta:active{transform:scale(.96);background:var(--accent);color:#000}
+
+.footnote{margin-top:1.6rem;font-size:.64rem;color:var(--white-faint);font-family:var(--mono);letter-spacing:.06em;line-height:1.7}
+
+.rail{display:flex;gap:.42rem;justify-content:center;margin-bottom:1.5rem}
+.rail i{width:20px;height:2px;background:var(--line);display:block;border-radius:2px;transition:background .4s}
+.rail i.done{background:var(--white-faint)}
+.rail i.now{background:var(--accent)}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAY SCREEN
+   ═══════════════════════════════════════════════════════════ */
+#play{justify-content:space-between;padding:0}
+
+.hud{
+  flex:0 0 auto;width:100%;
+  display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+  padding:calc(env(safe-area-inset-top) + .6rem) .95rem .5rem;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;
+}
+.hud-era{color:var(--accent);display:flex;align-items:center;gap:.45rem}
+.hud-era .chip{width:13px;height:6px;background:var(--red);border-radius:1px;display:inline-block;flex:0 0 auto}
+.hud button{
+  font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--white-faint);border:1px solid var(--line);border-radius:100px;padding:.42rem .8rem;
+}
+.hud button:active{color:var(--white);border-color:var(--white-soft)}
+
+.stage-wrap{flex:1 1 auto;width:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+
+#device{
+  position:relative;width:380px;height:650px;
+  transform-origin:center center;
+  touch-action:none;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.footbar{
+  flex:0 0 auto;width:100%;min-height:3.1rem;
+  display:flex;align-items:center;justify-content:center;
+  padding:.45rem 1.1rem calc(env(safe-area-inset-bottom) + .8rem);
+  text-align:center;
+}
+#hint{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;line-height:1.6;color:var(--white-faint);max-width:34rem}
+#hint b{color:var(--white-soft);font-weight:500}
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED PLAYFIELD PIECES
+   ═══════════════════════════════════════════════════════════ */
+.block{
+  position:absolute;width:96px;height:36px;margin-left:-48px;margin-top:-18px;
+  background:var(--red);border-radius:3px;z-index:6;
+  box-shadow:0 0 0 1px rgba(0,0,0,.35),0 5px 18px rgba(224,49,49,.28);
+}
+.block::after{content:'';position:absolute;inset:4px;border:1px solid rgba(255,255,255,.28);border-radius:2px}
+.block.smooth{transition:left .12s linear,top .12s linear,transform .12s linear}
+.block.snap{transition:left .3s cubic-bezier(.2,.9,.25,1),top .3s cubic-bezier(.2,.9,.25,1),transform .3s cubic-bezier(.2,.9,.25,1)}
+.block.fitted{box-shadow:0 0 0 1px rgba(255,255,255,.55),0 0 30px 5px var(--red-glow)}
+
+.slot{
+  position:absolute;width:108px;height:46px;margin-left:-54px;margin-top:-23px;
+  border:2px dashed var(--accent);border-radius:5px;opacity:.75;z-index:2;pointer-events:none;
+  transition:opacity .3s,border-color .3s,box-shadow .3s;
+}
+/* the label lives outside the slot so it stays upright at any slot angle */
+.slot-label{
+  position:absolute;transform:translate(-50%,-100%);z-index:3;pointer-events:none;
+  font-family:var(--mono);font-size:.53rem;letter-spacing:.13em;color:var(--accent);
+  white-space:nowrap;opacity:.9;transition:color .3s;
+}
+.slot-label.hit{color:#51cf66}
+.slot.near{opacity:1;box-shadow:0 0 18px rgba(255,255,255,.14) inset}
+.slot.hit{border-style:solid;border-color:#51cf66;box-shadow:0 0 26px rgba(81,207,102,.3) inset}
+
+.bubble{
+  position:absolute;z-index:40;transform:translate(-50%,-124%);
+  background:var(--white);color:#111;
+  font-size:.72rem;font-weight:500;line-height:1.4;
+  padding:.6rem .8rem;border-radius:9px;max-width:190px;text-align:center;
+  box-shadow:0 10px 26px rgba(0,0,0,.5);pointer-events:none;
+  animation:bubblePop .26s cubic-bezier(.2,1.3,.4,1) both;
+}
+.bubble::after{
+  content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
+  border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--white);
+}
+.bubble.out{animation:bubbleOut .3s ease both}
+@keyframes bubblePop{from{opacity:0;transform:translate(-50%,-104%) scale(.85)}to{opacity:1;transform:translate(-50%,-124%) scale(1)}}
+@keyframes bubbleOut{to{opacity:0;transform:translate(-50%,-140%) scale(.95)}}
+
+.banner{
+  position:absolute;left:50%;transform:translateX(-50%);z-index:35;
+  font-family:var(--mono);font-size:.56rem;letter-spacing:.09em;line-height:1.45;text-align:center;
+  padding:.5rem .7rem;border-radius:4px;width:88%;
+}
+.banner.warn{background:#2b1b00;color:#ffc078;border:1px solid #ffc078}
+.banner.err{background:#2b0b0b;color:#ff8787;border:1px solid #ff8787;animation:flashErr .5s steps(1) infinite}
+@keyframes flashErr{50%{background:#4a1010;border-color:#ffc9c9}}
+
+.modal-scrim{
+  position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;padding:22px;
+  animation:fadeUp .22s ease both;
+}
+.modal{
+  width:100%;background:#0e0e0e;border:1px solid var(--line);border-radius:8px;
+  padding:1.3rem 1.15rem 1.15rem;text-align:center;box-shadow:0 22px 50px rgba(0,0,0,.75);
+}
+.modal .mtitle{font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.7rem}
+.modal p{font-size:.82rem;line-height:1.6;color:var(--white-soft);margin-bottom:1.05rem}
+.modal button{
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+  border:1px solid var(--accent);color:var(--accent);border-radius:100px;padding:.62rem 1.25rem;
+}
+.modal button:active{background:var(--accent);color:#000}
+
+/* ═══════════════════════════════════════════════════════════
+   ERA 1 — PRE-TOUCH: CRT ABOVE, PHYSICAL CONSOLE BELOW
+   ═══════════════════════════════════════════════════════════ */
+.crt-shell{
+  position:absolute;left:0;top:0;width:380px;height:422px;
+  background:#141712;border-radius:20px 20px 6px 6px;padding:16px 18px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.crt{
+  position:relative;width:100%;height:100%;
+  background:radial-gradient(ellipse at center,#0d2a10 0%,#061206 70%,#030803 100%);
+  border-radius:14px;overflow:hidden;
+  box-shadow:inset 0 0 50px rgba(0,0,0,.9),inset 0 0 20px rgba(80,255,120,.06);
+}
+.crt::before{
+  content:'';position:absolute;inset:0;z-index:20;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 2px,rgba(0,0,0,.3) 3px,rgba(0,0,0,.3) 4px);
+}
+.crt::after{
+  content:'';position:absolute;inset:0;z-index:21;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 38%,rgba(255,255,255,.05),transparent 60%);
+}
+.crt-label{position:absolute;left:12px;top:10px;z-index:22;font-family:var(--mono);font-size:.53rem;letter-spacing:.15em;color:rgba(126,255,150,.5);pointer-events:none}
+.crt .block{box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 22px rgba(224,49,49,.45)}
+.crt .slot{--accent:#7effa0;border-color:rgba(126,255,160,.85)}
+
+.console{
+  position:absolute;left:0;top:422px;width:380px;height:228px;
+  background:linear-gradient(#20221f,#141513);
+  border-radius:6px 6px 22px 22px;border-top:2px solid rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:space-between;padding:0 22px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+}
+.console .plate{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-family:var(--mono);font-size:.5rem;letter-spacing:.26em;color:rgba(247,245,240,.22);white-space:nowrap}
+.dpad{position:relative;width:114px;height:114px;flex:0 0 auto}
+.dpad button{
+  position:absolute;width:38px;height:38px;
+  background:linear-gradient(#3a3d38,#24261f);border:1px solid rgba(0,0,0,.6);
+  box-shadow:0 3px 0 rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12);
+  color:rgba(247,245,240,.78);display:flex;align-items:center;justify-content:center;font-size:.75rem;
+}
+.dpad button.press{transform:translateY(3px);box-shadow:0 0 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1);background:linear-gradient(#4a4d46,#2c2f27)}
+.dpad .up{left:38px;top:0;border-radius:6px 6px 0 0}
+.dpad .down{left:38px;top:76px;border-radius:0 0 6px 6px}
+.dpad .left{left:0;top:38px;border-radius:6px 0 0 6px}
+.dpad .right{left:76px;top:38px;border-radius:0 6px 6px 0}
+.dpad .hub{position:absolute;left:38px;top:38px;width:38px;height:38px;background:#24261f;border:1px solid rgba(0,0,0,.6)}
+
+.rotate-key{
+  width:122px;height:78px;border-radius:11px;flex:0 0 auto;
+  background:linear-gradient(#b8453c,#7e2b25);border:1px solid rgba(0,0,0,.6);
+  box-shadow:0 6px 0 #4a1714,inset 0 1px 0 rgba(255,255,255,.25);
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:#ffe8e6;line-height:1.5;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  transition:transform .06s,box-shadow .06s;
+}
+.rotate-key.press{transform:translateY(6px);box-shadow:0 0 0 #4a1714,inset 0 1px 0 rgba(255,255,255,.2)}
+
+/* ═══════════════════════════════════════════════════════════
+   ERAS 2 & 3 — INFRARED BEZEL
+   Portrait: the 27 × 14 beam matrix stood on end — 14 columns
+   across, 27 rows down, so the cells stay roughly square.
+   ═══════════════════════════════════════════════════════════ */
+.ir-shell{
+  position:absolute;inset:0;background:linear-gradient(#d9d2c2,#b9b2a2);
+  border-radius:12px;padding:38px 16px 24px 32px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.18),0 16px 44px rgba(0,0,0,.6);
+}
+.ir-shell.era3{background:linear-gradient(#cec7b6,#a8a191)}
+.ir-brand{position:absolute;left:8px;bottom:7px;font-family:var(--mono);font-size:.48rem;letter-spacing:.14em;color:rgba(40,36,28,.55)}
+.ir-screen{
+  position:relative;width:100%;height:100%;background:#07120b;overflow:hidden;
+  box-shadow:inset 0 0 0 2px #2a271f,inset 0 0 40px rgba(0,0,0,.9);
+}
+.ruler{position:absolute;display:flex;font-family:var(--mono);font-size:7px;color:rgba(40,36,28,.65)}
+.ruler.top{left:32px;top:16px;width:332px;height:16px}
+.ruler.left{left:6px;top:38px;width:20px;height:588px;flex-direction:column}
+.tick{flex:1 1 0;display:flex;align-items:center;justify-content:center;position:relative;transition:color .1s}
+.tick.on{color:#0b6b28;font-weight:600}
+.emit{position:absolute;background:#4b463a;border-radius:50%;width:4px;height:4px;transition:background .1s,box-shadow .1s}
+.ruler.top .emit{left:50%;margin-left:-2px;bottom:-6px}
+.ruler.left .emit{top:50%;margin-top:-2px;right:-6px}
+.emit.on{background:#39ff88;box-shadow:0 0 7px 2px rgba(57,255,136,.8)}
+.emit.dusty{background:#6b5a3a;box-shadow:0 0 0 2px rgba(90,74,44,.5)}
+
+.beam{position:absolute;background:rgba(255,60,60,.12);pointer-events:none;z-index:1}
+.beam.v{width:1px;top:0;bottom:0}
+.beam.h{height:1px;left:0;right:0}
+.beam.lit{background:rgba(57,255,136,.5);box-shadow:0 0 5px rgba(57,255,136,.55)}
+
+.ir-touchpt{
+  position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;
+  border:1px solid rgba(57,255,136,.9);border-radius:50%;z-index:9;pointer-events:none;
+  box-shadow:0 0 12px rgba(57,255,136,.35);
+}
+.ir-screen .slot{--accent:#8de0ff;border-color:rgba(141,224,255,.9)}
+
+.dust{
+  position:absolute;width:11px;height:11px;z-index:3;pointer-events:none;border-radius:50%;
+  background:radial-gradient(circle at 40% 40%,rgba(120,104,72,.95),rgba(90,78,52,.25) 70%,transparent);
+}
+
+.bezel-rotate{
+  position:absolute;right:10px;bottom:5px;z-index:30;
+  font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;
+  padding:.45rem .75rem;border-radius:4px;
+  background:#3a3428;color:rgba(247,245,240,.32);border:1px solid rgba(0,0,0,.35);
+  transition:background .3s,color .3s,box-shadow .3s;
+}
+.bezel-rotate.live{
+  background:#f7d774;color:#241f10;box-shadow:0 0 18px rgba(247,215,116,.55);
+  animation:pulseKey 1.4s ease-in-out infinite;
+}
+@keyframes pulseKey{50%{box-shadow:0 0 5px rgba(247,215,116,.25)}}
+
+/* ═══════════════════════════════════════════════════════════
+   ERA 4 — EARLY CAPACITIVE PDA
+   ═══════════════════════════════════════════════════════════ */
+.pda-shell{
+  position:absolute;left:10px;top:6px;width:360px;height:638px;
+  background:linear-gradient(#3f4550,#232830);border-radius:26px;padding:18px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 16px 44px rgba(0,0,0,.6);
+}
+.pda-head{
+  height:24px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:.5rem;letter-spacing:.14em;color:rgba(247,245,240,.42);padding:0 2px;
+}
+.pda-screen{
+  position:relative;width:100%;height:516px;background:#0c2233;border-radius:3px;overflow:hidden;
+  box-shadow:inset 0 0 0 2px #11161d,inset 0 0 34px rgba(0,0,0,.7);
+}
+.pda-screen::after{
+  content:'';position:absolute;inset:0;z-index:22;pointer-events:none;
+  background:linear-gradient(160deg,rgba(120,200,255,.07),transparent 55%);
+}
+.mesh-sparse{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:
+    linear-gradient(to right,rgba(110,190,255,.17) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(110,190,255,.17) 1px,transparent 1px);
+}
+.pda-screen .block{background:#c9302c;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 3px 10px rgba(0,0,0,.5)}
+.pda-screen .slot{--accent:#7fc7ff;border-color:rgba(127,199,255,.85)}
+.pda-foot{height:56px;display:flex;align-items:center;justify-content:space-between;padding:12px 2px 0}
+.pda-btn{
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;padding:.6rem 1rem;border-radius:5px;
+  background:linear-gradient(#5a626e,#3a414b);color:#e8eef5;border:1px solid rgba(0,0,0,.5);
+  box-shadow:0 2px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);
+}
+.pda-btn:active{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,.5)}
+.pda-stylus{font-family:var(--mono);font-size:.48rem;letter-spacing:.11em;color:rgba(247,245,240,.32)}
+.wire-ping{
+  position:absolute;z-index:4;pointer-events:none;
+  background:rgba(120,205,255,.55);box-shadow:0 0 7px rgba(120,205,255,.5);
+  animation:wireFade .35s linear forwards;
+}
+@keyframes wireFade{to{opacity:0}}
+
+/* ═══════════════════════════════════════════════════════════
+   ERA 5 — MODERN GLASS
+   ═══════════════════════════════════════════════════════════ */
+.glass-shell{
+  position:absolute;inset:0;background:#050608;border-radius:30px;padding:10px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),0 24px 70px rgba(0,0,0,.8);
+}
+.glass{
+  position:relative;width:100%;height:100%;overflow:hidden;border-radius:22px;
+  background:radial-gradient(ellipse at 50% 30%,#101725,#05070c 75%);
+}
+.mesh-dense{
+  position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.55;
+  background-image:
+    linear-gradient(to right,rgba(120,190,255,.14) .5px,transparent .5px),
+    linear-gradient(to bottom,rgba(120,190,255,.14) .5px,transparent .5px);
+  background-size:8px 8px;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 45%,#000 35%,transparent 88%);
+  mask-image:radial-gradient(ellipse at 50% 45%,#000 35%,transparent 88%);
+}
+.glass .block{
+  background:linear-gradient(150deg,#ff4d4d,#c92a2a);border-radius:6px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.14),0 8px 28px rgba(224,49,49,.4);
+}
+.glass .slot{--accent:#c7d6ff;border-color:rgba(199,214,255,.8)}
+.touch-glow{
+  position:absolute;width:130px;height:130px;margin:-65px 0 0 -65px;z-index:4;pointer-events:none;border-radius:50%;
+  background:radial-gradient(circle,rgba(120,190,255,.34),rgba(120,190,255,.1) 42%,transparent 68%);
+}
+.touch-glow::after{
+  content:'';position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;
+  border-radius:50%;border:1px solid rgba(190,225,255,.75);
+}
+
+/* ─── finale ─── */
+.finale-stat{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:1.1rem .8rem;max-width:19rem;margin:1.6rem auto 1.2rem;
+}
+.finale-stat div{text-align:center}
+.finale-stat .n{font-family:var(--serif);font-size:1.4rem;color:var(--white)}
+.finale-stat .l{font-family:var(--mono);font-size:.5rem;letter-spacing:.13em;color:var(--white-faint);text-transform:uppercase}
+.mini-links{margin-top:1.8rem;display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap}
+.mini-links a,.mini-links button{
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--white-faint);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;
+}
+.mini-links a:active,.mini-links button:active{color:var(--white);border-color:var(--white-soft)}
+
+/* on a desktop the phone experience is centred and framed */
+@media (min-width:760px){
+  #app{max-width:430px;left:50%;transform:translateX(-50%);box-shadow:0 0 0 1px rgba(247,245,240,.08)}
+  body{background:#050505}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══ OPENING ═══ -->
+  <section class="screen active" id="intro">
+    <div class="card">
+      <div class="eyebrow">Interactive · 5 Eras</div>
+      <h1>Your Mission Across Time</h1>
+      <p>Across 50 years of computer history, your goal is always the same: <em>rotate and fit the red rectangle into the target slot.</em></p>
+      <p>As touchscreen technology evolves from physical buttons to modern multi-touch glass, pay attention to how much easier and more intuitive this simple task becomes.</p>
+      <button class="cta" id="beginBtn">[ Tap to Begin ]</button>
+      <div class="footnote" id="introFoot">Hold your phone upright. Sound off, hands on.</div>
+    </div>
+  </section>
+
+  <!-- ═══ BRIEFING ═══ -->
+  <section class="screen" id="briefing">
+    <div class="card">
+      <div class="rail" id="rail"></div>
+      <div class="eyebrow" id="bEyebrow"></div>
+      <h2 id="bTitle"></h2>
+      <p id="bBody"></p>
+      <button class="cta" id="bStart"></button>
+    </div>
+  </section>
+
+  <!-- ═══ PLAY ═══ -->
+  <section class="screen" id="play">
+    <div class="hud">
+      <div class="hud-era"><span class="chip"></span><span id="hudEra"></span></div>
+      <button id="restartScene">Reset</button>
+    </div>
+    <div class="stage-wrap"><div id="device"></div></div>
+    <div class="footbar"><div id="hint"></div></div>
+  </section>
+
+  <!-- ═══ FINALE ═══ -->
+  <section class="screen" id="finale">
+    <div class="card">
+      <div class="eyebrow">Experience Complete</div>
+      <h1>🎉 Fifty Years, One Rectangle</h1>
+      <p>You have navigated 50 years of touchscreen history — from rigid D-pads and optical light beams to modern multi-touch capacitive glass.</p>
+      <div class="finale-stat">
+        <div><div class="n">1970s</div><div class="l">Buttons only</div></div>
+        <div><div class="n">1983</div><div class="l">Light beams</div></div>
+        <div><div class="n">1990s</div><div class="l">Sparse mesh</div></div>
+        <div><div class="n">2007</div><div class="l">Multi-touch</div></div>
+      </div>
+      <p>The task never changed. Only the distance between your intent and the machine's understanding of it.</p>
+      <div class="mini-links">
+        <button id="replayBtn">Replay</button>
+        <a href="../index.html">Back to portfolio</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CONTENT
+   ═══════════════════════════════════════════════════════════════════════ */
+const ERAS = [
+  {
+    accent:'#7effa0',
+    eyebrow:'Era 1 · Pre-Touch (1965–1970s)',
+    title:'E.A. Johnson, 1965',
+    body:'The first capacitive touch display was built for air traffic control. Yet for decades, computer monitors remained strictly visual — requiring physical buttons for every action.',
+    cta:'[ Start Experience ]',
+    hud:'Era 1 / 5 — Pre-touch',
+    hint:'Nudge the block with the <b>D-pad</b>. Turn it with the <b>Rotate 90°</b> key.'
+  },
+  {
+    accent:'#8de0ff',
+    eyebrow:'Era 2 · Infrared Bezel (1983)',
+    title:'HP-150, 1983',
+    body:'Touch without touch-glass. An optical frame shot an invisible grid of infrared light beams across the screen, calculating coordinates whenever a finger broke a beam.',
+    cta:'[ Test Optical Touch ]',
+    hud:'Era 2 / 5 — IR bezel',
+    hint:'Drag the block. The <b>frame emitters</b> that light up are the entire sensor.'
+  },
+  {
+    accent:'#ffc078',
+    eyebrow:'Era 3 · IR Limitations (Mid-1980s)',
+    title:'Optical Flaws',
+    body:'Dust blocked the bezel sensors, causing erratic tracking — and touching with two fingers broke four light paths at once, creating "phantom coordinates" that confused the system.',
+    cta:'[ Experience the Limitations ]',
+    hud:'Era 3 / 5 — IR limits',
+    hint:'The slot is at 90°. Try twisting the block with <b>two fingers</b>.'
+  },
+  {
+    accent:'#7fc7ff',
+    eyebrow:'Era 4 · Early Conductive Glass (1990s)',
+    title:'PDA Era',
+    body:'Transparent Indium Tin Oxide (ITO) coatings let glass absorb a finger\'s electrical charge. However, early sparse wire grids still struggled with soft hands and required a plastic stylus.',
+    cta:'[ Test Early Capacitive Glass ]',
+    hud:'Era 4 / 5 — Early capacitive',
+    hint:'Drag across the wire mesh, then tap <b>Rotate</b>. Tracking only updates on a wire.'
+  },
+  {
+    accent:'#c7d6ff',
+    eyebrow:'Era 5 · Multi-Touch Matrix (2007–Present)',
+    title:'Modern Capacitive Mesh',
+    body:'An ultra-dense microscopic ITO mesh tracks real-time electrostatic field distortions under your fingertips, enabling seamless, multi-finger gestures.',
+    cta:'[ Experience Multi-Touch ]',
+    hud:'Era 5 / 5 — Modern glass',
+    hint:'Put <b>two fingers</b> on the block and twist it into the slot.'
+  }
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   SHELL
+   ═══════════════════════════════════════════════════════════════════════ */
+const DEV_W = 380, DEV_H = 650;
+const $  = s => document.querySelector(s);
+const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+const rand  = (a,b) => a + Math.random()*(b-a);
+const TOUCH = matchMedia('(hover:none) and (pointer:coarse)').matches;
+
+const device = $('#device');
+const hintEl = $('#hint');
+let scene = null, eraIndex = 0;
+
+const showScreen = id => document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+
+function fitDevice(){
+  const wrap = device.parentElement;
+  const s = Math.min((wrap.clientWidth - 8) / DEV_W, (wrap.clientHeight - 8) / DEV_H);
+  device.style.transform = `scale(${s})`;
+  device.dataset.scale = s;
+}
+addEventListener('resize', fitDevice);
+addEventListener('orientationchange', () => setTimeout(fitDevice, 200));
+
+/* pointer position in device-logical coordinates */
+function devPoint(e){
+  const r = device.getBoundingClientRect();
+  const s = parseFloat(device.dataset.scale) || 1;
+  return { x:(e.clientX - r.left)/s, y:(e.clientY - r.top)/s };
+}
+const angleGap = (a,b) => { const d = Math.abs(a-b) % 180; return d > 90 ? 180 - d : d; };
+
+/* Pointer capture throws if the pointer is no longer active. Never let that
+   abort the rest of a pointerdown handler — capture is a nicety, the state
+   updates around it are not. */
+const capture = (node, id) => { try { node.setPointerCapture(id); } catch(_){} };
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PLAYFIELD — the block + slot pair every era shares
+   ═══════════════════════════════════════════════════════════════════════ */
+function makeField(host, cfg){
+  const slot  = el('div','slot');
+  const label = el('div','slot-label', cfg.slotLabel || `TARGET · ${cfg.slot.rot}°`);
+  const block = el('div','block');
+  host.append(slot, label, block);
+
+  /* park the label just above the slot's rotated bounding box */
+  const rad = cfg.slot.rot * Math.PI/180;
+  const halfH = (108*Math.abs(Math.sin(rad)) + 46*Math.abs(Math.cos(rad)))/2;
+  label.style.left = clamp(cfg.slot.x, 80, (host.clientWidth || DEV_W) - 80) + 'px';
+  label.style.top  = (cfg.slot.y - halfH - 8) + 'px';
+
+  const f = {
+    host, slot, block,
+    bounds: cfg.bounds,
+    posTol: cfg.posTol ?? 24,
+    rotTol: cfg.rotTol ?? 12,
+    target: { ...cfg.slot },
+    state:  { ...cfg.start },
+    done:false,
+    onSolve: cfg.onSolve || (()=>{}),
+
+    draw(){
+      block.style.left = f.state.x + 'px';
+      block.style.top  = f.state.y + 'px';
+      block.style.transform = `rotate(${f.state.rot}deg)`;
+    },
+    set(x, y, rot){
+      if (f.done) return;
+      f.state.x = clamp(x, f.bounds.x0, f.bounds.x1);
+      f.state.y = clamp(y, f.bounds.y0, f.bounds.y1);
+      if (rot != null) f.state.rot = rot;
+      f.draw();
+      f.evaluate();
+    },
+    evaluate(){
+      if (f.done) return;
+      const t = f.target, s = f.state;
+      const dist = Math.hypot(s.x - t.x, s.y - t.y);
+      const gap  = angleGap(s.rot, t.rot);
+      slot.classList.toggle('near', dist < f.posTol*2.2 && gap <= f.rotTol);
+      if (dist <= f.posTol && gap <= f.rotTol) f.solve();
+    },
+    solve(){
+      if (f.done) return;
+      f.done = true;
+      slot.classList.add('hit');
+      label.classList.add('hit');
+      label.textContent = 'FITTED';
+      block.classList.remove('smooth');
+      block.classList.add('snap','fitted');
+      f.state.x = f.target.x; f.state.y = f.target.y;
+      /* settle on the nearest equivalent orientation so it doesn't spin */
+      const t = f.target.rot;
+      f.state.rot = [t-360,t-180,t,t+180,t+360]
+        .reduce((best,c) => Math.abs(c - f.state.rot) < Math.abs(best - f.state.rot) ? c : best, t);
+      f.draw();
+      setTimeout(() => f.onSolve(), 950);
+    }
+  };
+
+  slot.style.left = cfg.slot.x + 'px';
+  slot.style.top  = cfg.slot.y + 'px';
+  slot.style.transform = `rotate(${cfg.slot.rot}deg)`;
+  f.draw();
+  return f;
+}
+
+function bubble(host, x, y, text, life = 2200){
+  const b = el('div','bubble', text);
+  b.style.left = x + 'px'; b.style.top = y + 'px';
+  host.appendChild(b);
+  setTimeout(() => { b.classList.add('out'); setTimeout(()=>b.remove(), 320); }, life);
+  return b;
+}
+function banner(host, text, kind = 'warn', top = 14, life = 2000){
+  const b = el('div','banner ' + kind, text);
+  b.style.top = top + 'px';
+  host.appendChild(b);
+  if (life) setTimeout(() => { b.style.transition='opacity .3s'; b.style.opacity='0'; setTimeout(()=>b.remove(), 320); }, life);
+  return b;
+}
+function modal(host, title, body, btn, onClose){
+  const scrim = el('div','modal-scrim');
+  const box = el('div','modal');
+  box.append(el('div','mtitle', title), el('p', null, body));
+  const b = el('button', null, btn);
+  b.addEventListener('click', () => { scrim.remove(); onClose && onClose(); });
+  box.appendChild(b);
+  scrim.appendChild(box);
+  host.appendChild(scrim);
+  return scrim;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ERA 1 — PRE-TOUCH
+   ═══════════════════════════════════════════════════════════════════════ */
+function sceneOne(done){
+  device.innerHTML = '';
+  const shell = el('div','crt-shell');
+  const crt = el('div','crt');
+  crt.appendChild(el('div','crt-label','TERMINAL · DISPLAY ONLY'));
+  shell.appendChild(crt);
+
+  const consoleEl = el('div','console');
+  consoleEl.appendChild(el('div','plate','MODEL 70 · INPUT CONSOLE'));
+
+  const dpad = el('div','dpad');
+  const mk = (cls, label, dx, dy) => {
+    const b = el('button', cls, label);
+    b.setAttribute('aria-label', cls);
+    b.addEventListener('click', () => step(dx, dy, b));
+    return b;
+  };
+  dpad.append(mk('up','▲',0,-1), mk('down','▼',0,1), mk('left','◀',-1,0), mk('right','▶',1,0), el('div','hub'));
+
+  const rotKey = el('button','rotate-key','ROTATE 90°');
+  consoleEl.append(dpad, rotKey);
+  device.append(shell, consoleEl);
+
+  const field = makeField(crt, {
+    bounds:{ x0:56, y0:62, x1:292, y1:330 },
+    start:{ x:76, y:318, rot:0 },
+    slot:{ x:284, y:110, rot:90 },       /* exactly 8 D-pad steps right, 8 up */
+    slotLabel:'TARGET · 90°',
+    posTol:16, rotTol:10,
+    onSolve: done
+  });
+
+  const STEP = 26;
+  function step(dx, dy, btn){
+    if (field.done) return;
+    if (btn){ btn.classList.add('press'); setTimeout(()=>btn.classList.remove('press'), 110); }
+    field.block.classList.remove('smooth');
+    field.set(field.state.x + dx*STEP, field.state.y + dy*STEP);
+  }
+  function rotate(){
+    if (field.done) return;
+    rotKey.classList.add('press'); setTimeout(()=>rotKey.classList.remove('press'), 130);
+    field.block.classList.add('smooth');
+    field.set(field.state.x, field.state.y, field.state.rot + 90);
+  }
+  rotKey.addEventListener('click', rotate);
+
+  /* touching the glass does nothing — and says so */
+  let lastBubble = 0;
+  crt.addEventListener('pointerdown', e => {
+    if (field.done) return;
+    const now = Date.now();
+    if (now - lastBubble < 700) return;
+    lastBubble = now;
+    const r = crt.getBoundingClientRect();
+    const s = parseFloat(device.dataset.scale) || 1;
+    bubble(crt, clamp((e.clientX-r.left)/s, 100, 244), (e.clientY-r.top)/s,
+      "Nice try! Touchscreens haven't been invented yet. Use the D-pad below.");
+  });
+
+  const onKey = e => {
+    const map = { ArrowUp:['up',0,-1], ArrowDown:['down',0,1], ArrowLeft:['left',-1,0], ArrowRight:['right',1,0] };
+    if (map[e.key]){ e.preventDefault(); const [cls,dx,dy] = map[e.key]; step(dx, dy, dpad.querySelector('.'+cls)); }
+    else if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); rotate(); }
+  };
+  addEventListener('keydown', onKey);
+  return { destroy(){ removeEventListener('keydown', onKey); } };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ERAS 2 & 3 — INFRARED BEZEL
+   ═══════════════════════════════════════════════════════════════════════ */
+const IR_COLS = 14, IR_ROWS = 27;          /* the 27×14 matrix, portrait */
+const IR_PAD = { l:32, r:16, t:38, b:24 };
+
+function buildIRShell(era3){
+  device.innerHTML = '';
+  const shell = el('div','ir-shell' + (era3 ? ' era3' : ''));
+  const screen = el('div','ir-screen');
+  shell.appendChild(screen);
+  shell.appendChild(el('div','ir-brand', era3 ? 'OPTICAL TOUCH · SERVICE DUE' : 'HP-150 · OPTICAL TOUCH'));
+
+  const top = el('div','ruler top'), left = el('div','ruler left');
+  const colTicks = [], rowTicks = [], colEmit = [], rowEmit = [];
+  for (let i = 1; i <= IR_COLS; i++){
+    const t = el('div','tick', String(i)); const e2 = el('div','emit');
+    t.appendChild(e2); top.appendChild(t); colTicks.push(t); colEmit.push(e2);
+  }
+  for (let j = 1; j <= IR_ROWS; j++){
+    const t = el('div','tick', String(j)); const e2 = el('div','emit');
+    t.appendChild(e2); left.appendChild(t); rowTicks.push(t); rowEmit.push(e2);
+  }
+  shell.append(top, left);
+  device.appendChild(shell);
+
+  const SW = DEV_W - IR_PAD.l - IR_PAD.r;
+  const SH = DEV_H - IR_PAD.t - IR_PAD.b;
+  const cellW = SW / IR_COLS, cellH = SH / IR_ROWS;
+
+  const vBeams = [], hBeams = [];
+  for (let i = 0; i < IR_COLS; i++){
+    const b = el('div','beam v'); b.style.left = ((i+0.5)*cellW) + 'px';
+    screen.appendChild(b); vBeams.push(b);
+  }
+  for (let j = 0; j < IR_ROWS; j++){
+    const b = el('div','beam h'); b.style.top = ((j+0.5)*cellH) + 'px';
+    screen.appendChild(b); hBeams.push(b);
+  }
+
+  const api = {
+    shell, screen, cellW, cellH, SW, SH, colTicks, rowTicks, colEmit, rowEmit, vBeams, hBeams,
+    /* device coords → screen coords */
+    toScreen(p){ return { x:p.x - IR_PAD.l, y:p.y - IR_PAD.t }; },
+    /* screen point → centre of its beam cell */
+    snap(x, y){
+      const ci = clamp(Math.round(x/cellW - 0.5), 0, IR_COLS-1);
+      const rj = clamp(Math.round(y/cellH - 0.5), 0, IR_ROWS-1);
+      return { ci, rj, x:(ci+0.5)*cellW, y:(rj+0.5)*cellH };
+    },
+    lightUp(snaps){
+      api.clear();
+      snaps.forEach(({ci,rj}) => {
+        colEmit[ci].classList.add('on'); colTicks[ci].classList.add('on'); vBeams[ci].classList.add('lit');
+        rowEmit[rj].classList.add('on'); rowTicks[rj].classList.add('on'); hBeams[rj].classList.add('lit');
+      });
+    },
+    clear(){
+      colEmit.forEach(e2=>e2.classList.remove('on')); rowEmit.forEach(e2=>e2.classList.remove('on'));
+      colTicks.forEach(t=>t.classList.remove('on')); rowTicks.forEach(t=>t.classList.remove('on'));
+      vBeams.forEach(b=>b.classList.remove('lit')); hBeams.forEach(b=>b.classList.remove('lit'));
+    }
+  };
+  return api;
+}
+
+/* ─── Era 2: clean grid, position only, slot pre-aligned at 0° ─── */
+function sceneTwo(done){
+  const ir = buildIRShell(false);
+  const marks = [];
+
+  const field = makeField(ir.screen, {
+    bounds:{ x0:56, y0:56, x1:ir.SW-56, y1:ir.SH-56 },
+    start:{ x:86, y:470, rot:0 },
+    slot:{ x:236, y:124, rot:0 },
+    slotLabel:'TARGET · 0° — NO ROTATION',
+    posTol:28, rotTol:10,
+    onSolve: done
+  });
+
+  let dragging = false, grabDX = 0, grabDY = 0;
+
+  function showTouch(p){
+    marks.forEach(m => m.remove()); marks.length = 0;
+    const s = ir.snap(p.x, p.y);
+    ir.lightUp([s]);
+    const m = el('div','ir-touchpt');
+    m.style.left = s.x + 'px'; m.style.top = s.y + 'px';
+    ir.screen.appendChild(m); marks.push(m);
+    return s;
+  }
+
+  ir.screen.addEventListener('pointerdown', e => {
+    if (field.done) return;
+    const p = ir.toScreen(devPoint(e));
+    const s = showTouch(p);
+    if (Math.hypot(p.x - field.state.x, p.y - field.state.y) < 80){
+      dragging = true;
+      grabDX = field.state.x - s.x; grabDY = field.state.y - s.y;
+      capture(ir.screen, e.pointerId);
+    }
+  });
+  ir.screen.addEventListener('pointermove', e => {
+    if (field.done) return;
+    const p = ir.toScreen(devPoint(e));
+    if (!dragging) return;
+    const s = showTouch(p);
+    field.block.classList.remove('smooth');
+    field.set(s.x + grabDX, s.y + grabDY);      /* coarse: snapped to the beam matrix */
+  });
+  const end = () => {
+    dragging = false;
+    setTimeout(() => { ir.clear(); marks.forEach(m=>m.remove()); marks.length = 0; }, 240);
+  };
+  ir.screen.addEventListener('pointerup', end);
+  ir.screen.addEventListener('pointercancel', end);
+
+  return { destroy(){} };
+}
+
+/* ─── Era 3: dust stutter → phantom coordinates → button fallback ─── */
+function sceneThree(done){
+  const ir = buildIRShell(true);
+  const marks = [];
+  const dustyCols = [3, 9];
+  const dustyRows = [6, 14, 21];
+
+  dustyCols.forEach(i => {
+    ir.colEmit[i].classList.add('dusty');
+    const d = el('div','dust');
+    d.style.left = (IR_PAD.l + (i+0.5)*ir.cellW - 5) + 'px';
+    d.style.top  = '19px';
+    ir.shell.appendChild(d);
+  });
+  dustyRows.forEach(j => {
+    ir.rowEmit[j].classList.add('dusty');
+    const d = el('div','dust');
+    d.style.left = '11px';
+    d.style.top  = (IR_PAD.t + (j+0.5)*ir.cellH - 5) + 'px';
+    ir.shell.appendChild(d);
+  });
+
+  const field = makeField(ir.screen, {
+    bounds:{ x0:56, y0:62, x1:ir.SW-56, y1:ir.SH-62 },
+    start:{ x:92, y:474, rot:0 },
+    slot:{ x:232, y:136, rot:90 },
+    slotLabel:'TARGET · 90°',
+    posTol:28, rotTol:10,
+    onSolve: done
+  });
+
+  const rotBtn = el('button','bezel-rotate','ROTATE 90°');
+  rotBtn.addEventListener('click', () => {
+    if (!rotBtn.classList.contains('live') || field.done) return;
+    field.block.classList.add('smooth');
+    field.set(field.state.x, field.state.y, field.state.rot + 90);
+  });
+  ir.shell.appendChild(rotBtn);
+
+  let fallbackUnlocked = false;
+  function unlockFallback(){
+    if (fallbackUnlocked) return;
+    fallbackUnlocked = true;
+    rotBtn.classList.add('live');
+    hintEl.innerHTML = 'Single touch only. Tap <b>ROTATE 90°</b> on the frame, then drag through the dust lag.';
+  }
+
+  const pointers = new Map();
+  let dragging = false, grabDX = 0, grabDY = 0;
+  let phantomOn = false, phantomTimer = null, phantomErr = null, dustBanner = null;
+
+  function showTouches(list){
+    marks.forEach(m=>m.remove()); marks.length = 0;
+    const snaps = list.map(p => ir.snap(p.x, p.y));
+    ir.lightUp(snaps);
+    /* two contacts break 4 beams → 4 intersections the controller can't disambiguate */
+    const pts = snaps.length < 2
+      ? snaps.map(s => ({x:s.x,y:s.y}))
+      : [ {x:snaps[0].x,y:snaps[0].y}, {x:snaps[1].x,y:snaps[1].y},
+          {x:snaps[0].x,y:snaps[1].y}, {x:snaps[1].x,y:snaps[0].y} ];
+    pts.forEach(p => {
+      const m = el('div','ir-touchpt');
+      m.style.left = p.x+'px'; m.style.top = p.y+'px';
+      ir.screen.appendChild(m); marks.push(m);
+    });
+    return pts;
+  }
+
+  function startPhantom(pts){
+    if (phantomOn || field.done) return;
+    phantomOn = true;
+    phantomErr = banner(ir.screen, '⚠ PHANTOM COORDINATES DETECTED<br>MULTI-TOUCH UNSUPPORTED', 'err', 12, 0);
+    let k = 0;
+    field.block.classList.remove('smooth');
+    phantomTimer = setInterval(() => {
+      const p = pts[k++ % pts.length];
+      field.set(p.x + rand(-5,5), p.y + rand(-5,5));
+    }, 90);
+    setTimeout(() => {
+      stopPhantom();
+      modal(device, 'Controller fault',
+        'Optical IR grids cannot handle multi-touch — two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
+        'Use the rotate button', unlockFallback);
+    }, 1900);
+  }
+  function stopPhantom(){
+    phantomOn = false;
+    if (phantomTimer){ clearInterval(phantomTimer); phantomTimer = null; }
+    if (phantomErr){ phantomErr.remove(); phantomErr = null; }
+  }
+
+  /* Dust: crossing INTO a clogged emitter line misreports the position and
+     lags tracking briefly. Triggering on entry (not on every sample) keeps a
+     drag along a dusty column from freezing the block outright. */
+  let stutterUntil = 0, lastCell = null;
+  function dustGlitch(s){
+    const now = Date.now();
+    if (now < stutterUntil) return true;                       /* still lagging */
+    const prev = lastCell;
+    lastCell = s;
+    const enteredCol = dustyCols.includes(s.ci) && (!prev || prev.ci !== s.ci);
+    const enteredRow = dustyRows.includes(s.rj) && (!prev || prev.rj !== s.rj);
+    if (!enteredCol && !enteredRow) return false;
+    stutterUntil = now + 220;
+    field.set(s.x + grabDX + (Math.random()<.5?-1:1)*ir.cellW*rand(1.2,2.2),
+              s.y + grabDY + (Math.random()<.5?-1:1)*ir.cellH*rand(1,2));
+    if (!dustBanner || !dustBanner.isConnected){
+      dustBanner = banner(ir.screen, 'DUST OBSTRUCTION: SENSORS MISREADING', 'warn', ir.SH - 44, 1500);
+    }
+    return true;
+  }
+
+  ir.screen.addEventListener('pointerdown', e => {
+    if (field.done) return;
+    const p = ir.toScreen(devPoint(e));
+    pointers.set(e.pointerId, p);
+    const near = Math.hypot(p.x - field.state.x, p.y - field.state.y) < 90;
+
+    if (pointers.size >= 2){
+      dragging = false;
+      startPhantom(showTouches([...pointers.values()].slice(0,2)));
+      return;
+    }
+    showTouches([p]);
+    if (near){
+      const s = ir.snap(p.x, p.y);
+      dragging = true; lastCell = s; stutterUntil = 0;
+      grabDX = field.state.x - s.x; grabDY = field.state.y - s.y;
+      capture(ir.screen, e.pointerId);
+    }
+  });
+
+  ir.screen.addEventListener('pointermove', e => {
+    if (field.done || !pointers.has(e.pointerId)) return;
+    const p = ir.toScreen(devPoint(e));
+    pointers.set(e.pointerId, p);
+    if (phantomOn){ showTouches([...pointers.values()].slice(0,2)); return; }
+    if (!dragging) return;
+    showTouches([p]);
+    const s = ir.snap(p.x, p.y);
+    field.block.classList.remove('smooth');
+    if (dustGlitch(s)) return;
+    field.set(s.x + grabDX, s.y + grabDY);
+  });
+
+  function end(e){
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) stopPhantom();
+    dragging = false;
+    if (pointers.size === 0){
+      setTimeout(() => { ir.clear(); marks.forEach(m=>m.remove()); marks.length = 0; }, 240);
+    }
+  }
+  ir.screen.addEventListener('pointerup', end);
+  ir.screen.addEventListener('pointercancel', end);
+
+  /* never soft-lock: if two fingers are never tried, hand over the fallback anyway */
+  const rescue = setTimeout(() => {
+    if (!fallbackUnlocked && !field.done){
+      banner(ir.screen, 'MULTI-TOUCH UNAVAILABLE — SWITCHING TO BUTTON INPUT', 'warn', 12, 2600);
+      unlockFallback();
+    }
+  }, 20000);
+
+  return { destroy(){ clearTimeout(rescue); stopPhantom(); } };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ERA 4 — EARLY CAPACITIVE PDA
+   ═══════════════════════════════════════════════════════════════════════ */
+function sceneFour(done){
+  device.innerHTML = '';
+  const shell = el('div','pda-shell');
+  const head = el('div','pda-head');
+  head.append(el('div',null,'PALMTOP OS 3.1'), el('div',null,'BATT ▮▮▮'));
+  const screen = el('div','pda-screen');
+  const mesh = el('div','mesh-sparse');
+  screen.appendChild(mesh);
+
+  const foot = el('div','pda-foot');
+  const stylusNote = el('div','pda-stylus','STYLUS · DOCKED');
+  const rotBtn = el('button','pda-btn','ROTATE 90°');
+  foot.append(stylusNote, rotBtn);
+  shell.append(head, screen, foot);
+  device.appendChild(shell);
+
+  const SW = 324, SH = 516;                         /* the PDA screen box */
+  const OFF_X = 10 + 18, OFF_Y = 6 + 18 + 30;       /* shell + padding + header */
+  const COLS = 7, ROWS = 11;
+  const CELL_X = SW/COLS, CELL_Y = SH/ROWS;
+  mesh.style.backgroundSize = `${CELL_X}px ${CELL_Y}px`;
+
+  const field = makeField(screen, {
+    bounds:{ x0:56, y0:54, x1:SW-56, y1:SH-54 },
+    start:{ x:80, y:430, rot:0 },
+    slot:{ x:238, y:112, rot:90 },
+    slotLabel:'TARGET · 90°',
+    posTol:36, rotTol:10,
+    onSolve: done
+  });
+
+  rotBtn.addEventListener('click', () => {
+    if (field.done) return;
+    field.block.classList.add('smooth');
+    field.set(field.state.x, field.state.y, field.state.rot + 90);
+  });
+
+  /* the stylus bit */
+  let inputEnabled = false, scolded = false;
+  modal(device, 'System notice',
+    'Please extract your official plastic stylus to proceed.',
+    'Stylus extracted', () => { inputEnabled = true; });
+
+  let dragging = false, grabDX = 0, grabDY = 0, lastCell = null;
+  const pos = e => { const p = devPoint(e); return { x:p.x - OFF_X, y:p.y - OFF_Y }; };
+
+  function ping(cx, cy){
+    const v = el('div','wire-ping');
+    v.style.cssText = `left:${cx*CELL_X}px;top:0;width:1px;height:100%`;
+    const h = el('div','wire-ping');
+    h.style.cssText = `top:${cy*CELL_Y}px;left:0;height:1px;width:100%`;
+    screen.append(v,h);
+    setTimeout(()=>{ v.remove(); h.remove(); }, 360);
+  }
+
+  screen.addEventListener('pointerdown', e => {
+    if (field.done || !inputEnabled) return;
+    if (!scolded){
+      scolded = true;
+      modal(device, 'Warning',
+        "Finger detected! That is not a stylus… But since nobody wants to carry around a plastic stick, we'll make an exception just this once.",
+        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (TOLERATED)'; });
+      return;
+    }
+    const p = pos(e);
+    if (Math.hypot(p.x - field.state.x, p.y - field.state.y) < 84){
+      dragging = true; lastCell = null;
+      grabDX = field.state.x - p.x; grabDY = field.state.y - p.y;
+      capture(screen, e.pointerId);
+    }
+  });
+
+  screen.addEventListener('pointermove', e => {
+    if (!dragging || field.done) return;
+    const p = pos(e);
+    /* low-density mesh: the position only resolves when a wire is crossed,
+       and it reports the wire, not the finger */
+    const cx = Math.round(p.x / CELL_X), cy = Math.round(p.y / CELL_Y);
+    const key = cx + ':' + cy;
+    if (key === lastCell) return;                 /* dead zone between wires */
+    lastCell = key;
+    ping(cx, cy);
+    field.block.classList.remove('smooth');
+    field.set(cx*CELL_X + grabDX + rand(-3,3), cy*CELL_Y + grabDY + rand(-3,3));
+  });
+
+  const end = () => { dragging = false; };
+  screen.addEventListener('pointerup', end);
+  screen.addEventListener('pointercancel', end);
+
+  return { destroy(){} };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ERA 5 — MODERN MULTI-TOUCH GLASS
+   ═══════════════════════════════════════════════════════════════════════ */
+function sceneFive(done){
+  device.innerHTML = '';
+  const shell = el('div','glass-shell');
+  const glass = el('div','glass');
+  glass.appendChild(el('div','mesh-dense'));
+  shell.appendChild(glass);
+  device.appendChild(shell);
+
+  const SW = DEV_W - 20, SH = DEV_H - 20, OFF = 10;
+
+  const field = makeField(glass, {
+    bounds:{ x0:58, y0:56, x1:SW-58, y1:SH-56 },
+    start:{ x:110, y:500, rot:0 },
+    slot:{ x:238, y:150, rot:34 },
+    slotLabel:'TARGET · 34°',
+    posTol:26, rotTol:9,
+    onSolve(){ cancelAnimationFrame(raf); done(); }
+  });
+
+  const glows = new Map(), pts = new Map();
+  let mode = null, base = null, raf = 0;
+  let vx = 0, vy = 0, lastX = 0, lastY = 0, lastT = 0;
+
+  const pos = e => { const p = devPoint(e); return { x:p.x - OFF, y:p.y - OFF }; };
+  const pairAngle = (a,b) => Math.atan2(b.y-a.y, b.x-a.x) * 180/Math.PI;
+  const mid = (a,b) => ({ x:(a.x+b.x)/2, y:(a.y+b.y)/2 });
+
+  function addGlow(id, p){
+    const g = el('div','touch-glow');
+    g.style.left = p.x+'px'; g.style.top = p.y+'px';
+    glass.appendChild(g); glows.set(id, g);
+  }
+  function moveGlow(id, p){ const g = glows.get(id); if (g){ g.style.left = p.x+'px'; g.style.top = p.y+'px'; } }
+  function dropGlow(id){
+    const g = glows.get(id);
+    if (g){ g.style.transition='opacity .25s'; g.style.opacity='0'; setTimeout(()=>g.remove(),260); glows.delete(id); }
+  }
+
+  glass.addEventListener('pointerdown', e => {
+    if (field.done) return;
+    cancelAnimationFrame(raf);
+    const p = pos(e);
+    pts.set(e.pointerId, p);
+    addGlow(e.pointerId, p);
+
+    const list = [...pts.values()];
+    if (list.length >= 2){
+      const [a,b] = list;
+      base = { ang:pairAngle(a,b), rot:field.state.rot, mid:mid(a,b), x:field.state.x, y:field.state.y };
+      mode = 'rotate';
+    } else if (Math.hypot(p.x-field.state.x, p.y-field.state.y) < 92){
+      base = { x:field.state.x - p.x, y:field.state.y - p.y };
+      mode = 'move';
+      lastX = p.x; lastY = p.y; lastT = performance.now(); vx = vy = 0;
+    }
+    capture(glass, e.pointerId);
+  });
+
+  glass.addEventListener('pointermove', e => {
+    if (field.done || !pts.has(e.pointerId)) return;
+    const p = pos(e);
+    pts.set(e.pointerId, p);
+    moveGlow(e.pointerId, p);
+    if (!mode) return;
+
+    const list = [...pts.values()];
+    if (mode === 'rotate' && list.length >= 2){
+      const [a,b] = list, m = mid(a,b);
+      field.block.classList.remove('smooth');
+      field.set(base.x + (m.x - base.mid.x), base.y + (m.y - base.mid.y),
+                base.rot + (pairAngle(a,b) - base.ang));
+    } else if (mode === 'move'){
+      /* full-resolution tracking: no snapping, sub-pixel positions */
+      field.block.classList.remove('smooth');
+      field.set(p.x + base.x, p.y + base.y);
+      const t = performance.now(), dt = Math.max(t - lastT, 8);
+      vx = (p.x - lastX)/dt * 16; vy = (p.y - lastY)/dt * 16;
+      lastX = p.x; lastY = p.y; lastT = t;
+    }
+  });
+
+  function glide(){
+    vx *= 0.9; vy *= 0.9;
+    if (field.done || (Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2)) return;
+    field.set(field.state.x + vx, field.state.y + vy);
+    raf = requestAnimationFrame(glide);
+  }
+
+  function end(e){
+    pts.delete(e.pointerId);
+    dropGlow(e.pointerId);
+    if (pts.size === 0){
+      if (mode === 'move' && !field.done) raf = requestAnimationFrame(glide);   /* inertia */
+      mode = null;
+    } else if (pts.size === 1 && mode === 'rotate'){
+      const p = [...pts.values()][0];
+      base = { x:field.state.x - p.x, y:field.state.y - p.y };
+      mode = 'move';
+      lastX = p.x; lastY = p.y; lastT = performance.now(); vx = vy = 0;
+    }
+  }
+  glass.addEventListener('pointerup', end);
+  glass.addEventListener('pointercancel', end);
+
+  return { destroy(){ cancelAnimationFrame(raf); } };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FLOW
+   ═══════════════════════════════════════════════════════════════════════ */
+const BUILDERS = [sceneOne, sceneTwo, sceneThree, sceneFour, sceneFive];
+
+function paintRail(){
+  const rail = $('#rail');
+  rail.innerHTML = '';
+  ERAS.forEach((_, i) => {
+    const dot = el('i');
+    if (i < eraIndex) dot.className = 'done';
+    if (i === eraIndex) dot.className = 'now';
+    rail.appendChild(dot);
+  });
+}
+
+function showBriefing(i){
+  eraIndex = i;
+  const e = ERAS[i];
+  document.documentElement.style.setProperty('--accent', e.accent);
+  paintRail();
+  $('#bEyebrow').textContent = e.eyebrow;
+  $('#bTitle').textContent = e.title;
+  $('#bBody').textContent = e.body;
+  $('#bStart').textContent = e.cta;
+  showScreen('briefing');
+}
+
+function startScene(i){
+  if (scene && scene.destroy) scene.destroy();
+  const e = ERAS[i];
+  document.documentElement.style.setProperty('--accent', e.accent);
+  $('#hudEra').textContent = e.hud;
+  hintEl.innerHTML = e.hint;
+  showScreen('play');
+  fitDevice();
+  scene = BUILDERS[i](() => nextEra(i));
+  fitDevice();
+}
+
+function nextEra(i){
+  if (scene && scene.destroy) scene.destroy();
+  scene = null;
+  if (i + 1 < ERAS.length) showBriefing(i + 1);
+  else {
+    document.documentElement.style.setProperty('--accent', '#c7d6ff');
+    showScreen('finale');
+  }
+}
+
+$('#beginBtn').addEventListener('click', () => showBriefing(0));
+$('#bStart').addEventListener('click', () => startScene(eraIndex));
+$('#restartScene').addEventListener('click', () => startScene(eraIndex));
+$('#replayBtn').addEventListener('click', () => { eraIndex = 0; showScreen('intro'); });
+
+if (!TOUCH) $('#introFoot').textContent = 'Built for a phone — open it on mobile for the real thing.';
+
+fitDevice();
+})();
+</script>
+</body>
+</html>

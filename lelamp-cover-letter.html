@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Sebastian Esteva — for Human Computer Lab</title>
+<style>
+  :root{
+    --yellow: #F7B733;
+    --yellow-dark: #D98A1A;
+    --yellow-light: #FBCB6B;
+    --cream-off: #6b6558;
+    --cream-on: #FFF6DC;
+    --space-1: #05030a;
+    --space-2: #0b0716;
+    --text: #ece7f5;
+    --text-dim: #7a7590;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background: var(--space-1);
+    overflow: hidden;
+    cursor: pointer;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  #stage{
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 45% at 18% 85%, rgba(247,183,51,0.05), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 15%, rgba(90,50,160,0.35), transparent 60%),
+      radial-gradient(ellipse 40% 35% at 65% 75%, rgba(30,70,140,0.28), transparent 60%),
+      radial-gradient(ellipse 70% 60% at 30% 30%, rgba(60,20,90,0.3), transparent 65%),
+      linear-gradient(180deg, var(--space-2), var(--space-1) 70%);
+  }
+  .star{
+    position:absolute; border-radius:50%; background:#fff;
+    opacity:0.6; animation: twinkle 4s ease-in-out infinite;
+  }
+  @keyframes twinkle{ 0%,100%{opacity:.15;} 50%{opacity:.85;} }
+
+  /* ---------- Lamp ---------- */
+  #lampWrap{
+    position: fixed; right: 0; bottom: -2vh;
+    width: min(50vw, 720px); height: 104vh;
+    z-index: 5;
+  }
+  #lampSvg{ width:100%; height:100%; display:block; overflow:visible; }
+  .joint{ fill: var(--yellow-dark); }
+  .bone{ fill: var(--yellow); }
+  .foot{ fill: var(--yellow-dark); }
+  #bulbGlow{ transition: opacity .6s ease; opacity: 0; }
+  #bulbCore{ transition: fill 1.4s ease, filter 1.4s ease; }
+  #shadeInner{ transition: fill 1.4s ease; }
+  .lit #bulbGlow{ opacity: 1; }
+
+  /* ---------- Letter ---------- */
+  #letterPanel{
+    position: fixed; top:0; left:0; bottom:0;
+    right: min(50vw, 720px);
+    overflow-y: auto;
+    z-index: 3;
+    padding: 9vh 4vw 20vh 6vw;
+  }
+  #letterPanel::-webkit-scrollbar{ width:0; height:0; }
+  .letter{
+    max-width: 900px;
+    color: var(--text);
+    font-size: 15.5px;
+    line-height: 1.85;
+  }
+  .letter p{ margin: 0 0 1.3em 0; }
+  .letter .sign{ margin-top: 2em; }
+  .letter .name{ color: var(--yellow-light); font-size: 1.05em; }
+  .letter .contact{ color: var(--text-dim); font-size: 0.85em; margin-top: .3em; }
+
+  /* fog + the cone-shaped hole the lamp burns through it */
+  #fogSvg{
+    position: fixed; inset: 0; width:100%; height:100%;
+    z-index: 4; pointer-events: none;
+  }
+  #maskCone{ opacity: 0; transition: opacity 1.1s ease; }
+  #maskCone.on{ opacity: 1; }
+
+  /* the visible glow of the beam itself */
+  #beamSvg{
+    position: fixed; inset: 0; width:100%; height:100%;
+    z-index: 2; pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0; transition: opacity 1.2s ease;
+  }
+  #beamSvg.on{ opacity: 1; }
+
+  /* ---------- Intro prompt ---------- */
+  #hint{
+    position: fixed; inset: 0; z-index: 6;
+    pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 8vw; text-align: center;
+    transition: opacity .8s ease;
+  }
+  #hint p{
+    margin: 0;
+    max-width: 22em;
+    color: var(--yellow-light);
+    font-size: clamp(21px, 3.1vw, 42px);
+    line-height: 1.45;
+    letter-spacing: .01em;
+    text-shadow: 0 0 28px rgba(0,0,0,.85);
+    animation: pulse 2.8s ease-in-out infinite;
+  }
+  #hint em{ font-style: normal; color: var(--cream-on); }
+  @keyframes pulse{ 0%,100%{opacity:.5;} 50%{opacity:1;} }
+  #hint.gone{ opacity: 0; }
+
+  /* ---------- scroll prompt ---------- */
+  #scrollHint{
+    position: fixed; left: 0; right: min(50vw, 720px); bottom: 26px;
+    z-index: 6; pointer-events: none;
+    display: flex; justify-content: center;
+    opacity: 0; transition: opacity .45s ease;
+  }
+  #scrollHint.show{ opacity: 1; }
+  #scrollHint span{
+    font-size: 12.5px; letter-spacing: .05em;
+    color: var(--yellow-light);
+    background: rgba(8,5,16,.74);
+    border: 1px solid rgba(251,203,107,.26);
+    border-radius: 999px; padding: 8px 17px;
+    animation: bob 1.9s ease-in-out infinite;
+  }
+  @keyframes bob{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(4px); } }
+
+  /* ---------- end-of-letter links ---------- */
+  #endLinks{
+    position: fixed; left: 0; right: min(50vw, 720px); bottom: 0;
+    z-index: 7;
+    display: flex; gap: 14px; flex-wrap: wrap;
+    justify-content: center; align-items: center;
+    padding: 30px 4vw 24px;
+    background: linear-gradient(to top, rgba(3,2,9,.97) 45%, rgba(3,2,9,0));
+    opacity: 0; transform: translateY(10px); pointer-events: none;
+    transition: opacity .5s ease, transform .5s ease;
+  }
+  #endLinks.show{ opacity: 1; transform: none; pointer-events: auto; }
+  #endLinks a{
+    font-family: inherit; font-size: 13px; letter-spacing: .02em;
+    text-decoration: none; white-space: nowrap;
+    padding: 10px 18px; border-radius: 999px;
+    color: var(--yellow-light);
+    border: 1px solid rgba(251,203,107,.42);
+    background: rgba(247,183,51,.07);
+    transition: background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  #endLinks a:hover{
+    background: var(--yellow); color: #201503; border-color: var(--yellow);
+  }
+
+  #corner{
+    position: fixed; top: 22px; left: 22px; z-index: 7;
+    color: var(--text-dim); font-size: 11px; letter-spacing: .08em;
+    opacity: .55;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage"></div>
+<div id="corner">HUMAN COMPUTER LAB</div>
+
+<svg id="beamSvg">
+  <defs>
+    <linearGradient id="beamGrad" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"  stop-color="#FFECB0" stop-opacity="0.42"/>
+      <stop offset="22%" stop-color="#FFECB0" stop-opacity="0.20"/>
+      <stop offset="55%" stop-color="#FFECB0" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#FFECB0" stop-opacity="0"/>
+    </linearGradient>
+    <!-- keeps the glow on the letter column so it never washes the starfield -->
+    <linearGradient id="edgeFade" gradientUnits="userSpaceOnUse" spreadMethod="pad">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <mask id="beamClip" maskUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="100%" height="100%" fill="url(#edgeFade)"/>
+    </mask>
+  </defs>
+  <polygon id="beamPoly" fill="url(#beamGrad)" mask="url(#beamClip)"></polygon>
+</svg>
+
+<div id="lampWrap">
+  <svg id="lampSvg" viewBox="0 0 460 820" preserveAspectRatio="xMaxYMax meet">
+    <defs>
+      <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFF6DC" stop-opacity="0.95"/>
+        <stop offset="35%" stop-color="#FFD873" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#FFD873" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="boneShade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FBCB6B"/>
+        <stop offset="100%" stop-color="#E39A22"/>
+      </linearGradient>
+    </defs>
+
+    <!-- foot / base -->
+    <rect class="foot" x="270" y="750" width="180" height="56" rx="14"></rect>
+    <rect class="bone" x="278" y="742" width="164" height="20" rx="10"></rect>
+
+    <g id="shoulder">
+      <g id="upperArm">
+        <rect class="bone" x="0" y="-18" width="270" height="36" rx="18" fill="url(#boneShade)"></rect>
+        <circle class="joint" cx="0" cy="0" r="25"></circle>
+
+        <g id="elbow">
+          <g id="forearm">
+            <rect class="bone" x="0" y="-14" width="220" height="28" rx="14" fill="url(#boneShade)"></rect>
+            <circle class="joint" cx="0" cy="0" r="20"></circle>
+
+            <g id="wrist" transform="translate(220,0)">
+              <polygon id="shadeCone" points="0,-12 84,-56 84,56 0,12" fill="var(--yellow)"></polygon>
+              <ellipse id="shadeRim" cx="84" cy="0" rx="11" ry="56" fill="var(--yellow-dark)"></ellipse>
+              <ellipse id="shadeInner" cx="87" cy="0" rx="7" ry="42" fill="var(--cream-off)"></ellipse>
+              <circle id="bulbGlow" cx="89" cy="0" r="72" fill="url(#glow)"></circle>
+              <circle id="bulbCore" cx="88" cy="0" r="19" fill="#8a8578"></circle>
+              <circle class="joint" cx="0" cy="0" r="15"></circle>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </svg>
+</div>
+
+<div id="letterPanel">
+  <div class="letter">
+    <p>Dear Human Computer Lab Team,</p>
+    <p>Clicking &ldquo;Wake up LeLamp&rdquo; sparked a small burst of joy in an otherwise exhausting application process. So did your entire website. And I have submitted a lot of applications for this fall&hellip;</p>
+    <p>What you are building sits at the exact intersection I have been working toward my entire career. My undergraduate degree is in Biomechanical Engineering at Stanford, yet I&rsquo;m also getting a Master's in Communication. A combination which has confused so many, yet I think I finally have an answer to give all those confused recruiters&mdash; your website and mission. Let me explain.</p>
+    <p>I chose biomechanical engineering because I wanted to understand how the physical world (weights, radiation, ect) impacts the human. The outside world, in.</p>
+    <p>I chose communications because I wanted to understand how humans perceive and understand the world, from the inside out.</p>
+    <p>And by combining those two knowledge bases, work towards building the perfect synchrony between the two.</p>
+    <p>Human-robot interaction, character robots, new ways for people to form attachment to technology &mdash; that is the future of communication. It is also exactly what you are building. That is where I want to live, and that is where the Human Computer Lab stands.</p>
+    <p>Your manifesto hit me in a way I did not expect. The frustration that human-computer interfaces have barely evolved in forty years &mdash; I feel that deeply. Especially with an aging grandfather who can barely use his computer, since it&rsquo;s designed for young minds and eyes.</p>
+    <p>And your focus is on creating chaos, and carving order out of it is how I grew up, as my parents are both artists. They live in the chaos, and find it beautiful. And their artwork gives those who crave order a little window into the chaos, so we can enjoy it. I want to do that, but through technology.</p>
+    <p>I recently won &ldquo;Most Innovative Solution&rdquo; at a d.school hackathon hosted by the Stanford Wu Tsai Human Performance Alliance. It was for a simple concept, which arose from three hours of talking with the end user, a gentleman who had lost arm function after a stroke. And I attribute every bit of that win to trying to understand the human first, and then letting my technical expertise scope and craft a solution.</p>
+    <p>That is the kind of engineer I want to be. Not someone who just wants to get the CAD done, but rather a person who wants to build for people. I am not just a mechanical engineering intern or human psychology communications expert; rather, I am a beautiful combo of both.</p>
+    <p>I really hope how much I want this comes through. I&rsquo;d love to at least chat.</p>
+    <div class="sign">
+      <div class="name">Sebastian Esteva</div>
+      <div class="contact">sesteva@stanford.edu &nbsp;|&nbsp; 510-812-3540 &nbsp;|&nbsp; sesteva.com</div>
+    </div>
+  </div>
+</div>
+
+<svg id="fogSvg">
+  <defs>
+    <filter id="softEdge" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+    <!-- black = light gets through the fog, white = stays dark -->
+    <linearGradient id="coneFalloff" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"  stop-color="#000000"/>
+      <stop offset="30%" stop-color="#0d0d0d"/>
+      <stop offset="58%" stop-color="#6e6e6e"/>
+      <stop offset="82%" stop-color="#c8c8c8"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <mask id="lightMask" maskUnits="userSpaceOnUse">
+      <rect id="maskBase" x="0" y="0" width="100%" height="100%" fill="#fff"/>
+      <g id="maskCone" filter="url(#softEdge)">
+        <polygon id="maskPoly" fill="url(#coneFalloff)"></polygon>
+      </g>
+    </mask>
+  </defs>
+  <rect id="fogRect" x="0" y="0" width="100%" height="100%" fill="#030209" mask="url(#lightMask)"></rect>
+</svg>
+
+<div id="hint">
+  <p>Click anywhere to start reading <em>Sebastian Esteva&rsquo;s</em> cover letter for [Human Computer Lab]</p>
+</div>
+
+<div id="scrollHint"><span>scroll to keep reading &darr;</span></div>
+
+<div id="endLinks">
+  <a href="Sebastian_Esteva_Cover_Letter_Human_Computer_Lab.pdf" download>&darr; &nbsp;Download the full PDF</a>
+  <a href="https://sesteva.com" target="_blank" rel="noopener">Visit sesteva.com &nbsp;&rarr;</a>
+</div>
+
+<script>
+(function(){
+  // ---------- stars ----------
+  var stage = document.getElementById('stage');
+  for(var i=0;i<70;i++){
+    var s = document.createElement('div');
+    s.className='star';
+    var size = Math.random()*2+0.5;
+    s.style.width = size+'px';
+    s.style.height = size+'px';
+    s.style.left = (Math.random()*100)+'%';
+    s.style.top = (Math.random()*100)+'%';
+    s.style.animationDelay = (Math.random()*4)+'s';
+    stage.appendChild(s);
+  }
+
+  // ---------- refs ----------
+  var svg       = document.getElementById('lampSvg');
+  var shoulder  = document.getElementById('shoulder');
+  var elbow     = document.getElementById('elbow');
+  var bulbCore  = document.getElementById('bulbCore');
+  var shadeRim  = document.getElementById('shadeRim');
+  var shadeInner= document.getElementById('shadeInner');
+  var wrap      = document.getElementById('lampWrap');
+  var hint      = document.getElementById('hint');
+  var beamSvg   = document.getElementById('beamSvg');
+  var beamPoly  = document.getElementById('beamPoly');
+  var beamGrad  = document.getElementById('beamGrad');
+  var maskCone  = document.getElementById('maskCone');
+  var maskPoly  = document.getElementById('maskPoly');
+  var coneFall  = document.getElementById('coneFalloff');
+  var fogRect   = document.getElementById('fogRect');
+  var edgeFade  = document.getElementById('edgeFade');
+  var letterPanel = document.getElementById('letterPanel');
+  var scrollHint  = document.getElementById('scrollHint');
+  var endLinks    = document.getElementById('endLinks');
+
+  var VB_W = 460, VB_H = 820;
+  var SHOULDER = {x:395, y:742};
+  var L1 = 270, L2 = 220, SHADE = 82;
+
+  var lit = false;
+  var pointerInside = true;
+
+  var mouseClient = {x: window.innerWidth*0.3, y: window.innerHeight*0.4};
+  var restLocal   = {x: SHOULDER.x-260, y: SHOULDER.y-360};
+  var smooth      = {x: restLocal.x, y: restLocal.y};
+  // smoothed beam aim point, in client px
+  var aim = {x: mouseClient.x, y: mouseClient.y};
+
+  window.addEventListener('mousemove', function(e){
+    pointerInside = true;
+    mouseClient.x = e.clientX; mouseClient.y = e.clientY;
+  }, {passive:true});
+  window.addEventListener('touchmove', function(e){
+    if(e.touches && e.touches[0]){
+      pointerInside = true;
+      mouseClient.x = e.touches[0].clientX;
+      mouseClient.y = e.touches[0].clientY;
+    }
+  }, {passive:true});
+  document.addEventListener('mouseleave', function(){ pointerInside = false; });
+  document.addEventListener('mouseenter', function(){ pointerInside = true; });
+  window.addEventListener('blur',        function(){ pointerInside = false; });
+
+  // fog + beam glow only cover the letter column, never the lamp side
+  function sizeFog(){
+    var lampW = Math.min(window.innerWidth*0.5, 720);
+    var panelW = Math.max(window.innerWidth - lampW, 0);
+    fogRect.setAttribute('width', panelW);
+    // soft 110px falloff at the column's edge instead of a hard seam
+    edgeFade.setAttribute('x1', Math.max(panelW-110, 0));
+    edgeFade.setAttribute('x2', panelW);
+    edgeFade.setAttribute('y1', 0);
+    edgeFade.setAttribute('y2', 0);
+  }
+  sizeFog();
+  window.addEventListener('resize', sizeFog);
+
+  function clientToLocal(cx, cy){
+    var rect = svg.getBoundingClientRect();
+    var scale = Math.min(rect.width/VB_W, rect.height/VB_H);
+    var offsetX = rect.left + (rect.width  - VB_W*scale);
+    var offsetY = rect.top  + (rect.height - VB_H*scale);
+    return { x: (cx-offsetX)/scale, y: (cy-offsetY)/scale };
+  }
+  function localToClient(lx, ly){
+    var rect = svg.getBoundingClientRect();
+    var scale = Math.min(rect.width/VB_W, rect.height/VB_H);
+    var offsetX = rect.left + (rect.width  - VB_W*scale);
+    var offsetY = rect.top  + (rect.height - VB_H*scale);
+    return { x: lx*scale + offsetX, y: ly*scale + offsetY };
+  }
+
+  function solveIK(ox,oy,tx,ty,l1,l2){
+    var dx = tx-ox, dy = ty-oy;
+    var dist = Math.hypot(dx,dy);
+    var maxD = l1+l2-0.5, minD = Math.max(Math.abs(l1-l2)+0.5, (l1+l2)*0.3);
+    dist = Math.min(Math.max(dist,minD),maxD);
+    var angleToTarget = Math.atan2(dy,dx);
+    var a1 = Math.acos((l1*l1+dist*dist-l2*l2)/(2*l1*dist));
+    var a2 = Math.acos((l1*l1+l2*l2-dist*dist)/(2*l1*l2));
+    return {shoulderAngle: angleToTarget+a1, elbowRel: -(Math.PI-a2)};
+  }
+
+  // ---------- the cone, shared by the glow and the fog mask ----------
+  function updateCone(){
+    // apex at the shade's opening, so the light plainly comes from the lamp
+    var r = shadeRim.getBoundingClientRect();
+    var ax = r.left + r.width/2, ay = r.top + r.height/2;
+
+    var dx = aim.x-ax, dy = aim.y-ay;
+    var len = Math.hypot(dx,dy) || 1;
+    var ux = dx/len, uy = dy/len;
+    var px = -uy, py = ux;
+
+    // run the cone well past the cursor so it lights everything in its path
+    var reach = Math.hypot(window.innerWidth, window.innerHeight) * 1.15;
+    var nearHalf = Math.max(r.height*0.6, 40);
+    var farHalf  = nearHalf + Math.tan(0.36) * reach;
+    var tx = ax + ux*reach, ty = ay + uy*reach;
+
+    var pts = (ax+px*nearHalf)+','+(ay+py*nearHalf)+' '+
+              (tx+px*farHalf)+','+(ty+py*farHalf)+' '+
+              (tx-px*farHalf)+','+(ty-py*farHalf)+' '+
+              (ax-px*nearHalf)+','+(ay-py*nearHalf);
+
+    beamPoly.setAttribute('points', pts);
+    maskPoly.setAttribute('points', pts);
+
+    beamGrad.setAttribute('x1', ax); beamGrad.setAttribute('y1', ay);
+    beamGrad.setAttribute('x2', tx); beamGrad.setAttribute('y2', ty);
+    coneFall.setAttribute('x1', ax); coneFall.setAttribute('y1', ay);
+    coneFall.setAttribute('x2', tx); coneFall.setAttribute('y2', ty);
+  }
+
+  // ---------- main loop ----------
+  function frame(){
+    // chase the cursor only while lit; otherwise ease back to the rest pose
+    var following = lit && pointerInside;
+    var targetLocal = following ? clientToLocal(mouseClient.x, mouseClient.y) : restLocal;
+    smooth.x += (targetLocal.x - smooth.x) * 0.032;
+    smooth.y += (targetLocal.y - smooth.y) * 0.032;
+
+    var dx = smooth.x - SHOULDER.x, dy = smooth.y - SHOULDER.y;
+    var dist = Math.max(Math.hypot(dx,dy), 1);
+    var ux = dx/dist, uy = dy/dist;
+    var ik = solveIK(SHOULDER.x, SHOULDER.y,
+                     smooth.x - ux*SHADE, smooth.y - uy*SHADE, L1, L2);
+
+    shoulder.setAttribute('transform',
+      'translate('+SHOULDER.x+','+SHOULDER.y+') rotate('+(ik.shoulderAngle*180/Math.PI)+')');
+    elbow.setAttribute('transform',
+      'translate('+L1+',0) rotate('+(ik.elbowRel*180/Math.PI)+')');
+
+    // aim the cone at the arm's own smoothed target, not the raw cursor, so the
+    // beam axis and the shade can never drift out of alignment
+    aim = localToClient(smooth.x, smooth.y);
+    updateCone();
+    updateChrome();
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- click anywhere to toggle ----------
+  function turnOn(){
+    lit = true;
+    wrap.classList.add('lit');
+    bulbCore.style.fill = '#FFF6DC';
+    bulbCore.style.filter = 'drop-shadow(0 0 14px #FFD873)';
+    shadeInner.setAttribute('fill', 'var(--cream-on)');
+    beamSvg.classList.add('on');
+    maskCone.classList.add('on');
+    hint.classList.add('gone');
+  }
+  function turnOff(){
+    lit = false;
+    wrap.classList.remove('lit');
+    bulbCore.style.fill = '';
+    bulbCore.style.filter = '';
+    shadeInner.setAttribute('fill', 'var(--cream-off)');
+    beamSvg.classList.remove('on');
+    maskCone.classList.remove('on');
+    hint.classList.remove('gone');
+  }
+  document.addEventListener('click', function(){
+    if(lit) turnOff(); else turnOn();
+  });
+  // the footer links are their own thing — never toggle the lamp
+  endLinks.addEventListener('click', function(e){ e.stopPropagation(); });
+
+  // ---------- scrolling the letter ----------
+  // the wheel works wherever the pointer is, not just over the text column
+  window.addEventListener('wheel', function(e){
+    letterPanel.scrollTop += e.deltaY;
+  }, {passive:true});
+
+  function scrollable(){
+    return letterPanel.scrollHeight - letterPanel.clientHeight;
+  }
+  function atEnd(){
+    return letterPanel.scrollTop >= scrollable() - 48;
+  }
+  function updateChrome(){
+    var moreBelow = scrollable() > 24 && !atEnd();
+    var cursorLow = mouseClient.y > window.innerHeight * 0.66;
+    scrollHint.classList.toggle('show', lit && moreBelow && cursorLow);
+    endLinks.classList.toggle('show', lit && atEnd());
+  }
+  letterPanel.addEventListener('scroll', updateChrome, {passive:true});
+  window.addEventListener('resize', updateChrome);
+  updateChrome();
+})();
+</script>
+</body>
+</html>

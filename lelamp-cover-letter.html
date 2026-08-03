@@ -60,7 +60,7 @@
   .letter{
     max-width: 900px;
     color: var(--text);
-    font-size: 15.5px;
+    font-size: 17px;
     line-height: 1.85;
   }
   .letter p{ margin: 0 0 1.3em 0; }
@@ -247,7 +247,7 @@
   </div>
 </div>
 
-<div id="scrollHint"><span>scroll to keep reading &darr;</span></div>
+<div id="scrollHint"><span>scroll, or press &darr;, to keep reading</span></div>
 
 <div id="endLinks">
   <a href="Sebastian_Esteva_Cover_Letter_Human_Computer_Lab.pdf" download>&darr; &nbsp;Download in PDF Form</a>
@@ -530,6 +530,19 @@
   window.addEventListener('wheel', function(e){
     letterPanel.scrollTop += e.deltaY;
   }, {passive:true});
+
+  // arrow/page/space keys work from anywhere, not just when the letter
+  // itself happens to have focus — matches what the on-screen hint promises
+  var KEY_STEP = {ArrowDown:120, ArrowUp:-120, PageDown:400, PageUp:-400, ' ':400};
+  var FOCUSABLE = {A:1, BUTTON:1, INPUT:1, TEXTAREA:1, SELECT:1};
+  window.addEventListener('keydown', function(e){
+    var step = KEY_STEP[e.key];
+    if(step === undefined) return;
+    // don't hijack space/arrows while a link or control has focus
+    if(FOCUSABLE[document.activeElement && document.activeElement.tagName]) return;
+    e.preventDefault();
+    letterPanel.scrollTop += step;
+  });
 
   function atEnd(){ return letterPanel.scrollTop >= maxScroll - 48; }
   function updateChrome(){

@@ -81,7 +81,7 @@
 
   /* ---------- Lamp ---------- */
   #lampWrap{
-    position: fixed; right: 0; bottom: -2vh;
+    position: fixed; right: 1.2vw; bottom: -2vh;
     width: min(50vw, 720px); height: 104vh;
     z-index: 5;
   }
@@ -113,6 +113,12 @@
   #hint em{ font-style: normal; color: var(--cream-on); }
   @keyframes pulse{ 0%,100%{opacity:.5;} 50%{opacity:1;} }
   #hint.gone{ opacity: 0; }
+  #hint p.browserNote{
+    margin-top: 1.1em;
+    font-size: 12px; letter-spacing: .03em;
+    color: var(--text-dim); text-shadow: none;
+    animation: none; opacity: .8;
+  }
 
   /* ---------- scroll prompt ---------- */
   #scrollHint{
@@ -235,7 +241,10 @@
 
 
 <div id="hint">
-  <p>Click anywhere to start reading <em>Sebastian Esteva&rsquo;s</em> cover letter for [Human Computer Lab]</p>
+  <div>
+    <p>Click anywhere to start reading <em>Sebastian Esteva&rsquo;s</em> cover letter for [Human Computer Lab]</p>
+    <p class="browserNote">best viewed in Chrome</p>
+  </div>
 </div>
 
 <div id="scrollHint"><span>scroll to keep reading &darr;</span></div>

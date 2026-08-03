@@ -7,13 +7,13 @@
 
 <meta name="description" content="An interactive walk through five eras of touchscreen technology. One task — fit the red rectangle into the slot — across D-pads, infrared bezels, early capacitive glass, and modern multi-touch." />
 <meta name="robots" content="noindex, nofollow" />
-<meta name="theme-color" content="#000000" />
+<meta name="theme-color" content="#f3efe3" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
@@ -25,24 +25,28 @@
 button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 
 :root{
-  --bg:#000;
-  --white:#f7f5f0;
-  --white-soft:rgba(247,245,240,.72);
-  --white-faint:rgba(247,245,240,.42);
-  --line:rgba(247,245,240,.15);
+  /* wrapper theme — the intro/briefing/finale chrome, HUD, buttons.
+     The in-device eras (CRT, IR bezel, PDA, glass) stay period-dark
+     and are untouched by this palette. */
+  --bg:#f3efe3;
+  --ink:#1c160f;
+  --ink-soft:rgba(28,22,15,.68);
+  --ink-faint:rgba(28,22,15,.42);
+  --line:rgba(28,22,15,.14);
   --red:#e03131;
   --red-glow:rgba(224,49,49,.55);
-  --serif:'Playfair Display',Georgia,serif;
+  --display:'Baloo 2',system-ui,sans-serif;
   --sans:'Poppins',system-ui,sans-serif;
   --mono:'IBM Plex Mono',ui-monospace,monospace;
-  --accent:#f7f5f0;        /* set per era by JS */
+  --accent:#f7f5f0;        /* pastel, era-set — device-overlay UI (slot/modal), unchanged */
+  --accent-bold:#1c160f;   /* saturated, era-set — wrapper UI (eyebrow/cta/rail/hud) */
 }
 
 html{height:100%}
 body{
   min-height:100%;
   background:var(--bg);
-  color:var(--white);
+  color:var(--ink);
   font-family:var(--sans);
   font-weight:300;
   line-height:1.6;
@@ -71,28 +75,31 @@ body{
 .card::-webkit-scrollbar{display:none}
 
 .eyebrow{
-  font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--accent);margin-bottom:1.1rem;line-height:1.5;
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;font-weight:600;
+  color:var(--accent-bold);margin-bottom:1.1rem;line-height:1.5;
 }
-.card h1{font-family:var(--serif);font-weight:600;font-size:clamp(1.8rem,8.5vw,2.5rem);line-height:1.14;margin-bottom:1.1rem}
-.card h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.45rem,6.6vw,1.95rem);line-height:1.2;margin-bottom:.95rem}
-.card p{color:var(--white-soft);font-size:.94rem;line-height:1.65;margin:0 auto .9rem;max-width:34ch}
-.card p em{color:var(--white);font-style:normal;font-weight:500}
+.card h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,9vw,2.7rem);line-height:1.08;letter-spacing:-.01em;margin-bottom:1.1rem}
+.card h2{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,7vw,2.1rem);line-height:1.12;letter-spacing:-.01em;margin-bottom:.95rem}
+.card p{color:var(--ink-soft);font-size:.96rem;line-height:1.65;margin:0 auto .9rem;max-width:34ch}
+.card p em{color:var(--ink);font-style:normal;font-weight:600}
 
 .cta{
   margin-top:1.5rem;display:inline-block;
-  font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;
-  padding:1rem 1.8rem;border:1px solid var(--accent);border-radius:100px;color:var(--accent);
-  transition:background .25s,color .25s,transform .12s;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;
+  padding:1.05rem 2rem;border:none;border-radius:100px;color:#fff;
+  background:var(--accent-bold);
+  box-shadow:0 10px 24px -8px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.16);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
 }
-.cta:active{transform:scale(.96);background:var(--accent);color:#000}
+.cta:active{transform:scale(.94);box-shadow:0 4px 14px -6px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12)}
 
-.footnote{margin-top:1.6rem;font-size:.64rem;color:var(--white-faint);font-family:var(--mono);letter-spacing:.06em;line-height:1.7}
+.footnote{margin-top:1.6rem;font-size:.64rem;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.06em;line-height:1.7}
+.intro-caption{margin-top:.7rem;font-size:.74rem;color:var(--ink-faint);font-style:italic}
 
 .rail{display:flex;gap:.42rem;justify-content:center;margin-bottom:1.5rem}
-.rail i{width:20px;height:2px;background:var(--line);display:block;border-radius:2px;transition:background .4s}
-.rail i.done{background:var(--white-faint)}
-.rail i.now{background:var(--accent)}
+.rail i{width:22px;height:4px;background:var(--line);display:block;border-radius:3px;transition:background .4s}
+.rail i.done{background:var(--ink-faint)}
+.rail i.now{background:var(--accent-bold)}
 
 /* ═══════════════════════════════════════════════════════════
    PLAY SCREEN
@@ -105,13 +112,23 @@ body{
   padding:calc(env(safe-area-inset-top) + .6rem) .95rem .5rem;
   font-family:var(--mono);font-size:.6rem;letter-spacing:.13em;text-transform:uppercase;
 }
-.hud-era{color:var(--accent);display:flex;align-items:center;gap:.45rem}
+.hud-left{display:flex;align-items:center;gap:.7rem}
+.hud-era{color:var(--accent-bold);font-weight:600;display:flex;align-items:center;gap:.45rem}
+
+.back-btn{
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;
+  color:var(--ink-faint);padding:.4rem .2rem;
+}
+.back-btn:active{color:var(--ink)}
+.back-btn.floating{
+  position:absolute;top:calc(env(safe-area-inset-top) + 1rem);left:1.1rem;z-index:5;
+}
 .hud-era .chip{width:13px;height:6px;background:var(--red);border-radius:1px;display:inline-block;flex:0 0 auto}
 .hud button{
-  font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--white-faint);border:1px solid var(--line);border-radius:100px;padding:.42rem .8rem;
+  font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;font-weight:500;
+  color:var(--ink-faint);border:1px solid var(--line);border-radius:100px;padding:.42rem .8rem;
 }
-.hud button:active{color:var(--white);border-color:var(--white-soft)}
+.hud button:active{color:var(--ink);border-color:var(--ink-soft)}
 
 .stage-wrap{flex:1 1 auto;width:100%;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 
@@ -129,8 +146,8 @@ body{
   padding:.45rem 1.1rem calc(env(safe-area-inset-bottom) + .8rem);
   text-align:center;
 }
-#hint{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;line-height:1.6;color:var(--white-faint);max-width:34rem}
-#hint b{color:var(--white-soft);font-weight:500}
+#hint{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;line-height:1.6;color:var(--ink-faint);max-width:34rem}
+#hint b{color:var(--ink-soft);font-weight:600}
 
 /* ═══════════════════════════════════════════════════════════
    SHARED PLAYFIELD PIECES
@@ -143,7 +160,19 @@ body{
 .block::after{content:'';position:absolute;inset:4px;border:1px solid rgba(255,255,255,.28);border-radius:2px}
 .block.smooth{transition:left .12s linear,top .12s linear,transform .12s linear}
 .block.snap{transition:left .3s cubic-bezier(.2,.9,.25,1),top .3s cubic-bezier(.2,.9,.25,1),transform .3s cubic-bezier(.2,.9,.25,1)}
-.block.fitted{box-shadow:0 0 0 1px rgba(255,255,255,.55),0 0 30px 5px var(--red-glow)}
+.block.fitted{animation:fitGlowPulse .6s ease-out both}
+@keyframes fitGlowPulse{
+  0%{box-shadow:0 0 0 1px rgba(255,255,255,.55),0 0 0 0 var(--red-glow)}
+  40%{box-shadow:0 0 0 1px rgba(255,255,255,.85),0 0 46px 14px var(--red-glow)}
+  100%{box-shadow:0 0 0 1px rgba(255,255,255,.55),0 0 30px 5px var(--red-glow)}
+}
+
+.success-ring{
+  position:absolute;left:0;top:0;width:56px;height:56px;
+  border:2px solid #51cf66;border-radius:50%;
+  pointer-events:none;z-index:20;
+}
+.confetti{position:absolute;border-radius:2px;z-index:45;pointer-events:none}
 
 .slot{
   position:absolute;width:108px;height:46px;margin-left:-54px;margin-top:-23px;
@@ -162,7 +191,7 @@ body{
 
 .bubble{
   position:absolute;z-index:40;transform:translate(-50%,-124%);
-  background:var(--white);color:#111;
+  background:#f7f5f0;color:#111;
   font-size:.72rem;font-weight:500;line-height:1.4;
   padding:.6rem .8rem;border-radius:9px;max-width:190px;text-align:center;
   box-shadow:0 10px 26px rgba(0,0,0,.5);pointer-events:none;
@@ -170,7 +199,7 @@ body{
 }
 .bubble::after{
   content:'';position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);
-  border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--white);
+  border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid #f7f5f0;
 }
 .bubble.out{animation:bubbleOut .3s ease both}
 @keyframes bubblePop{from{opacity:0;transform:translate(-50%,-104%) scale(.85)}to{opacity:1;transform:translate(-50%,-124%) scale(1)}}
@@ -191,11 +220,11 @@ body{
   animation:fadeUp .22s ease both;
 }
 .modal{
-  width:100%;background:#0e0e0e;border:1px solid var(--line);border-radius:8px;
+  width:100%;background:#0e0e0e;border:1px solid rgba(247,245,240,.15);border-radius:8px;
   padding:1.3rem 1.15rem 1.15rem;text-align:center;box-shadow:0 22px 50px rgba(0,0,0,.75);
 }
 .modal .mtitle{font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:.7rem}
-.modal p{font-size:.82rem;line-height:1.6;color:var(--white-soft);margin-bottom:1.05rem}
+.modal p{font-size:.82rem;line-height:1.6;color:rgba(247,245,240,.72);margin-bottom:1.05rem}
 .modal button{
   font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
   border:1px solid var(--accent);color:var(--accent);border-radius:100px;padding:.62rem 1.25rem;
@@ -287,15 +316,24 @@ body{
 .emit.on{background:#39ff88;box-shadow:0 0 7px 2px rgba(57,255,136,.8)}
 .emit.dusty{background:#6b5a3a;box-shadow:0 0 0 2px rgba(90,74,44,.5)}
 
+/* beams keep their normal dim color — a broken beam is shown by CUTTING the
+   line at the touch point (see JS lightUp), not by recoloring it. The touch
+   marker below carries the "signal received here" indication instead. */
 .beam{position:absolute;background:rgba(255,60,60,.12);pointer-events:none;z-index:1}
 .beam.v{width:1px;top:0;bottom:0}
 .beam.h{height:1px;left:0;right:0}
-.beam.lit{background:rgba(57,255,136,.5);box-shadow:0 0 5px rgba(57,255,136,.55)}
+/* same red hue, just brighter — marks which specific beam is currently
+   broken without recoloring it (that'd misread as "still passing through") */
+.beam.cut{background:rgba(255,90,70,.65);box-shadow:0 0 3px rgba(255,90,70,.4)}
 
 .ir-touchpt{
   position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;
   border:1px solid rgba(57,255,136,.9);border-radius:50%;z-index:9;pointer-events:none;
   box-shadow:0 0 12px rgba(57,255,136,.35);
+}
+.ir-touchpt::after{
+  content:'';position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;
+  background:#39ff88;border-radius:50%;box-shadow:0 0 8px 2px rgba(57,255,136,.75);
 }
 .ir-screen .slot{--accent:#8de0ff;border-color:rgba(141,224,255,.9)}
 
@@ -400,19 +438,19 @@ body{
   gap:1.1rem .8rem;max-width:19rem;margin:1.6rem auto 1.2rem;
 }
 .finale-stat div{text-align:center}
-.finale-stat .n{font-family:var(--serif);font-size:1.4rem;color:var(--white)}
-.finale-stat .l{font-family:var(--mono);font-size:.5rem;letter-spacing:.13em;color:var(--white-faint);text-transform:uppercase}
+.finale-stat .n{font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--ink)}
+.finale-stat .l{font-family:var(--mono);font-size:.5rem;letter-spacing:.13em;color:var(--ink-faint);text-transform:uppercase}
 .mini-links{margin-top:1.8rem;display:flex;gap:1.2rem;justify-content:center;flex-wrap:wrap}
 .mini-links a,.mini-links button{
-  font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--white-faint);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;
+  color:var(--ink-faint);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:2px;
 }
-.mini-links a:active,.mini-links button:active{color:var(--white);border-color:var(--white-soft)}
+.mini-links a:active,.mini-links button:active{color:var(--ink);border-color:var(--ink-soft)}
 
 /* on a desktop the phone experience is centred and framed */
 @media (min-width:760px){
-  #app{max-width:430px;left:50%;transform:translateX(-50%);box-shadow:0 0 0 1px rgba(247,245,240,.08)}
-  body{background:#050505}
+  #app{max-width:430px;left:50%;transform:translateX(-50%);box-shadow:0 0 0 1px var(--line), 0 40px 100px -30px rgba(0,0,0,.5)}
+  body{background:#e2ddc9}
 }
 </style>
 </head>
@@ -423,17 +461,18 @@ body{
   <!-- ═══ OPENING ═══ -->
   <section class="screen active" id="intro">
     <div class="card">
-      <div class="eyebrow">Interactive · 5 Eras</div>
-      <h1>Your Mission Across Time</h1>
-      <p>Across 50 years of computer history, your goal is always the same: <em>rotate and fit the red rectangle into the target slot.</em></p>
-      <p>As touchscreen technology evolves from physical buttons to modern multi-touch glass, pay attention to how much easier and more intuitive this simple task becomes.</p>
-      <button class="cta" id="beginBtn">[ Tap to Begin ]</button>
+      <h1>The Glass in Your Hand</h1>
+      <p>Look at the piece of glass you're holding right now. You touch it over 2,000 times a day without thinking.</p>
+      <p>Today, every tap feels completely effortless. Yet making a cold sheet of glass respond like a living extension of our fingers took half a century of laser grids, clunky styluses, and trial.</p>
+      <button class="cta" id="beginBtn">[ Touch to Go Back 60 Years to the Start ]</button>
+      <div class="intro-caption">A quick 2-minute journey</div>
       <div class="footnote" id="introFoot">Hold your phone upright. Sound off, hands on.</div>
     </div>
   </section>
 
   <!-- ═══ BRIEFING ═══ -->
   <section class="screen" id="briefing">
+    <button class="back-btn floating" id="briefBack">‹ Back</button>
     <div class="card">
       <div class="rail" id="rail"></div>
       <div class="eyebrow" id="bEyebrow"></div>
@@ -446,7 +485,10 @@ body{
   <!-- ═══ PLAY ═══ -->
   <section class="screen" id="play">
     <div class="hud">
-      <div class="hud-era"><span class="chip"></span><span id="hudEra"></span></div>
+      <div class="hud-left">
+        <button class="back-btn" id="playBack">‹ Back</button>
+        <div class="hud-era"><span class="chip"></span><span id="hudEra"></span></div>
+      </div>
       <button id="restartScene">Reset</button>
     </div>
     <div class="stage-wrap"><div id="device"></div></div>
@@ -485,47 +527,52 @@ body{
 const ERAS = [
   {
     accent:'#7effa0',
-    eyebrow:'Era 1 · Pre-Touch (1965–1970s)',
+    accentBold:'#16a34a',
+    eyebrow:'Pre-Touch (1965–1970s)',
     title:'E.A. Johnson, 1965',
     body:'The first capacitive touch display was built for air traffic control. Yet for decades, computer monitors remained strictly visual — requiring physical buttons for every action.',
     cta:'[ Start Experience ]',
-    hud:'Era 1 / 5 — Pre-touch',
+    hud:'Pre-touch',
     hint:'Nudge the block with the <b>D-pad</b>. Turn it with the <b>Rotate 90°</b> key.'
   },
   {
     accent:'#8de0ff',
-    eyebrow:'Era 2 · Infrared Bezel (1983)',
+    accentBold:'#0284c7',
+    eyebrow:'Infrared Bezel (1983)',
     title:'HP-150, 1983',
     body:'Touch without touch-glass. An optical frame shot an invisible grid of infrared light beams across the screen, calculating coordinates whenever a finger broke a beam.',
     cta:'[ Test Optical Touch ]',
-    hud:'Era 2 / 5 — IR bezel',
+    hud:'Infrared bezel',
     hint:'Drag the block. The <b>frame emitters</b> that light up are the entire sensor.'
   },
   {
     accent:'#ffc078',
-    eyebrow:'Era 3 · IR Limitations (Mid-1980s)',
+    accentBold:'#ea580c',
+    eyebrow:'Infrared Limitations (Mid-1980s)',
     title:'Optical Flaws',
     body:'Dust blocked the bezel sensors, causing erratic tracking — and touching with two fingers broke four light paths at once, creating "phantom coordinates" that confused the system.',
     cta:'[ Experience the Limitations ]',
-    hud:'Era 3 / 5 — IR limits',
+    hud:'Infrared limits',
     hint:'The slot is at 90°. Try twisting the block with <b>two fingers</b>.'
   },
   {
     accent:'#7fc7ff',
-    eyebrow:'Era 4 · Early Conductive Glass (1990s)',
-    title:'PDA Era',
+    accentBold:'#2563eb',
+    eyebrow:'Early Conductive Glass (1990s)',
+    title:'Personal Digital Assistant',
     body:'Transparent Indium Tin Oxide (ITO) coatings let glass absorb a finger\'s electrical charge. However, early sparse wire grids still struggled with soft hands and required a plastic stylus.',
     cta:'[ Test Early Capacitive Glass ]',
-    hud:'Era 4 / 5 — Early capacitive',
+    hud:'Early capacitive',
     hint:'Drag across the wire mesh, then tap <b>Rotate</b>. Tracking only updates on a wire.'
   },
   {
     accent:'#c7d6ff',
-    eyebrow:'Era 5 · Multi-Touch Matrix (2007–Present)',
+    accentBold:'#7c3aed',
+    eyebrow:'Multi-Touch Matrix (2007–Present)',
     title:'Modern Capacitive Mesh',
     body:'An ultra-dense microscopic ITO mesh tracks real-time electrostatic field distortions under your fingertips, enabling seamless, multi-finger gestures.',
     cta:'[ Experience Multi-Touch ]',
-    hud:'Era 5 / 5 — Modern glass',
+    hud:'Modern glass',
     hint:'Put <b>two fingers</b> on the block and twist it into the slot.'
   }
 ];
@@ -628,7 +675,9 @@ function makeField(host, cfg){
       f.state.rot = [t-360,t-180,t,t+180,t+360]
         .reduce((best,c) => Math.abs(c - f.state.rot) < Math.abs(best - f.state.rot) ? c : best, t);
       f.draw();
-      setTimeout(() => f.onSolve(), 950);
+      /* let the snap-into-place transition land (300ms), then celebrate */
+      setTimeout(() => celebrate(host, f.target.x, f.target.y), 300);
+      setTimeout(() => f.onSolve(), 1150);
     }
   };
 
@@ -663,6 +712,55 @@ function modal(host, title, body, btn, onClose){
   scrim.appendChild(box);
   host.appendChild(scrim);
   return scrim;
+}
+
+/* the "fitted" celebration: a couple of sonar rings plus a small confetti
+   burst centred on the slot, fired once the block has snapped into place */
+const CONFETTI_COLORS = ['#51cf66','#ffe066','#e03131','#ffffff'];
+/* Cleanup uses a plain setTimeout matched to the animation's own duration
+   rather than anim.onfinish — once the play screen goes display:none (the
+   scene transitions to the next briefing card), browsers suspend the
+   animation timeline and 'finish' never fires, which would otherwise leak
+   these elements in the DOM forever. */
+function successRing(host, x, y, delay = 0){
+  setTimeout(() => {
+    const ring = el('div','success-ring');
+    ring.style.left = x + 'px'; ring.style.top = y + 'px';
+    host.appendChild(ring);
+    const duration = 700;
+    ring.animate(
+      [{ transform:'translate(-50%,-50%) scale(.4)', opacity:.9 },
+       { transform:'translate(-50%,-50%) scale(2.6)', opacity:0 }],
+      { duration, easing:'cubic-bezier(.15,.6,.3,1)', fill:'forwards' }
+    );
+    setTimeout(() => ring.remove(), duration);
+  }, delay);
+}
+function successBurst(host, x, y, count = 10){
+  for (let i = 0; i < count; i++){
+    const angle = (Math.PI * 2 * i) / count + rand(-.3, .3);
+    const dist = rand(46, 88);
+    const dx = Math.cos(angle) * dist, dy = Math.sin(angle) * dist;
+    const dot = el('div','confetti');
+    const size = rand(5, 9);
+    dot.style.left = x + 'px'; dot.style.top = y + 'px';
+    dot.style.width = size + 'px'; dot.style.height = size + 'px';
+    dot.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    host.appendChild(dot);
+    const duration = 620 + rand(0,150);
+    dot.animate(
+      [{ transform:'translate(-50%,-50%) scale(.4)', opacity:1 },
+       { transform:`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1)`, opacity:1, offset:.55 },
+       { transform:`translate(calc(-50% + ${dx*1.15}px), calc(-50% + ${dy*1.15+16}px)) scale(.5)`, opacity:0 }],
+      { duration, easing:'cubic-bezier(.2,.7,.3,1)', fill:'forwards' }
+    );
+    setTimeout(() => dot.remove(), duration);
+  }
+}
+function celebrate(host, x, y){
+  successRing(host, x, y, 0);
+  successRing(host, x, y, 130);
+  successBurst(host, x, y);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -710,7 +808,8 @@ function sceneOne(done){
   function rotate(){
     if (field.done) return;
     rotKey.classList.add('press'); setTimeout(()=>rotKey.classList.remove('press'), 130);
-    field.block.classList.add('smooth');
+    /* a mechanical button clunks to the new orientation — no easing */
+    field.block.classList.remove('smooth');
     field.set(field.state.x, field.state.y, field.state.rot + 90);
   }
   rotKey.addEventListener('click', rotate);
@@ -787,17 +886,25 @@ function buildIRShell(era3){
       const rj = clamp(Math.round(y/cellH - 0.5), 0, IR_ROWS-1);
       return { ci, rj, x:(ci+0.5)*cellW, y:(rj+0.5)*cellH };
     },
+    /* a broken beam doesn't recolor — it just stops short at the point the
+       finger blocks it. Emitters are on the top/left edges, so a vertical
+       beam is cut to [0, touchY] and a horizontal beam to [0, touchX]; the
+       receiving end (the touch marker, drawn by the caller) is what lights
+       up green, not the beam itself. */
     lightUp(snaps){
       api.clear();
-      snaps.forEach(({ci,rj}) => {
-        colEmit[ci].classList.add('on'); colTicks[ci].classList.add('on'); vBeams[ci].classList.add('lit');
-        rowEmit[rj].classList.add('on'); rowTicks[rj].classList.add('on'); hBeams[rj].classList.add('lit');
+      snaps.forEach(({ci,rj,x,y}) => {
+        colEmit[ci].classList.add('on'); colTicks[ci].classList.add('on');
+        rowEmit[rj].classList.add('on'); rowTicks[rj].classList.add('on');
+        const vb = vBeams[ci]; vb.style.bottom = 'auto'; vb.style.height = y + 'px'; vb.classList.add('cut');
+        const hb = hBeams[rj]; hb.style.right = 'auto'; hb.style.width = x + 'px'; hb.classList.add('cut');
       });
     },
     clear(){
       colEmit.forEach(e2=>e2.classList.remove('on')); rowEmit.forEach(e2=>e2.classList.remove('on'));
       colTicks.forEach(t=>t.classList.remove('on')); rowTicks.forEach(t=>t.classList.remove('on'));
-      vBeams.forEach(b=>b.classList.remove('lit')); hBeams.forEach(b=>b.classList.remove('lit'));
+      vBeams.forEach(b=>{ b.style.bottom=''; b.style.height=''; b.classList.remove('cut'); });
+      hBeams.forEach(b=>{ b.style.right=''; b.style.width=''; b.classList.remove('cut'); });
     }
   };
   return api;
@@ -839,10 +946,16 @@ function sceneTwo(done){
       capture(ir.screen, e.pointerId);
     }
   });
+  /* the 1983 beam matrix doesn't sample continuously — throttle updates so
+     the block visibly lags behind the finger and catches up in steps */
+  let lastSample = 0;
+  const SAMPLE_MS = 90;
   ir.screen.addEventListener('pointermove', e => {
-    if (field.done) return;
+    if (field.done || !dragging) return;
+    const now = performance.now();
+    if (now - lastSample < SAMPLE_MS) return;
+    lastSample = now;
     const p = ir.toScreen(devPoint(e));
-    if (!dragging) return;
     const s = showTouch(p);
     field.block.classList.remove('smooth');
     field.set(s.x + grabDX, s.y + grabDY);      /* coarse: snapped to the beam matrix */
@@ -864,19 +977,26 @@ function sceneThree(done){
   const dustyCols = [3, 9];
   const dustyRows = [6, 14, 21];
 
-  dustyCols.forEach(i => {
-    ir.colEmit[i].classList.add('dusty');
+  /* dust motes float down and settle onto their sensor before it clogs,
+     rather than appearing pre-clogged the instant the scene loads */
+  let dustOrder = 0;
+  function fallingDust(x, y, onLanded){
     const d = el('div','dust');
-    d.style.left = (IR_PAD.l + (i+0.5)*ir.cellW - 5) + 'px';
-    d.style.top  = '19px';
+    d.style.left = x + 'px'; d.style.top = y + 'px'; d.style.opacity = '0';
     ir.shell.appendChild(d);
+    const anim = d.animate(
+      [{ transform:'translateY(-46px) scale(.5)', opacity:0 },
+       { transform:'translateY(4px) scale(1.06)', opacity:1, offset:.75 },
+       { transform:'translateY(0) scale(1)', opacity:1 }],
+      { duration:620, delay: dustOrder++ * 150 + rand(0,90), easing:'cubic-bezier(.22,.61,.36,1)', fill:'both' }
+    );
+    anim.onfinish = onLanded;
+  }
+  dustyCols.forEach(i => {
+    fallingDust(IR_PAD.l + (i+0.5)*ir.cellW - 5, 19, () => ir.colEmit[i].classList.add('dusty'));
   });
   dustyRows.forEach(j => {
-    ir.rowEmit[j].classList.add('dusty');
-    const d = el('div','dust');
-    d.style.left = '11px';
-    d.style.top  = (IR_PAD.t + (j+0.5)*ir.cellH - 5) + 'px';
-    ir.shell.appendChild(d);
+    fallingDust(11, IR_PAD.t + (j+0.5)*ir.cellH - 5, () => ir.rowEmit[j].classList.add('dusty'));
   });
 
   const field = makeField(ir.screen, {
@@ -891,7 +1011,7 @@ function sceneThree(done){
   const rotBtn = el('button','bezel-rotate','ROTATE 90°');
   rotBtn.addEventListener('click', () => {
     if (!rotBtn.classList.contains('live') || field.done) return;
-    field.block.classList.add('smooth');
+    field.block.classList.remove('smooth');
     field.set(field.state.x, field.state.y, field.state.rot + 90);
   });
   ir.shell.appendChild(rotBtn);
@@ -938,7 +1058,7 @@ function sceneThree(done){
     setTimeout(() => {
       stopPhantom();
       modal(device, 'Controller fault',
-        'Optical IR grids cannot handle multi-touch — two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
+        'Optical infrared grids cannot handle multi-touch — two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
         'Use the rotate button', unlockFallback);
     }, 1900);
   }
@@ -983,18 +1103,25 @@ function sceneThree(done){
     showTouches([p]);
     if (near){
       const s = ir.snap(p.x, p.y);
-      dragging = true; lastCell = s; stutterUntil = 0;
+      dragging = true; lastCell = s; stutterUntil = 0; lastSample = 0;
       grabDX = field.state.x - s.x; grabDY = field.state.y - s.y;
       capture(ir.screen, e.pointerId);
     }
   });
 
+  /* same coarse sampling rate as era 2 — the sensor itself is the bottleneck,
+     dust just adds extra misreads on top of it */
+  let lastSample = 0;
+  const SAMPLE_MS = 90;
   ir.screen.addEventListener('pointermove', e => {
     if (field.done || !pointers.has(e.pointerId)) return;
     const p = ir.toScreen(devPoint(e));
     pointers.set(e.pointerId, p);
     if (phantomOn){ showTouches([...pointers.values()].slice(0,2)); return; }
     if (!dragging) return;
+    const now = performance.now();
+    if (now - lastSample < SAMPLE_MS) return;
+    lastSample = now;
     showTouches([p]);
     const s = ir.snap(p.x, p.y);
     field.block.classList.remove('smooth');
@@ -1060,7 +1187,7 @@ function sceneFour(done){
 
   rotBtn.addEventListener('click', () => {
     if (field.done) return;
-    field.block.classList.add('smooth');
+    field.block.classList.remove('smooth');
     field.set(field.state.x, field.state.y, field.state.rot + 90);
   });
 
@@ -1068,7 +1195,7 @@ function sceneFour(done){
   let inputEnabled = false, scolded = false;
   modal(device, 'System notice',
     'Please extract your official plastic stylus to proceed.',
-    'Stylus extracted', () => { inputEnabled = true; });
+    'Continue', () => { inputEnabled = true; });
 
   let dragging = false, grabDX = 0, grabDY = 0, lastCell = null;
   const pos = e => { const p = devPoint(e); return { x:p.x - OFF_X, y:p.y - OFF_Y }; };
@@ -1099,6 +1226,7 @@ function sceneFour(done){
     }
   });
 
+  let pendingUpdate = null;
   screen.addEventListener('pointermove', e => {
     if (!dragging || field.done) return;
     const p = pos(e);
@@ -1109,11 +1237,16 @@ function sceneFour(done){
     if (key === lastCell) return;                 /* dead zone between wires */
     lastCell = key;
     ping(cx, cy);
-    field.block.classList.remove('smooth');
-    field.set(cx*CELL_X + grabDX + rand(-3,3), cy*CELL_Y + grabDY + rand(-3,3));
+    /* a slow CPU polling loop, not a live position — the block catches up
+       a beat after the wire actually gets crossed */
+    if (pendingUpdate) clearTimeout(pendingUpdate);
+    pendingUpdate = setTimeout(() => {
+      field.block.classList.remove('smooth');
+      field.set(cx*CELL_X + grabDX + rand(-3,3), cy*CELL_Y + grabDY + rand(-3,3));
+    }, 70);
   });
 
-  const end = () => { dragging = false; };
+  const end = () => { dragging = false; if (pendingUpdate){ clearTimeout(pendingUpdate); pendingUpdate = null; } };
   screen.addEventListener('pointerup', end);
   screen.addEventListener('pointercancel', end);
 
@@ -1250,6 +1383,7 @@ function showBriefing(i){
   eraIndex = i;
   const e = ERAS[i];
   document.documentElement.style.setProperty('--accent', e.accent);
+  document.documentElement.style.setProperty('--accent-bold', e.accentBold);
   paintRail();
   $('#bEyebrow').textContent = e.eyebrow;
   $('#bTitle').textContent = e.title;
@@ -1262,6 +1396,7 @@ function startScene(i){
   if (scene && scene.destroy) scene.destroy();
   const e = ERAS[i];
   document.documentElement.style.setProperty('--accent', e.accent);
+  document.documentElement.style.setProperty('--accent-bold', e.accentBold);
   $('#hudEra').textContent = e.hud;
   hintEl.innerHTML = e.hint;
   showScreen('play');
@@ -1276,6 +1411,7 @@ function nextEra(i){
   if (i + 1 < ERAS.length) showBriefing(i + 1);
   else {
     document.documentElement.style.setProperty('--accent', '#c7d6ff');
+    document.documentElement.style.setProperty('--accent-bold', '#7c3aed');
     showScreen('finale');
   }
 }
@@ -1284,6 +1420,15 @@ $('#beginBtn').addEventListener('click', () => showBriefing(0));
 $('#bStart').addEventListener('click', () => startScene(eraIndex));
 $('#restartScene').addEventListener('click', () => startScene(eraIndex));
 $('#replayBtn').addEventListener('click', () => { eraIndex = 0; showScreen('intro'); });
+$('#briefBack').addEventListener('click', () => {
+  if (eraIndex > 0) showBriefing(eraIndex - 1);
+  else showScreen('intro');
+});
+$('#playBack').addEventListener('click', () => {
+  if (scene && scene.destroy) scene.destroy();
+  scene = null;
+  showBriefing(eraIndex);
+});
 
 if (!TOUCH) $('#introFoot').textContent = 'Built for a phone — open it on mobile for the real thing.';
 

@@ -319,12 +319,16 @@ body{
 /* beams keep their normal dim color — a broken beam is shown by CUTTING the
    line at the touch point (see JS lightUp), not by recoloring it. The touch
    marker below carries the "signal received here" indication instead. */
-.beam{position:absolute;background:rgba(255,60,60,.12);pointer-events:none;z-index:1}
+.beam{position:absolute;background:rgba(255,70,60,.34);pointer-events:none;z-index:1}
 .beam.v{width:1px;top:0;bottom:0}
 .beam.h{height:1px;left:0;right:0}
-/* same red hue, just brighter — marks which specific beam is currently
-   broken without recoloring it (that'd misread as "still passing through") */
-.beam.cut{background:rgba(255,90,70,.65);box-shadow:0 0 3px rgba(255,90,70,.4)}
+/* same red hue, just brighter and thicker — marks which specific beam is
+   currently broken without recoloring it (that'd misread as "still passing
+   through"). Against a brighter ambient grid, the cut reads as a clear
+   present-then-absent break instead of disappearing into the noise. */
+.beam.cut{background:rgba(255,110,80,.95);box-shadow:0 0 6px rgba(255,110,80,.6)}
+.beam.v.cut{width:2px;margin-left:-0.5px}
+.beam.h.cut{height:2px;margin-top:-0.5px}
 
 .ir-touchpt{
   position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;

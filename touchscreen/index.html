@@ -488,6 +488,33 @@ body{
   content:'';position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;
   border-radius:50%;border:1px solid rgba(190,225,255,.75);
 }
+/* a charge reading being taken, over and over, for as long as skin is on
+   the glass — the repeating outward ring is the "measuring" tell */
+.touch-glow::before{
+  content:'';position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;
+  border-radius:50%;border:1px solid rgba(150,215,255,.6);
+  animation:chargePulse 1.5s ease-out infinite;
+}
+@keyframes chargePulse{
+  from{transform:scale(.5);opacity:.85}
+  to{transform:scale(3.4);opacity:0}
+}
+/* The sensing layer: a brighter copy of the SAME grid, revealed only in a
+   small radius around each contact. It is inset:0 with an identical
+   background-size, so its lines register exactly with .mesh-dense and the
+   effect reads as the existing grid lighting up where it detects charge —
+   not as a separate blob drawn over the top. Unlike .mesh-dense it has no
+   edge fade, so the grid shows up even in corners where it's normally
+   invisible: it was always there, the finger just reveals it. */
+.mesh-charge{
+  position:absolute;inset:0;z-index:3;pointer-events:none;
+  background-image:
+    linear-gradient(to right,rgba(150,215,255,.8) .5px,transparent .5px),
+    linear-gradient(to bottom,rgba(150,215,255,.8) .5px,transparent .5px);
+  background-size:8px 8px;
+  -webkit-mask-image:radial-gradient(circle 72px at var(--cx,50%) var(--cy,50%),#000,rgba(0,0,0,.5) 45%,transparent 78%);
+  mask-image:radial-gradient(circle 72px at var(--cx,50%) var(--cy,50%),#000,rgba(0,0,0,.5) 45%,transparent 78%);
+}
 
 /* ─── finale ─── */
 .finale-stat{
@@ -620,10 +647,10 @@ const ERAS = [
   {
     accent:'#c7d6ff',
     accentBold:'#7c3aed',
-    eyebrow:'Multi-Touch Matrix (2007–Present)',
-    title:'Modern Capacitive Mesh',
-    body:'An ultra-dense microscopic ITO mesh tracks real-time electrostatic field distortions under your fingertips, enabling seamless, multi-finger gestures.',
-    cta:'[ Experience Multi-Touch ]',
+    eyebrow:'Multi-Touch (2007–Present)',
+    title:'The Grid Under the Glass',
+    body:'An invisible grid under the glass senses the tiny electrical charge in your skin. It tracks multiple fingers at once—making swipes, pinches, and twists feel like second nature.',
+    cta:'[ Feel Multi-Touch ]',
     hud:'Modern glass'
   }
 ];
@@ -1418,7 +1445,7 @@ function sceneFive(done){
     onSolve(){ cancelAnimationFrame(raf); done(); }
   });
 
-  const glows = new Map(), pts = new Map();
+  const glows = new Map(), charges = new Map(), pts = new Map();
   let mode = null, base = null, raf = 0;
   let vx = 0, vy = 0, lastX = 0, lastY = 0, lastT = 0;
 
@@ -1426,15 +1453,27 @@ function sceneFive(done){
   const pairAngle = (a,b) => Math.atan2(b.y-a.y, b.x-a.x) * 180/Math.PI;
   const mid = (a,b) => ({ x:(a.x+b.x)/2, y:(a.y+b.y)/2 });
 
+  const fade = node => {
+    node.style.transition = 'opacity .25s'; node.style.opacity = '0';
+    setTimeout(() => node.remove(), 260);
+  };
   function addGlow(id, p){
     const g = el('div','touch-glow');
     g.style.left = p.x+'px'; g.style.top = p.y+'px';
     glass.appendChild(g); glows.set(id, g);
+    /* the grid itself lights up wherever it picks the charge up */
+    const c = el('div','mesh-charge');
+    c.style.setProperty('--cx', p.x+'px'); c.style.setProperty('--cy', p.y+'px');
+    glass.appendChild(c); charges.set(id, c);
   }
-  function moveGlow(id, p){ const g = glows.get(id); if (g){ g.style.left = p.x+'px'; g.style.top = p.y+'px'; } }
+  function moveGlow(id, p){
+    const g = glows.get(id); if (g){ g.style.left = p.x+'px'; g.style.top = p.y+'px'; }
+    const c = charges.get(id);
+    if (c){ c.style.setProperty('--cx', p.x+'px'); c.style.setProperty('--cy', p.y+'px'); }
+  }
   function dropGlow(id){
-    const g = glows.get(id);
-    if (g){ g.style.transition='opacity .25s'; g.style.opacity='0'; setTimeout(()=>g.remove(),260); glows.delete(id); }
+    const g = glows.get(id); if (g){ fade(g); glows.delete(id); }
+    const c = charges.get(id); if (c){ fade(c); charges.delete(id); }
   }
 
   glass.addEventListener('pointerdown', e => {

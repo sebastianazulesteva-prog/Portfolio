@@ -857,6 +857,7 @@ function buildIRShell(era3){
 
   const api = {
     shell, screen, cellW, cellH, SW, SH, colTicks, rowTicks, colEmit, rowEmit, vBeams, hBeams,
+    clogY: {}, clogX: {},        /* ci→y / rj→x for beams permanently blocked by dust */
     /* device coords → screen coords */
     toScreen(p){ return { x:p.x - IR_PAD.l, y:p.y - IR_PAD.t }; },
     /* screen point → centre of its beam cell */
@@ -865,26 +866,38 @@ function buildIRShell(era3){
       const rj = clamp(Math.round(y/cellH - 0.5), 0, IR_ROWS-1);
       return { ci, rj, x:(ci+0.5)*cellW, y:(rj+0.5)*cellH };
     },
+    /* a dust clump physically sits on the beam and blocks it exactly like a
+       finger would — permanently, until something clears it. Applied right
+       away (not just cosmetically drawn over the line) so the beam is
+       genuinely shorter, matching where the clump landed. */
+    setColClog(i, y){ api.clogY[i] = y; vBeams[i].style.top = y + 'px'; },
+    setRowClog(j, x){ api.clogX[j] = x; hBeams[j].style.left = x + 'px'; },
     /* a broken beam doesn't recolor — it just stops short at the point the
        finger blocks it. The light travels from the bottom/right edges
        toward the receivers on the top/left rulers, so a vertical beam is
        cut to [touchY, bottom] and a horizontal beam to [touchX, right] —
        the segment nearer the receiver disappears, which is why it's the
-       receiver (the ruler tick + the touch marker) that lights up green. */
+       receiver (the ruler tick + the touch marker) that lights up green.
+       If that same beam also has a dust clog, whichever obstruction sits
+       closer to the source (the larger coordinate) is the one that
+       actually stops the light — the finger can't reach past dust that's
+       already blocking it further down the line. */
     lightUp(snaps){
       api.clear();
       snaps.forEach(({ci,rj,x,y}) => {
         colEmit[ci].classList.add('on'); colTicks[ci].classList.add('on');
         rowEmit[rj].classList.add('on'); rowTicks[rj].classList.add('on');
-        const vb = vBeams[ci]; vb.style.top = y + 'px'; vb.classList.add('cut');
-        const hb = hBeams[rj]; hb.style.left = x + 'px'; hb.classList.add('cut');
+        const cutY = api.clogY[ci] !== undefined ? Math.max(y, api.clogY[ci]) : y;
+        const cutX = api.clogX[rj] !== undefined ? Math.max(x, api.clogX[rj]) : x;
+        const vb = vBeams[ci]; vb.style.top = cutY + 'px'; vb.classList.add('cut');
+        const hb = hBeams[rj]; hb.style.left = cutX + 'px'; hb.classList.add('cut');
       });
     },
     clear(){
       colEmit.forEach(e2=>e2.classList.remove('on')); rowEmit.forEach(e2=>e2.classList.remove('on'));
       colTicks.forEach(t=>t.classList.remove('on')); rowTicks.forEach(t=>t.classList.remove('on'));
-      vBeams.forEach(b=>{ b.style.top=''; b.classList.remove('cut'); });
-      hBeams.forEach(b=>{ b.style.left=''; b.classList.remove('cut'); });
+      vBeams.forEach((b,i)=>{ b.style.top = api.clogY[i] !== undefined ? api.clogY[i]+'px' : ''; b.classList.remove('cut'); });
+      hBeams.forEach((b,j)=>{ b.style.left = api.clogX[j] !== undefined ? api.clogX[j]+'px' : ''; b.classList.remove('cut'); });
     }
   };
   return api;
@@ -977,13 +990,16 @@ function sceneThree(done){
   }
   dustyCols.forEach(i => {
     const x = IR_PAD.l + (i+0.5)*ir.cellW;
+    const clogY = ir.SH * rand(.3,.62);
     fallingDust(ir.shell, x - 5, 19, 'dust', () => ir.colEmit[i].classList.add('dusty'));
-    fallingDust(ir.screen, x, ir.SH * rand(.3,.62), 'dust clog');
+    /* the beam only actually goes dark once the clump visibly lands on it */
+    fallingDust(ir.screen, x, clogY, 'dust clog', () => ir.setColClog(i, clogY));
   });
   dustyRows.forEach(j => {
     const y = IR_PAD.t + (j+0.5)*ir.cellH;
+    const clogX = ir.SW * rand(.3,.62);
     fallingDust(ir.shell, 11, y - 5, 'dust', () => ir.rowEmit[j].classList.add('dusty'));
-    fallingDust(ir.screen, ir.SW * rand(.3,.62), y, 'dust clog');
+    fallingDust(ir.screen, clogX, y, 'dust clog', () => ir.setRowClog(j, clogX));
   });
   /* plain grime, scattered across the whole screen — atmosphere only */
   for (let k = 0; k < 16; k++){

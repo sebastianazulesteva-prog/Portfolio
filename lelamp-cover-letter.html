@@ -289,8 +289,16 @@
   var L1 = 270, L2 = 220, SHADE = 82;
   var RIM = 84;                 // shade rim offset inside the wrist group
   var HALF_ANGLE = 0.34;        // cone half-angle, radians
-  var STAMPS = 22;              // soft circles stamped along the beam
-  var ERASE = 0.92;             // per-stamp erase; they accumulate to a full hole
+  // layered cone passes: wide+soft underneath, narrow+solid on top — three
+  // straight-edged trapezoids feather the edge without a blur filter, and
+  // without the "circles" artifact that radial-gradient stamps produced
+  // near the apex (a stamp's own curvature dominated there, since its
+  // radius doesn't taper to a point the way a true cone does).
+  var CONE_LAYERS = [
+    {nearMul:1.55, angMul:1.32, alpha:0.30},
+    {nearMul:1.18, angMul:1.13, alpha:0.46},
+    {nearMul:1.00, angMul:1.00, alpha:0.95}
+  ];
 
   var lit = false;
   var pointerInside = true;
@@ -419,24 +427,25 @@
 
     if(litAmount <= 0.001) return;
 
-    // Punch the cone out by stamping soft circles along the beam. Cheap
-    // radial gradients instead of a blur filter, and it feathers the cone
-    // laterally as well as along its length.
+    // Punch a true cone: a straight-edged trapezoid from the shade out to
+    // the screen edge, apex-anchored so it actually converges to a point
+    // rather than a stamp's own curvature bulging near the start.
+    var px = -uy, py = ux;
+    var tx = ax + ux*reach, ty = ay + uy*reach;
     vctx.globalCompositeOperation = 'destination-out';
-    for(var i=0;i<STAMPS;i++){
-      var t  = i/(STAMPS-1);
-      var d  = t*reach;
-      var cx = ax + ux*d, cy = ay + uy*d;
-      var r  = nearHalf + Math.tan(HALF_ANGLE)*d;
-      var a  = litAmount * ERASE * Math.pow(1-t, 1.4);
-      if(a <= 0.002) continue;
-      // solid core out to 65%, then feathered — same curve index.html uses
-      var g = vctx.createRadialGradient(cx,cy,0,cx,cy,r);
-      g.addColorStop(0,    'rgba(0,0,0,'+a+')');
-      g.addColorStop(0.65, 'rgba(0,0,0,'+a+')');
-      g.addColorStop(1,    'rgba(0,0,0,0)');
-      vctx.fillStyle = g;
-      vctx.beginPath(); vctx.arc(cx,cy,r,0,6.2832); vctx.fill();
+    for(var i=0;i<CONE_LAYERS.length;i++){
+      var layer = CONE_LAYERS[i];
+      var nh = nearHalf * layer.nearMul;
+      var fh = nh + Math.tan(HALF_ANGLE*layer.angMul) * reach;
+      var a  = litAmount * layer.alpha;
+      vctx.beginPath();
+      vctx.moveTo(ax+px*nh, ay+py*nh);
+      vctx.lineTo(tx+px*fh, ty+py*fh);
+      vctx.lineTo(tx-px*fh, ty-py*fh);
+      vctx.lineTo(ax-px*nh, ay-py*nh);
+      vctx.closePath();
+      vctx.fillStyle = 'rgba(0,0,0,'+a+')';
+      vctx.fill();
     }
 
     // a warm haze near the shade so the beam itself reads as light

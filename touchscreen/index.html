@@ -197,6 +197,15 @@ body{
 .banner.warn{background:#2b1b00;color:#ffc078;border:1px solid #ffc078}
 .banner.err{background:#2b0b0b;color:#ff8787;border:1px solid #ff8787;animation:flashErr .5s steps(1) infinite}
 @keyframes flashErr{50%{background:#4a1010;border-color:#ffc9c9}}
+.banner.center{top:50%;transform:translate(-50%,-50%)}
+
+/* a nozzle-like bar sweeping the screen while the vacuum runs */
+.vacuum-sweep{
+  position:absolute;top:0;bottom:0;left:-16%;width:16%;z-index:3;pointer-events:none;
+  background:linear-gradient(to right,transparent,rgba(210,230,238,.4) 50%,transparent);
+  animation:vacSweep 1.1s ease-in-out infinite;
+}
+@keyframes vacSweep{0%,100%{left:-16%}50%{left:100%}}
 
 .modal-scrim{
   position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);
@@ -1128,11 +1137,16 @@ function sceneThree(done){
     vacuuming = true;
     vacBtn.disabled = true;
     if (ghostTimer){ clearTimeout(ghostTimer); ghostTimer = null; }
+    const sweep = el('div','vacuum-sweep');
+    ir.screen.appendChild(sweep);
     const vb = banner(ir.screen, 'VACUUMING…', 'warn', 12, 0);
+    vb.classList.add('center');
     setTimeout(() => { vb.innerHTML = 'STILL VACUUMING… SORTA ANNOYING, RIGHT?'; }, 1600);
     setTimeout(() => { vb.innerHTML = 'ALMOST DONE…'; }, 3400);
     setTimeout(() => {
       vb.innerHTML = 'DONE.';
+      sweep.style.transition = 'opacity .3s'; sweep.style.opacity = '0';
+      setTimeout(() => sweep.remove(), 320);
       dustCleared = true; vacuuming = false;
       dustyCols.forEach(i => { ir.colEmit[i].classList.remove('dusty'); ir.clearColClog(i); });
       dustyRows.forEach(j => { ir.rowEmit[j].classList.remove('dusty'); ir.clearRowClog(j); });

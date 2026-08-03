@@ -1513,8 +1513,8 @@ function sceneFive(done){
   const field = makeField(glass, {
     bounds:{ x0:58, y0:56, x1:SW-58, y1:SH-56 },
     start:{ x:110, y:500, rot:0 },
-    slot:{ x:238, y:150, rot:34 },
-    slotLabel:'TARGET · 34°',
+    slot:{ x:238, y:150, rot:90 },
+    slotLabel:'TARGET · 90°',
     posTol:26, rotTol:9,
     onSolve(){ cancelAnimationFrame(raf); done(); }
   });

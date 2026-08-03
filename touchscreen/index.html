@@ -179,13 +179,6 @@ body{
   border:2px dashed var(--accent);border-radius:5px;opacity:.75;z-index:2;pointer-events:none;
   transition:opacity .3s,border-color .3s,box-shadow .3s;
 }
-/* the label lives outside the slot so it stays upright at any slot angle */
-.slot-label{
-  position:absolute;transform:translate(-50%,-100%);z-index:3;pointer-events:none;
-  font-family:var(--mono);font-size:.53rem;letter-spacing:.13em;color:var(--accent);
-  white-space:nowrap;opacity:.9;transition:color .3s;
-}
-.slot-label.hit{color:#51cf66}
 .slot.near{opacity:1;box-shadow:0 0 18px rgba(255,255,255,.14) inset}
 .slot.hit{border-style:solid;border-color:#51cf66;box-shadow:0 0 26px rgba(81,207,102,.3) inset}
 
@@ -320,15 +313,15 @@ body{
    line at the touch point (see JS lightUp), not by recoloring it. The touch
    marker below carries the "signal received here" indication instead. */
 .beam{position:absolute;background:rgba(255,70,60,.34);pointer-events:none;z-index:1}
-.beam.v{width:1px;top:0;bottom:0}
-.beam.h{height:1px;left:0;right:0}
+.beam.v{width:1.5px;margin-left:-.25px;top:0;bottom:0}
+.beam.h{height:1.5px;margin-top:-.25px;left:0;right:0}
 /* same red hue, just brighter and thicker — marks which specific beam is
    currently broken without recoloring it (that'd misread as "still passing
    through"). Against a brighter ambient grid, the cut reads as a clear
    present-then-absent break instead of disappearing into the noise. */
 .beam.cut{background:rgba(255,110,80,.95);box-shadow:0 0 6px rgba(255,110,80,.6)}
-.beam.v.cut{width:2px;margin-left:-0.5px}
-.beam.h.cut{height:2px;margin-top:-0.5px}
+.beam.v.cut{width:2.5px;margin-left:-.75px}
+.beam.h.cut{height:2.5px;margin-top:-.75px}
 
 .ir-touchpt{
   position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;
@@ -624,15 +617,8 @@ const capture = (node, id) => { try { node.setPointerCapture(id); } catch(_){} }
    ═══════════════════════════════════════════════════════════════════════ */
 function makeField(host, cfg){
   const slot  = el('div','slot');
-  const label = el('div','slot-label', cfg.slotLabel || `TARGET · ${cfg.slot.rot}°`);
   const block = el('div','block');
-  host.append(slot, label, block);
-
-  /* park the label just above the slot's rotated bounding box */
-  const rad = cfg.slot.rot * Math.PI/180;
-  const halfH = (108*Math.abs(Math.sin(rad)) + 46*Math.abs(Math.cos(rad)))/2;
-  label.style.left = clamp(cfg.slot.x, 80, (host.clientWidth || DEV_W) - 80) + 'px';
-  label.style.top  = (cfg.slot.y - halfH - 8) + 'px';
+  host.append(slot, block);
 
   const f = {
     host, slot, block,
@@ -669,8 +655,6 @@ function makeField(host, cfg){
       if (f.done) return;
       f.done = true;
       slot.classList.add('hit');
-      label.classList.add('hit');
-      label.textContent = 'FITTED';
       block.classList.remove('smooth');
       block.classList.add('snap','fitted');
       f.state.x = f.target.x; f.state.y = f.target.y;
@@ -843,7 +827,7 @@ function sceneOne(done){
 /* ═══════════════════════════════════════════════════════════════════════
    ERAS 2 & 3 — INFRARED BEZEL
    ═══════════════════════════════════════════════════════════════════════ */
-const IR_COLS = 14, IR_ROWS = 27;          /* the 27×14 matrix, portrait */
+const IR_COLS = 12, IR_ROWS = 25;          /* sparser matrix, more breathing room between beams */
 const IR_PAD = { l:32, r:16, t:38, b:24 };
 
 function buildIRShell(era3){

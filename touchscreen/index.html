@@ -546,8 +546,8 @@ body{
   <section class="screen active" id="intro">
     <div class="card">
       <h1>The Glass in Your Hand</h1>
-      <p>Look at the piece of glass you're holding right now. You touch it over 2,000 times a day without thinking.</p>
-      <p>Today, every tap feels completely effortless. Yet making a cold sheet of glass respond like a living extension of our fingers took half a century of laser grids, clunky styluses, and trial.</p>
+      <p>Look at the piece of glass you're holding right now. Studies show you touch it over 2,000 times a day, but do you know its history and how it works?</p>
+      <p>Today, every tap feels completely effortless. Yet allowing your fingers to reach into the digital world took half a century of development.</p>
       <button class="cta" id="beginBtn">[ Touch to Go Back 60 Years to the Start ]</button>
       <div class="intro-caption">A quick 2-minute journey</div>
       <div class="footnote" id="introFoot">Hold your phone upright. Sound off, hands on.</div>
@@ -622,7 +622,7 @@ const ERAS = [
     accentBold:'#0284c7',
     eyebrow:'Infrared Bezel (1983)',
     title:'HP-150, 1983',
-    body:'Touch without touch-glass. An optical frame shot an invisible grid of infrared light beams across the screen, calculating coordinates whenever a finger broke a beam.',
+    body:'HP released one of the first commercial touchscreen computers, but with very different technology than is used today. An optical frame shot an invisible grid of infrared light beams across the screen, calculating coordinates whenever a finger broke a beam.',
     cta:'[ Test Optical Touch ]',
     hud:'Infrared bezel'
   },
@@ -631,7 +631,7 @@ const ERAS = [
     accentBold:'#ea580c',
     eyebrow:'Infrared Limitations (Mid-1980s)',
     title:'Optical Flaws',
-    body:'Dust blocked the bezel sensors, causing erratic tracking — and touching with two fingers broke four light paths at once, creating "phantom coordinates" that confused the system.',
+    body:'But HP\'s tech had several flaws. One was that dust or foreign objects blocked sensors, causing erratic tracking. Not to mention that touching with two fingers broke four light paths at once, creating "phantom coordinates" that confused the system.',
     cta:'[ Experience the Limitations ]',
     hud:'Infrared limits'
   },
@@ -892,7 +892,7 @@ function sceneOne(done){
     const r = crt.getBoundingClientRect();
     const s = parseFloat(device.dataset.scale) || 1;
     bubble(crt, clamp((e.clientX-r.left)/s, 100, 244), (e.clientY-r.top)/s,
-      "Nice try! Touchscreens haven't been invented yet. Use the D-pad below.");
+      "Nice try! Touchscreens aren't available to people like you yet!");
   });
 
   const onKey = e => {

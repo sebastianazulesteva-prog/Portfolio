@@ -350,6 +350,18 @@ body{
 }
 @keyframes pulseKey{50%{box-shadow:0 0 5px rgba(247,215,116,.25)}}
 
+.bezel-vacuum{
+  position:absolute;left:10px;bottom:5px;z-index:30;
+  font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;
+  padding:.45rem .75rem;border-radius:4px;
+  background:#2c3d42;color:rgba(190,225,235,.85);border:1px solid rgba(0,0,0,.35);
+  box-shadow:0 0 14px rgba(120,195,220,.3);
+  animation:pulseVac 1.7s ease-in-out infinite;
+  transition:opacity .4s;
+}
+.bezel-vacuum:disabled{animation:none;box-shadow:none;opacity:.5;cursor:default}
+@keyframes pulseVac{50%{box-shadow:0 0 4px rgba(120,195,220,.12)}}
+
 /* ═══════════════════════════════════════════════════════════
    ERA 4 — RESISTIVE TOUCH (IBM Simon, 1994)
    ═══════════════════════════════════════════════════════════ */
@@ -913,6 +925,8 @@ function buildIRShell(era3){
        genuinely shorter, matching where the clump landed. */
     setColClog(i, y){ api.clogY[i] = y; vBeams[i].style.top = y + 'px'; },
     setRowClog(j, x){ api.clogX[j] = x; hBeams[j].style.left = x + 'px'; },
+    clearColClog(i){ delete api.clogY[i]; vBeams[i].style.top = ''; },
+    clearRowClog(j){ delete api.clogX[j]; hBeams[j].style.left = ''; },
     /* a broken beam doesn't recolor — it just stops short at the point the
        finger blocks it. The light travels from the bottom/right edges
        toward the receivers on the top/left rulers, so a vertical beam is
@@ -1032,15 +1046,16 @@ function sceneThree(done){
   dustyCols.forEach(i => {
     const x = IR_PAD.l + (i+0.5)*ir.cellW;
     const clogY = ir.SH * rand(.3,.62);
-    fallingDust(ir.shell, x - 5, 19, 'dust', () => ir.colEmit[i].classList.add('dusty'));
-    /* the beam only actually goes dark once the clump visibly lands on it */
-    fallingDust(ir.screen, x, clogY, 'dust clog', () => ir.setColClog(i, clogY));
+    fallingDust(ir.shell, x - 5, 19, 'dust', () => { if (!dustCleared) ir.colEmit[i].classList.add('dusty'); });
+    /* the beam only actually goes dark once the clump visibly lands on it —
+       guarded in case the player vacuums before it finishes falling */
+    fallingDust(ir.screen, x, clogY, 'dust clog', () => { if (!dustCleared) ir.setColClog(i, clogY); });
   });
   dustyRows.forEach(j => {
     const y = IR_PAD.t + (j+0.5)*ir.cellH;
     const clogX = ir.SW * rand(.3,.62);
-    fallingDust(ir.shell, 11, y - 5, 'dust', () => ir.rowEmit[j].classList.add('dusty'));
-    fallingDust(ir.screen, clogX, y, 'dust clog', () => ir.setRowClog(j, clogX));
+    fallingDust(ir.shell, 11, y - 5, 'dust', () => { if (!dustCleared) ir.rowEmit[j].classList.add('dusty'); });
+    fallingDust(ir.screen, clogX, y, 'dust clog', () => { if (!dustCleared) ir.setRowClog(j, clogX); });
   });
   /* plain grime, scattered across the whole screen — atmosphere only */
   for (let k = 0; k < 16; k++){
@@ -1074,6 +1089,61 @@ function sceneThree(done){
   const pointers = new Map();
   let dragging = false, grabDX = 0, grabDY = 0;
   let phantomOn = false, phantomTimer = null, phantomErr = null, dustBanner = null;
+  let dustCleared = false, vacuuming = false;
+
+  /* Dust doesn't just misread drags — a clogged sensor can fire on its own,
+     yanking the block to a bogus reading with no touch involved at all.
+     Only the VACUUM button actually fixes this. */
+  let ghostTimer = null;
+  function scheduleGhost(){
+    ghostTimer = setTimeout(() => {
+      if (dustCleared || field.done || dragging || phantomOn || vacuuming){ scheduleGhost(); return; }
+      ghostTouch();
+      scheduleGhost();
+    }, rand(2600, 4400));
+  }
+  function ghostTouch(){
+    const b = field.bounds;
+    const pts = [
+      { x: rand(b.x0, b.x1), y: rand(b.y0, b.y1) },
+      { x: field.state.x + rand(-50,50), y: field.state.y + rand(-50,50) },
+      { x: rand(b.x0, b.x1), y: rand(b.y0, b.y1) }
+    ];
+    const gb = banner(ir.screen, 'GHOST TOUCH — SENSOR MISFIRE', 'err', 12, 0);
+    field.block.classList.remove('smooth');
+    let k = 0;
+    const jt = setInterval(() => { const p = pts[k++ % pts.length]; field.set(p.x, p.y); }, 90);
+    setTimeout(() => {
+      clearInterval(jt);
+      gb.style.transition = 'opacity .3s'; gb.style.opacity = '0';
+      setTimeout(() => gb.remove(), 320);
+    }, 650);
+  }
+  scheduleGhost();
+
+  const vacBtn = el('button','bezel-vacuum','VACUUM');
+  ir.shell.appendChild(vacBtn);
+  vacBtn.addEventListener('click', () => {
+    if (vacuuming || dustCleared || phantomOn) return;
+    vacuuming = true;
+    vacBtn.disabled = true;
+    if (ghostTimer){ clearTimeout(ghostTimer); ghostTimer = null; }
+    const vb = banner(ir.screen, 'VACUUMING…', 'warn', 12, 0);
+    setTimeout(() => { vb.innerHTML = 'STILL VACUUMING… SORTA ANNOYING, RIGHT?'; }, 1600);
+    setTimeout(() => { vb.innerHTML = 'ALMOST DONE…'; }, 3400);
+    setTimeout(() => {
+      vb.innerHTML = 'DONE.';
+      dustCleared = true; vacuuming = false;
+      dustyCols.forEach(i => { ir.colEmit[i].classList.remove('dusty'); ir.clearColClog(i); });
+      dustyRows.forEach(j => { ir.rowEmit[j].classList.remove('dusty'); ir.clearRowClog(j); });
+      ir.shell.querySelectorAll('.dust').forEach(d => {
+        d.style.transition = 'opacity .5s, transform .5s'; d.style.opacity = '0';
+        d.style.transform += ' scale(.4)'; setTimeout(() => d.remove(), 550);
+      });
+      vacBtn.style.opacity = '0'; setTimeout(() => vacBtn.remove(), 400);
+      setTimeout(() => { vb.style.transition = 'opacity .3s'; vb.style.opacity = '0'; setTimeout(() => vb.remove(), 320); }, 900);
+    }, 4600);
+  });
 
   function showTouches(list){
     marks.forEach(m=>m.remove()); marks.length = 0;
@@ -1120,6 +1190,7 @@ function sceneThree(done){
      drag along a dusty column from freezing the block outright. */
   let stutterUntil = 0, lastCell = null;
   function dustGlitch(s){
+    if (dustCleared) return false;
     const now = Date.now();
     if (now < stutterUntil) return true;                       /* still lagging */
     const prev = lastCell;
@@ -1195,7 +1266,7 @@ function sceneThree(done){
     }
   }, 20000);
 
-  return { destroy(){ clearTimeout(rescue); stopPhantom(); } };
+  return { destroy(){ clearTimeout(rescue); if (ghostTimer) clearTimeout(ghostTimer); stopPhantom(); } };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

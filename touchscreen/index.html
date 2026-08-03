@@ -351,44 +351,85 @@ body{
 @keyframes pulseKey{50%{box-shadow:0 0 5px rgba(247,215,116,.25)}}
 
 /* ═══════════════════════════════════════════════════════════
-   ERA 4 — EARLY CAPACITIVE PDA
+   ERA 4 — RESISTIVE TOUCH (IBM Simon, 1994)
    ═══════════════════════════════════════════════════════════ */
 .pda-shell{
   position:absolute;left:10px;top:6px;width:360px;height:638px;
-  background:linear-gradient(#3f4550,#232830);border-radius:26px;padding:18px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 16px 44px rgba(0,0,0,.6);
+  background:linear-gradient(#2b2b2e,#0e0e10);border-radius:34px 34px 18px 18px;padding:18px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 16px 44px rgba(0,0,0,.6);
 }
+/* the top strip keeps the exact height/margin the old text header used —
+   only its contents changed, so none of the screen's coordinate math below
+   needs to move */
 .pda-head{
-  height:24px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;
-  font-family:var(--mono);font-size:.5rem;letter-spacing:.14em;color:rgba(247,245,240,.42);padding:0 2px;
+  position:relative;height:24px;margin-bottom:6px;
+}
+.simon-antenna{
+  position:absolute;left:30px;top:0;width:4px;height:8px;
+  background:linear-gradient(#4a4a4d,#1c1c1e);border-radius:2px 2px 0 0;
+}
+.simon-antenna::after{
+  content:'';position:absolute;left:50%;top:-5px;transform:translateX(-50%);
+  width:6px;height:6px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#5c5c60,#1a1a1c 70%);
+}
+.simon-speaker{
+  position:absolute;left:50%;top:1px;transform:translateX(-50%);
+  width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 50% 50%,#050505 0%,#0d0d0e 70%,#020202 100%);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.85),0 1px 0 rgba(255,255,255,.05);
+}
+.simon-speaker::before{
+  content:'';position:absolute;inset:3px;border-radius:50%;
+  background-image:radial-gradient(circle,rgba(0,0,0,.9) 1px,transparent 1.3px);
+  background-size:4px 4px;opacity:.85;
 }
 .pda-screen{
-  position:relative;width:100%;height:516px;background:#0c2233;border-radius:3px;overflow:hidden;
-  box-shadow:inset 0 0 0 2px #11161d,inset 0 0 34px rgba(0,0,0,.7);
+  position:relative;width:100%;height:516px;background:linear-gradient(165deg,#c7cdae,#b3ba97);border-radius:3px;overflow:hidden;
+  box-shadow:inset 0 0 0 2px #23261c,inset 0 0 26px rgba(30,35,15,.35);
 }
 .pda-screen::after{
   content:'';position:absolute;inset:0;z-index:22;pointer-events:none;
-  background:linear-gradient(160deg,rgba(120,200,255,.07),transparent 55%);
+  background:radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(30,35,15,.16));
 }
+.simon-statusbar{
+  position:absolute;top:8px;left:11px;right:11px;z-index:1;pointer-events:none;
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.04em;color:rgba(35,40,20,.6);
+}
+.simon-menu{
+  position:absolute;top:26px;left:11px;right:11px;z-index:1;pointer-events:none;opacity:.55;
+  display:flex;flex-direction:column;gap:5px;
+}
+.simon-menu div{font-family:var(--sans);font-weight:400;font-size:.6rem;color:rgba(35,40,20,.65)}
 .mesh-sparse{
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background-image:
-    linear-gradient(to right,rgba(110,190,255,.17) 1px,transparent 1px),
-    linear-gradient(to bottom,rgba(110,190,255,.17) 1px,transparent 1px);
+    linear-gradient(to right,rgba(60,72,32,.24) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(60,72,32,.24) 1px,transparent 1px);
 }
 .pda-screen .block{background:#c9302c;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 3px 10px rgba(0,0,0,.5)}
-.pda-screen .slot{--accent:#7fc7ff;border-color:rgba(127,199,255,.85)}
+.pda-screen .slot{--accent:#3d5a28;border-color:rgba(61,90,40,.85)}
 .pda-foot{height:56px;display:flex;align-items:center;justify-content:space-between;padding:12px 2px 0}
+.pda-foot-left{display:flex;flex-direction:column;gap:4px}
+.simon-brand{
+  font-family:var(--serif);font-weight:700;font-style:italic;font-size:.82rem;color:#eceae2;
+  display:flex;align-items:baseline;gap:.4em;line-height:1;
+}
+.simon-brand span{
+  font-family:var(--mono);font-style:normal;font-weight:600;font-size:.5rem;letter-spacing:.06em;
+  color:rgba(236,234,226,.4);
+}
 .pda-btn{
   font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;padding:.6rem 1rem;border-radius:5px;
-  background:linear-gradient(#5a626e,#3a414b);color:#e8eef5;border:1px solid rgba(0,0,0,.5);
-  box-shadow:0 2px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);
+  background:linear-gradient(#33343a,#1c1d20);color:#e8eef5;border:1px solid var(--accent-bold, #3f7a3f);
+  box-shadow:0 2px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1);
 }
 .pda-btn:active{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,.5)}
-.pda-stylus{font-family:var(--mono);font-size:.48rem;letter-spacing:.11em;color:rgba(247,245,240,.32)}
+.pda-stylus{font-family:var(--mono);font-size:.46rem;letter-spacing:.1em;color:rgba(236,234,226,.34)}
 .wire-ping{
   position:absolute;z-index:4;pointer-events:none;
-  background:rgba(120,205,255,.55);box-shadow:0 0 7px rgba(120,205,255,.5);
+  background:rgba(61,90,40,.55);box-shadow:0 0 7px rgba(61,90,40,.5);
   animation:wireFade .35s linear forwards;
 }
 @keyframes wireFade{to{opacity:0}}
@@ -547,13 +588,13 @@ const ERAS = [
     hud:'Infrared limits'
   },
   {
-    accent:'#7fc7ff',
-    accentBold:'#2563eb',
-    eyebrow:'Early Conductive Glass (1990s)',
-    title:'Personal Digital Assistant',
-    body:'Transparent Indium Tin Oxide (ITO) coatings let glass absorb a finger\'s electrical charge. However, early sparse wire grids still struggled with soft hands and required a plastic stylus.',
-    cta:'[ Test Early Capacitive Glass ]',
-    hud:'Early capacitive'
+    accent:'#8fdca0',
+    accentBold:'#3f7a3f',
+    eyebrow:'Resistive Touch (1994)',
+    title:'IBM Simon, 1994',
+    body:'The IBM Simon — the first true smartphone — used resistive touch: two flexible conductive layers that register a press wherever they meet. It needs no electrical charge, so a plastic stylus, a fingernail, even a gloved finger works just as well as bare skin.',
+    cta:'[ Test Resistive Touch ]',
+    hud:'Resistive touch'
   },
   {
     accent:'#c7d6ff',
@@ -1158,21 +1199,29 @@ function sceneThree(done){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   ERA 4 — EARLY CAPACITIVE PDA
+   ERA 4 — RESISTIVE TOUCH (IBM Simon, 1994)
    ═══════════════════════════════════════════════════════════════════════ */
 function sceneFour(done){
   device.innerHTML = '';
   const shell = el('div','pda-shell');
   const head = el('div','pda-head');
-  head.append(el('div',null,'PALMTOP OS 3.1'), el('div',null,'BATT ▮▮▮'));
+  head.append(el('div','simon-antenna'), el('div','simon-speaker'));
   const screen = el('div','pda-screen');
   const mesh = el('div','mesh-sparse');
-  screen.appendChild(mesh);
+  const statusbar = el('div','simon-statusbar');
+  statusbar.append(el('span',null,'12:00 AM'), el('span',null,'Phone'));
+  const menu = el('div','simon-menu');
+  ['New Note','Address','Appointments','Menu','Send Msg','Help'].forEach(t => menu.appendChild(el('div',null,t)));
+  screen.append(mesh, statusbar, menu);
 
   const foot = el('div','pda-foot');
+  const footLeft = el('div','pda-foot-left');
+  const brand = el('div','simon-brand','Simon');
+  brand.appendChild(el('span',null,'IBM'));
   const stylusNote = el('div','pda-stylus','STYLUS · DOCKED');
+  footLeft.append(brand, stylusNote);
   const rotBtn = el('button','pda-btn','ROTATE 90°');
-  foot.append(stylusNote, rotBtn);
+  foot.append(footLeft, rotBtn);
   shell.append(head, screen, foot);
   device.appendChild(shell);
 
@@ -1197,10 +1246,12 @@ function sceneFour(done){
     field.set(field.state.x, field.state.y, field.state.rot + 90);
   });
 
-  /* the stylus bit */
+  /* the stylus bit — resistive touch doesn't need a stylus to sense charge
+     (that's a capacitive thing), but the fine point still gives far better
+     precision than a fingertip, so the system recommends one */
   let inputEnabled = false, scolded = false;
   modal(device, 'System notice',
-    'Please extract your official plastic stylus to proceed.',
+    'For best accuracy, please use the included stylus.',
     'Continue', () => { inputEnabled = true; });
 
   let dragging = false, grabDX = 0, grabDY = 0, lastCell = null;
@@ -1219,9 +1270,9 @@ function sceneFour(done){
     if (field.done || !inputEnabled) return;
     if (!scolded){
       scolded = true;
-      modal(device, 'Warning',
-        "Finger detected! That is not a stylus… But since nobody wants to carry around a plastic stick, we'll make an exception just this once.",
-        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (TOLERATED)'; });
+      modal(device, 'No stylus?',
+        "That's alright — resistive touch responds to pressure, not electrical charge, so a finger works fine. It just won't be as precise as the stylus tip.",
+        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (LESS PRECISE)'; });
       return;
     }
     const p = pos(e);

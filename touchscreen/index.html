@@ -608,6 +608,7 @@ body{
       <p id="bBody"></p>
       <button class="cta" id="bStart"></button>
       <i class="cta-timer" id="bTimer"></i>
+      <div class="footnote" id="bNote"></div>
     </div>
   </section>
 
@@ -1616,7 +1617,24 @@ function sceneFive(done){
   glass.addEventListener('pointerup', end);
   glass.addEventListener('pointercancel', end);
 
-  return { destroy(){ cancelAnimationFrame(raf); } };
+  /* a mouse can only ever be one pointer — the twist gesture is physically
+     impossible without a second finger, so desktop gets a keyboard
+     fallback. Same fixed 90°-per-press convention as every other era's
+     rotate button, just triggered by R instead of a tap. */
+  const onKey = e => {
+    if (field.done) return;
+    if (e.key === 'r' || e.key === 'R'){
+      e.preventDefault();
+      /* same instant clunk as the other eras' rotate buttons — no
+         transition class, so a drag right afterward still tracks 1:1
+         instead of easing behind the cursor */
+      field.block.classList.remove('smooth');
+      field.set(field.state.x, field.state.y, field.state.rot + 90);
+    }
+  };
+  addEventListener('keydown', onKey);
+
+  return { destroy(){ cancelAnimationFrame(raf); removeEventListener('keydown', onKey); } };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1645,6 +1663,11 @@ function showBriefing(i){
   $('#bTitle').textContent = e.title;
   $('#bBody').innerHTML = e.body;   /* bodies carry <b> emphasis; all first-party copy */
   $('#bStart').textContent = e.cta;
+  /* the last era needs a real second finger to rotate — a mouse can't do
+     that, so desktop gets a keyboard fallback and a note pointing at it.
+     Touch devices already have the gesture; no note needed. */
+  $('#bNote').textContent = (i === ERAS.length - 1 && !TOUCH)
+    ? 'On a computer? Press R to rotate.' : '';
   armGate();
   showScreen('briefing');
 }

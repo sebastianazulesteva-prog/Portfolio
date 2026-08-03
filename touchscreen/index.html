@@ -243,6 +243,14 @@ body{
   border:1px solid var(--accent);color:var(--accent);border-radius:100px;padding:.62rem 1.25rem;
 }
 .modal button:active{background:var(--accent);color:#000}
+/* same held-shut treatment as the briefing CTA, for modals worth making
+   someone actually read before they can dismiss */
+.modal button.waiting{border-color:rgba(247,245,240,.25);color:rgba(247,245,240,.35);pointer-events:none}
+.modal-timer{
+  display:block;height:3px;margin:.65rem auto 0;border-radius:3px;
+  background:var(--accent);opacity:.5;
+  animation:ctaCountdown var(--gate,3s) linear forwards;
+}
 
 /* ═══════════════════════════════════════════════════════════
    ERA 1 — PRE-TOUCH: CRT ABOVE, PHYSICAL CONSOLE BELOW
@@ -333,15 +341,15 @@ body{
    line at the touch point (see JS lightUp), not by recoloring it. The touch
    marker below carries the "signal received here" indication instead. */
 .beam{position:absolute;background:rgba(255,70,60,.34);pointer-events:none;z-index:1;border-radius:2px}
-.beam.v{width:2.5px;margin-left:-1.25px;top:0;bottom:0}
-.beam.h{height:2.5px;margin-top:-1.25px;left:0;right:0}
+.beam.v{width:3.5px;margin-left:-1.75px;top:0;bottom:0}
+.beam.h{height:3.5px;margin-top:-1.75px;left:0;right:0}
 /* same red hue, just brighter and thicker — marks which specific beam is
    currently broken without recoloring it (that'd misread as "still passing
    through"). Against a brighter ambient grid, the cut reads as a clear
    present-then-absent break instead of disappearing into the noise. */
 .beam.cut{background:rgba(255,110,80,.95);box-shadow:0 0 7px rgba(255,110,80,.65)}
-.beam.v.cut{width:4px;margin-left:-2px}
-.beam.h.cut{height:4px;margin-top:-2px}
+.beam.v.cut{width:5px;margin-left:-2.5px}
+.beam.h.cut{height:5px;margin-top:-2.5px}
 
 .ir-touchpt{
   position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;
@@ -475,14 +483,21 @@ body{
    position while the block snaps to the coarse reported one, which is the
    whole point: the press is smooth, the sensing is not. */
 .press-dimple{
-  position:absolute;width:92px;height:92px;margin:-46px 0 0 -46px;
+  position:absolute;width:118px;height:118px;margin:-59px 0 0 -59px;
   z-index:3;pointer-events:none;border-radius:50%;
   background:
-    radial-gradient(circle at 50% 36%,rgba(255,255,255,.34),rgba(255,255,255,0) 44%),
-    radial-gradient(circle,rgba(24,32,12,.40),rgba(24,32,12,.13) 46%,rgba(24,32,12,0) 70%);
+    radial-gradient(circle at 50% 34%,rgba(255,255,255,.55),rgba(255,255,255,0) 40%),
+    radial-gradient(circle,rgba(20,28,10,.62),rgba(20,28,10,.3) 48%,rgba(20,28,10,0) 72%);
   animation:dimplePress .16s cubic-bezier(.3,1.4,.5,1) both;
 }
-@keyframes dimplePress{from{transform:scale(.45);opacity:.25}to{transform:scale(1);opacity:1}}
+/* the crease where the bent top layer meets the layer underneath —
+   without a hard edge the "press" reads as a soft glow, not a dent */
+.press-dimple::after{
+  content:'';position:absolute;inset:26%;border-radius:50%;
+  box-shadow:0 1px 2px rgba(255,255,255,.4), inset 0 2px 4px rgba(0,0,0,.55);
+  border:1px solid rgba(20,28,10,.4);
+}
+@keyframes dimplePress{from{transform:scale(.35);opacity:.15}to{transform:scale(1);opacity:1}}
 
 /* ═══════════════════════════════════════════════════════════
    ERA 5 — MODERN GLASS
@@ -672,7 +687,7 @@ const ERAS = [
     accentBold:'#3f7a3f',
     eyebrow:'Resistive Touch (1994)',
     title:'IBM Simon, 1994',
-    body:'The IBM Simon — the <b>first true smartphone</b> — used <b>resistive touch</b>: two flexible conductive layers that register a <b>press</b> wherever they meet.',
+    body:'The IBM Simon — the <b>first true smartphone</b> — used <b>resistive touch</b>: two flexible conductive layers that register a touch when they\'re physically <b>bent into touching each other</b>.',
     cta:'[ Test Resistive Touch ]',
     hud:'Resistive touch'
   },
@@ -682,7 +697,7 @@ const ERAS = [
     eyebrow:'Multi-Touch (2007–Present)',
     title:'The Grid Under the Glass',
     body:'An <b>invisible grid</b> under the glass senses the <b>tiny electrical charge in your skin</b>. It tracks <b>multiple fingers at once</b>—making swipes, pinches, and twists feel like <b>second nature</b>.',
-    cta:'[ Feel Multi-Touch ]',
+    cta:'[Return to the Current Era]',
     hud:'Modern glass'
   }
 ];
@@ -802,13 +817,20 @@ function banner(host, text, kind = 'warn', top = 14, life = 2000){
   if (life) setTimeout(() => { b.style.transition='opacity .3s'; b.style.opacity='0'; setTimeout(()=>b.remove(), 320); }, life);
   return b;
 }
-function modal(host, title, body, btn, onClose){
+function modal(host, title, body, btn, onClose, gateMs){
   const scrim = el('div','modal-scrim');
   const box = el('div','modal');
   box.append(el('div','mtitle', title), el('p', null, body));
   const b = el('button', null, btn);
   b.addEventListener('click', () => { scrim.remove(); onClose && onClose(); });
   box.appendChild(b);
+  if (gateMs){
+    b.disabled = true; b.classList.add('waiting');
+    const bar = el('i','modal-timer');
+    bar.style.setProperty('--gate', gateMs + 'ms');
+    box.appendChild(bar);
+    setTimeout(() => { b.disabled = false; b.classList.remove('waiting'); bar.remove(); }, gateMs);
+  }
   scrim.appendChild(box);
   host.appendChild(scrim);
   return scrim;
@@ -939,7 +961,7 @@ function sceneOne(done){
 /* ═══════════════════════════════════════════════════════════════════════
    ERAS 2 & 3 — INFRARED BEZEL
    ═══════════════════════════════════════════════════════════════════════ */
-const IR_COLS = 8, IR_ROWS = 16;           /* sparser still — big gaps between beams */
+const IR_COLS = 8, IR_ROWS = 15;           /* sparser still — big gaps between beams */
 const IR_PAD = { l:32, r:16, t:38, b:24 };
 
 function buildIRShell(era3){
@@ -1253,7 +1275,7 @@ function sceneThree(done){
       stopPhantom();
       modal(device, 'Controller fault',
         'Optical infrared grids cannot handle multi-touch — two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
-        'Use the rotate button', unlockFallback);
+        'Use the rotate button', unlockFallback, GATE_MS);
     }, 700);
   }
   function stopPhantom(){
@@ -1401,7 +1423,7 @@ function sceneFour(done){
   let inputEnabled = false, scolded = false;
   modal(device, 'System notice',
     'Please extract your official plastic stylus to proceed.',
-    'Continue', () => { inputEnabled = true; });
+    'Continue', () => { inputEnabled = true; }, GATE_MS);
 
   let dragging = false, grabDX = 0, grabDY = 0, lastCell = null;
   const pos = e => { const p = devPoint(e); return { x:p.x - OFF_X, y:p.y - OFF_Y }; };
@@ -1428,7 +1450,7 @@ function sceneFour(done){
       scolded = true;
       modal(device, 'Warning',
         "Finger detected! That is not a stylus… But since nobody wants to carry around a plastic stick, we'll make an exception just this once.",
-        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (TOLERATED)'; });
+        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (TOLERATED)'; }, GATE_MS);
       return;
     }
     if (activeId !== null) return;                /* single-touch: ignore the extra finger */
@@ -1630,7 +1652,7 @@ function showBriefing(i){
 /* Hold the CTA shut for a beat so the briefing gets read rather than
    tapped straight past. The bar under the button drains to zero so the
    wait reads as deliberate, not as a broken button. */
-const GATE_MS = 3000;
+const GATE_MS = 5000;
 let gateTimer = null;
 function armGate(){
   const btn = $('#bStart'), bar = $('#bTimer');

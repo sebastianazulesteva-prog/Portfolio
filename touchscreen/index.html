@@ -1247,11 +1247,12 @@ function sceneFour(done){
   });
 
   /* the stylus bit — resistive touch doesn't need a stylus to sense charge
-     (that's a capacitive thing), but the fine point still gives far better
-     precision than a fingertip, so the system recommends one */
+     (that's a capacitive thing), but the Simon genuinely needed one in
+     practice: the screen and its tiny on-screen keyboard were built for a
+     fine point, not a fingertip */
   let inputEnabled = false, scolded = false;
   modal(device, 'System notice',
-    'For best accuracy, please use the included stylus.',
+    'Please extract your official plastic stylus to proceed.',
     'Continue', () => { inputEnabled = true; });
 
   let dragging = false, grabDX = 0, grabDY = 0, lastCell = null;
@@ -1270,9 +1271,9 @@ function sceneFour(done){
     if (field.done || !inputEnabled) return;
     if (!scolded){
       scolded = true;
-      modal(device, 'No stylus?',
-        "That's alright — resistive touch responds to pressure, not electrical charge, so a finger works fine. It just won't be as precise as the stylus tip.",
-        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (LESS PRECISE)'; });
+      modal(device, 'Warning',
+        "Finger detected! That is not a stylus… But since nobody wants to carry around a plastic stick, we'll make an exception just this once.",
+        'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (TOLERATED)'; });
       return;
     }
     const p = pos(e);

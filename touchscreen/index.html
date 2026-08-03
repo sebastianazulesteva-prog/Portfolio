@@ -30,8 +30,8 @@ button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit;backgr
      and are untouched by this palette. */
   --bg:#f3efe3;
   --ink:#1c160f;
-  --ink-soft:rgba(28,22,15,.68);
-  --ink-faint:rgba(28,22,15,.42);
+  --ink-soft:rgba(28,22,15,.86);
+  --ink-faint:rgba(28,22,15,.52);
   --line:rgba(28,22,15,.14);
   --red:#e03131;
   --red-glow:rgba(224,49,49,.55);
@@ -80,8 +80,8 @@ body{
 }
 .card h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,9vw,2.7rem);line-height:1.08;letter-spacing:-.01em;margin-bottom:1.1rem}
 .card h2{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,7vw,2.1rem);line-height:1.12;letter-spacing:-.01em;margin-bottom:.95rem}
-.card p{color:var(--ink-soft);font-size:.96rem;line-height:1.65;margin:0 auto .9rem;max-width:34ch}
-.card p em{color:var(--ink);font-style:normal;font-weight:600}
+.card p{color:var(--ink-soft);font-size:1.02rem;font-weight:400;line-height:1.62;margin:0 auto .9rem;max-width:34ch}
+.card p em,.card p b{color:var(--ink);font-style:normal;font-weight:700}
 
 .cta{
   margin-top:1.5rem;display:inline-block;
@@ -92,6 +92,26 @@ body{
   transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .2s;
 }
 .cta:active{transform:scale(.94);box-shadow:0 4px 14px -6px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12)}
+/* held shut briefly so the briefing actually gets read instead of
+   tapped straight past */
+.cta.waiting{
+  background:var(--line);color:var(--ink-faint);
+  box-shadow:none;pointer-events:none;
+}
+.cta.waiting:active{transform:none}
+.cta-timer{
+  display:block;height:3px;margin:.7rem auto 0;border-radius:3px;
+  background:var(--accent-bold);opacity:.55;
+  animation:ctaCountdown var(--gate,3s) linear forwards;
+}
+@keyframes ctaCountdown{from{width:78px}to{width:0}}
+
+/* the closing line — the point the whole thing has been building to */
+.card p.closer{
+  font-family:var(--display);font-weight:600;color:var(--ink);
+  font-size:1.24rem;line-height:1.34;max-width:22ch;margin-top:.2rem;
+}
+.card p.closer b{font-weight:800}
 
 .footnote{margin-top:1.6rem;font-size:.64rem;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.06em;line-height:1.7}
 .intro-caption{margin-top:.7rem;font-size:.74rem;color:var(--ink-faint);font-style:italic}
@@ -360,11 +380,11 @@ body{
 @keyframes pulseKey{50%{box-shadow:0 0 5px rgba(247,215,116,.25)}}
 
 .bezel-vacuum{
-  position:absolute;left:10px;bottom:5px;z-index:30;
-  font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;
-  padding:.45rem .75rem;border-radius:4px;
-  background:#2c3d42;color:rgba(190,225,235,.85);border:1px solid rgba(0,0,0,.35);
-  box-shadow:0 0 14px rgba(120,195,220,.3);
+  position:absolute;left:10px;bottom:4px;z-index:30;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;font-weight:600;
+  padding:.7rem 1.2rem;border-radius:6px;
+  background:#2c3d42;color:rgba(210,238,246,.95);border:1px solid rgba(0,0,0,.35);
+  box-shadow:0 0 18px rgba(120,195,220,.38);
   animation:pulseVac 1.7s ease-in-out infinite;
   transition:opacity .4s;
 }
@@ -426,8 +446,8 @@ body{
 .mesh-sparse{
   position:absolute;inset:0;z-index:1;pointer-events:none;
   background-image:
-    linear-gradient(to right,rgba(60,72,32,.24) 1px,transparent 1px),
-    linear-gradient(to bottom,rgba(60,72,32,.24) 1px,transparent 1px);
+    linear-gradient(to right,rgba(60,72,32,.10) 1px,transparent 1px),
+    linear-gradient(to bottom,rgba(60,72,32,.10) 1px,transparent 1px);
 }
 .pda-screen .block{background:#c9302c;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 3px 10px rgba(0,0,0,.5)}
 .pda-screen .slot{--accent:#3d5a28;border-color:rgba(61,90,40,.85)}
@@ -448,12 +468,21 @@ body{
 }
 .pda-btn:active{transform:translateY(2px);box-shadow:0 0 0 rgba(0,0,0,.5)}
 .pda-stylus{font-family:var(--mono);font-size:.46rem;letter-spacing:.1em;color:rgba(236,234,226,.34)}
-.wire-ping{
-  position:absolute;z-index:4;pointer-events:none;
-  background:rgba(61,90,40,.55);box-shadow:0 0 7px rgba(61,90,40,.5);
-  animation:wireFade .35s linear forwards;
+/* Resistive touch works by physically deflecting the flexible top layer
+   until it meets the one beneath, so a contact reads as a dimple pressed
+   into the membrane — a soft shadow bowl with a highlight catching the
+   raised rim — rather than an electrical glow. It sits at the true finger
+   position while the block snaps to the coarse reported one, which is the
+   whole point: the press is smooth, the sensing is not. */
+.press-dimple{
+  position:absolute;width:92px;height:92px;margin:-46px 0 0 -46px;
+  z-index:3;pointer-events:none;border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 36%,rgba(255,255,255,.34),rgba(255,255,255,0) 44%),
+    radial-gradient(circle,rgba(24,32,12,.40),rgba(24,32,12,.13) 46%,rgba(24,32,12,0) 70%);
+  animation:dimplePress .16s cubic-bezier(.3,1.4,.5,1) both;
 }
-@keyframes wireFade{to{opacity:0}}
+@keyframes dimplePress{from{transform:scale(.45);opacity:.25}to{transform:scale(1);opacity:1}}
 
 /* ═══════════════════════════════════════════════════════════
    ERA 5 — MODERN GLASS
@@ -546,8 +575,8 @@ body{
   <section class="screen active" id="intro">
     <div class="card">
       <h1>The Glass in Your Hand</h1>
-      <p>Look at the piece of glass you're holding right now. Studies show you touch it over 2,000 times a day, but do you know its history and how it works?</p>
-      <p>Today, every tap feels completely effortless. Yet allowing your fingers to reach into the digital world took half a century of development.</p>
+      <p>Look at the piece of glass you're holding right now. Studies show you touch it <b>over 2,000 times a day</b>, but do you know its history and how it works?</p>
+      <p>Today, every tap feels <b>completely effortless</b>. Yet allowing your fingers to reach into the digital world took <b>half a century of development</b>.</p>
       <button class="cta" id="beginBtn">[ Touch to Go Back 60 Years to the Start ]</button>
       <div class="intro-caption">A quick 2-minute journey</div>
       <div class="footnote" id="introFoot">Hold your phone upright. Sound off, hands on.</div>
@@ -563,6 +592,7 @@ body{
       <h2 id="bTitle"></h2>
       <p id="bBody"></p>
       <button class="cta" id="bStart"></button>
+      <i class="cta-timer" id="bTimer"></i>
     </div>
   </section>
 
@@ -583,14 +613,16 @@ body{
     <div class="card">
       <div class="eyebrow">Experience Complete</div>
       <h1>🎉 Fifty Years, One Rectangle</h1>
-      <p>You have navigated 50 years of touchscreen history — from rigid D-pads and optical light beams to modern multi-touch capacitive glass.</p>
+      <p>You just moved the <b>same shape</b> across <b>five decades</b>.</p>
+      <p>What required <b>physical buttons</b>, <b>flickering light beams</b>, and <b>plastic styluses</b> in 1983 now happens in <b>milliseconds</b> — effortless, instant, and weightless.</p>
       <div class="finale-stat">
-        <div><div class="n">1970s</div><div class="l">Buttons only</div></div>
-        <div><div class="n">1983</div><div class="l">Light beams</div></div>
-        <div><div class="n">1990s</div><div class="l">Sparse mesh</div></div>
+        <div><div class="n">1970s</div><div class="l">Buttons</div></div>
+        <div><div class="n">1983</div><div class="l">Lasers</div></div>
+        <div><div class="n">1990s</div><div class="l">Stylus</div></div>
         <div><div class="n">2007</div><div class="l">Multi-touch</div></div>
       </div>
-      <p>The task never changed. Only the distance between your intent and the machine's understanding of it.</p>
+      <p>The task never changed.</p>
+      <p class="closer">Fifty years of engineering simply <b>erased the barrier</b> between your mind and the glass.</p>
       <div class="mini-links">
         <button id="replayBtn">Replay</button>
         <a href="../index.html">Back to portfolio</a>
@@ -613,7 +645,7 @@ const ERAS = [
     accentBold:'#16a34a',
     eyebrow:'Pre-Touch (1965–1970s)',
     title:'E.A. Johnson, 1965',
-    body:'The first capacitive touch display was built for air traffic control. Yet for decades, computer monitors remained strictly visual — requiring physical buttons for every action.',
+    body:'The <b>first capacitive touch display</b> was built for air traffic control. Yet for decades, computer monitors remained <b>strictly visual</b> — requiring <b>physical buttons</b> for every action.',
     cta:'[ Start Experience ]',
     hud:'Pre-touch'
   },
@@ -622,7 +654,7 @@ const ERAS = [
     accentBold:'#0284c7',
     eyebrow:'Infrared Bezel (1983)',
     title:'HP-150, 1983',
-    body:'HP released one of the first commercial touchscreen computers, but with very different technology than is used today. An optical frame shot an invisible grid of infrared light beams across the screen, calculating coordinates whenever a finger broke a beam.',
+    body:'HP released <b>one of the first commercial touchscreen computers</b>, but with very different technology than is used today. An optical frame shot an <b>invisible grid of infrared light beams</b> across the screen, calculating coordinates whenever a finger <b>broke a beam</b>.',
     cta:'[ Test Optical Touch ]',
     hud:'Infrared bezel'
   },
@@ -631,7 +663,7 @@ const ERAS = [
     accentBold:'#ea580c',
     eyebrow:'Infrared Limitations (Mid-1980s)',
     title:'Optical Flaws',
-    body:'But HP\'s tech had several flaws. One was that dust or foreign objects blocked sensors, causing erratic tracking. Not to mention that touching with two fingers broke four light paths at once, creating "phantom coordinates" that confused the system.',
+    body:'But HP\'s tech had several flaws. One was that <b>dust or foreign objects blocked sensors</b>, causing <b>erratic tracking</b>. Not to mention that touching with <b>two fingers</b> broke four light paths at once, creating <b>"phantom coordinates"</b> that confused the system.',
     cta:'[ Experience the Limitations ]',
     hud:'Infrared limits'
   },
@@ -640,7 +672,7 @@ const ERAS = [
     accentBold:'#3f7a3f',
     eyebrow:'Resistive Touch (1994)',
     title:'IBM Simon, 1994',
-    body:'The IBM Simon — the first true smartphone — used resistive touch: two flexible conductive layers that register a press wherever they meet. It needs no electrical charge, so a plastic stylus, a fingernail, even a gloved finger works just as well as bare skin.',
+    body:'The IBM Simon — the <b>first true smartphone</b> — used <b>resistive touch</b>: two flexible conductive layers that register a <b>press</b> wherever they meet.',
     cta:'[ Test Resistive Touch ]',
     hud:'Resistive touch'
   },
@@ -649,7 +681,7 @@ const ERAS = [
     accentBold:'#7c3aed',
     eyebrow:'Multi-Touch (2007–Present)',
     title:'The Grid Under the Glass',
-    body:'An invisible grid under the glass senses the tiny electrical charge in your skin. It tracks multiple fingers at once—making swipes, pinches, and twists feel like second nature.',
+    body:'An <b>invisible grid</b> under the glass senses the <b>tiny electrical charge in your skin</b>. It tracks <b>multiple fingers at once</b>—making swipes, pinches, and twists feel like <b>second nature</b>.',
     cta:'[ Feel Multi-Touch ]',
     hud:'Modern glass'
   }
@@ -1213,12 +1245,16 @@ function sceneThree(done){
       const p = pts[k++ % pts.length];
       field.set(p.x + rand(-5,5), p.y + rand(-5,5));
     }, 90);
+    /* short enough that the explanation still feels like it's about the
+       gesture the user just made — 1.9s let people lift their fingers and
+       move on before the modal ever showed up, so it read as a random,
+       disconnected interruption instead of a direct response */
     setTimeout(() => {
       stopPhantom();
       modal(device, 'Controller fault',
         'Optical infrared grids cannot handle multi-touch — two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
         'Use the rotate button', unlockFallback);
-    }, 1900);
+    }, 700);
   }
   function stopPhantom(){
     phantomOn = false;
@@ -1370,13 +1406,20 @@ function sceneFour(done){
   let dragging = false, grabDX = 0, grabDY = 0, lastCell = null;
   const pos = e => { const p = devPoint(e); return { x:p.x - OFF_X, y:p.y - OFF_Y }; };
 
-  function ping(cx, cy){
-    const v = el('div','wire-ping');
-    v.style.cssText = `left:${cx*CELL_X}px;top:0;width:1px;height:100%`;
-    const h = el('div','wire-ping');
-    h.style.cssText = `top:${cy*CELL_Y}px;left:0;height:1px;width:100%`;
-    screen.append(v,h);
-    setTimeout(()=>{ v.remove(); h.remove(); }, 360);
+  /* Resistive panels short two layers together at ONE place. A second
+     finger doesn't register as its own contact at all, so extra pointers
+     are ignored outright — the first one down owns the screen. */
+  let activeId = null, dimple = null;
+  function showDimple(p){
+    if (!dimple){ dimple = el('div','press-dimple'); screen.appendChild(dimple); }
+    dimple.style.left = p.x + 'px'; dimple.style.top = p.y + 'px';
+  }
+  function dropDimple(){
+    if (!dimple) return;
+    const d = dimple; dimple = null;
+    d.style.transition = 'opacity .18s, transform .18s';
+    d.style.opacity = '0'; d.style.transform = 'scale(.55)';
+    setTimeout(() => d.remove(), 200);
   }
 
   screen.addEventListener('pointerdown', e => {
@@ -1388,7 +1431,10 @@ function sceneFour(done){
         'Proceed anyway', () => { stylusNote.textContent = 'INPUT · FINGER (TOLERATED)'; });
       return;
     }
+    if (activeId !== null) return;                /* single-touch: ignore the extra finger */
+    activeId = e.pointerId;
     const p = pos(e);
+    showDimple(p);
     if (Math.hypot(p.x - field.state.x, p.y - field.state.y) < 84){
       dragging = true; lastCell = null;
       grabDX = field.state.x - p.x; grabDY = field.state.y - p.y;
@@ -1398,15 +1444,16 @@ function sceneFour(done){
 
   let pendingUpdate = null;
   screen.addEventListener('pointermove', e => {
-    if (!dragging || field.done) return;
+    if (field.done || e.pointerId !== activeId) return;
     const p = pos(e);
+    showDimple(p);                                /* the press follows the finger exactly */
+    if (!dragging) return;
     /* low-density mesh: the position only resolves when a wire is crossed,
        and it reports the wire, not the finger */
     const cx = Math.round(p.x / CELL_X), cy = Math.round(p.y / CELL_Y);
     const key = cx + ':' + cy;
     if (key === lastCell) return;                 /* dead zone between wires */
     lastCell = key;
-    ping(cx, cy);
     /* a slow CPU polling loop, not a live position — the block catches up
        a beat after the wire actually gets crossed */
     if (pendingUpdate) clearTimeout(pendingUpdate);
@@ -1416,7 +1463,12 @@ function sceneFour(done){
     }, 70);
   });
 
-  const end = () => { dragging = false; if (pendingUpdate){ clearTimeout(pendingUpdate); pendingUpdate = null; } };
+  const end = e => {
+    if (e.pointerId !== activeId) return;
+    activeId = null; dragging = false;
+    dropDimple();
+    if (pendingUpdate){ clearTimeout(pendingUpdate); pendingUpdate = null; }
+  };
   screen.addEventListener('pointerup', end);
   screen.addEventListener('pointercancel', end);
 
@@ -1569,9 +1621,31 @@ function showBriefing(i){
   paintRail();
   $('#bEyebrow').textContent = e.eyebrow;
   $('#bTitle').textContent = e.title;
-  $('#bBody').textContent = e.body;
+  $('#bBody').innerHTML = e.body;   /* bodies carry <b> emphasis; all first-party copy */
   $('#bStart').textContent = e.cta;
+  armGate();
   showScreen('briefing');
+}
+
+/* Hold the CTA shut for a beat so the briefing gets read rather than
+   tapped straight past. The bar under the button drains to zero so the
+   wait reads as deliberate, not as a broken button. */
+const GATE_MS = 3000;
+let gateTimer = null;
+function armGate(){
+  const btn = $('#bStart'), bar = $('#bTimer');
+  clearTimeout(gateTimer);
+  btn.classList.add('waiting');
+  btn.disabled = true;              /* blocks keyboard/programmatic activation too */
+  bar.style.display = '';
+  /* restart the drain animation from the top on every briefing */
+  bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+  bar.style.setProperty('--gate', GATE_MS + 'ms');
+  gateTimer = setTimeout(() => {
+    btn.classList.remove('waiting');
+    btn.disabled = false;
+    bar.style.display = 'none';
+  }, GATE_MS);
 }
 
 function startScene(i){

@@ -12,55 +12,48 @@
     --yellow-light: #FBCB6B;
     --cream-off: #6b6558;
     --cream-on: #FFF6DC;
-    --space-1: #05030a;
-    --space-2: #0b0716;
+    --void: #030209;
     --text: #ece7f5;
     --text-dim: #7a7590;
   }
   *{ box-sizing: border-box; }
   html,body{
     margin:0; padding:0; width:100%; height:100%;
-    background: var(--space-1);
+    background: #000;
     overflow: hidden;
     cursor: pointer;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
+
+  /* ---------- what the light uncovers (all beneath the veil) ---------- */
   #stage{
-    position: fixed; inset: 0;
+    position: fixed; inset: 0; z-index: 0;
     background:
-      radial-gradient(ellipse 60% 45% at 18% 85%, rgba(247,183,51,0.05), transparent 60%),
-      radial-gradient(ellipse 50% 40% at 80% 15%, rgba(90,50,160,0.35), transparent 60%),
-      radial-gradient(ellipse 40% 35% at 65% 75%, rgba(30,70,140,0.28), transparent 60%),
-      radial-gradient(ellipse 70% 60% at 30% 30%, rgba(60,20,90,0.3), transparent 65%),
-      linear-gradient(180deg, var(--space-2), var(--space-1) 70%);
+      radial-gradient(ellipse 55% 45% at 22% 30%, rgba(70,30,110,.34), transparent 65%),
+      radial-gradient(ellipse 45% 40% at 30% 82%, rgba(28,60,130,.26), transparent 62%),
+      #06040e;
   }
   .star{
     position:absolute; border-radius:50%; background:#fff;
-    opacity:0.6; animation: twinkle 4s ease-in-out infinite;
+    opacity:.55; animation: twinkle 4s ease-in-out infinite;
   }
-  @keyframes twinkle{ 0%,100%{opacity:.15;} 50%{opacity:.85;} }
+  @keyframes twinkle{ 0%,100%{opacity:.12;} 50%{opacity:.8;} }
 
-  /* ---------- Lamp ---------- */
-  #lampWrap{
-    position: fixed; right: 0; bottom: -2vh;
-    width: min(50vw, 720px); height: 104vh;
-    z-index: 5;
+  /* the colour mosaic that lives under the portrait */
+  #mosaic{
+    position: fixed; top:0; right:0;
+    width: min(50vw, 720px);
+    height: 100%;            /* explicit: the height attr would win otherwise */
+    object-fit: cover;
+    z-index: 1;
+    filter: saturate(1.15) contrast(1.05);
   }
-  #lampSvg{ width:100%; height:100%; display:block; overflow:visible; }
-  .joint{ fill: var(--yellow-dark); }
-  .bone{ fill: var(--yellow); }
-  .foot{ fill: var(--yellow-dark); }
-  #bulbGlow{ transition: opacity .6s ease; opacity: 0; }
-  #bulbCore{ transition: fill 1.4s ease, filter 1.4s ease; }
-  #shadeInner{ transition: fill 1.4s ease; }
-  .lit #bulbGlow{ opacity: 1; }
 
-  /* ---------- Letter ---------- */
   #letterPanel{
     position: fixed; top:0; left:0; bottom:0;
     right: min(50vw, 720px);
     overflow-y: auto;
-    z-index: 3;
+    z-index: 2;
     padding: 9vh 4vw 20vh 6vw;
   }
   #letterPanel::-webkit-scrollbar{ width:0; height:0; }
@@ -75,22 +68,31 @@
   .letter .name{ color: var(--yellow-light); font-size: 1.05em; }
   .letter .contact{ color: var(--text-dim); font-size: 0.85em; margin-top: .3em; }
 
-  /* fog + the cone-shaped hole the lamp burns through it */
-  #fogSvg{
-    position: fixed; inset: 0; width:100%; height:100%;
-    z-index: 4; pointer-events: none;
+  /* ---------- the veil: darkness + the dim portrait, punched by the beam ----------
+     Drawn on a 2D canvas rather than an SVG <mask>. index.html already
+     documents that Safari won't reliably repaint a CSS mask pointing at an
+     SVG element whose attributes JS mutates — and re-rasterising a
+     full-screen SVG blur every frame is what made this page crawl there. */
+  #veil{
+    position: fixed; inset: 0; z-index: 4;
+    width: 100%; height: 100%;
+    pointer-events: none;
   }
-  #maskCone{ opacity: 0; transition: opacity 1.1s ease; }
-  #maskCone.on{ opacity: 1; }
 
-  /* the visible glow of the beam itself */
-  #beamSvg{
-    position: fixed; inset: 0; width:100%; height:100%;
-    z-index: 2; pointer-events: none;
-    mix-blend-mode: screen;
-    opacity: 0; transition: opacity 1.2s ease;
+  /* ---------- Lamp ---------- */
+  #lampWrap{
+    position: fixed; right: 0; bottom: -2vh;
+    width: min(50vw, 720px); height: 104vh;
+    z-index: 5;
   }
-  #beamSvg.on{ opacity: 1; }
+  #lampSvg{ width:100%; height:100%; display:block; overflow:visible; }
+  .joint{ fill: var(--yellow-dark); }
+  .bone{ fill: var(--yellow); }
+  .foot{ fill: var(--yellow-dark); }
+  #bulbGlow{ transition: opacity .6s ease; opacity: 0; }
+  #bulbCore{ transition: fill 1.4s ease; }
+  #shadeInner{ transition: fill 1.4s ease; }
+  .lit #bulbGlow{ opacity: 1; }
 
   /* ---------- Intro prompt ---------- */
   #hint{
@@ -101,13 +103,11 @@
     transition: opacity .8s ease;
   }
   #hint p{
-    margin: 0;
-    max-width: 22em;
+    margin: 0; max-width: 22em;
     color: var(--yellow-light);
     font-size: clamp(21px, 3.1vw, 42px);
-    line-height: 1.45;
-    letter-spacing: .01em;
-    text-shadow: 0 0 28px rgba(0,0,0,.85);
+    line-height: 1.45; letter-spacing: .01em;
+    text-shadow: 0 0 28px rgba(0,0,0,.9);
     animation: pulse 2.8s ease-in-out infinite;
   }
   #hint em{ font-style: normal; color: var(--cream-on); }
@@ -162,32 +162,40 @@
     color: var(--text-dim); font-size: 11px; letter-spacing: .08em;
     opacity: .55;
   }
+
+  @media (prefers-reduced-motion: reduce){
+    .star, #hint p, #scrollHint span{ animation: none; }
+  }
 </style>
 </head>
 <body>
 
 <div id="stage"></div>
-<div id="corner">HUMAN COMPUTER LAB</div>
 
-<svg id="beamSvg">
-  <defs>
-    <linearGradient id="beamGrad" gradientUnits="userSpaceOnUse">
-      <stop offset="0%"  stop-color="#FFECB0" stop-opacity="0.42"/>
-      <stop offset="22%" stop-color="#FFECB0" stop-opacity="0.20"/>
-      <stop offset="55%" stop-color="#FFECB0" stop-opacity="0.06"/>
-      <stop offset="100%" stop-color="#FFECB0" stop-opacity="0"/>
-    </linearGradient>
-    <!-- keeps the glow on the letter column so it never washes the starfield -->
-    <linearGradient id="edgeFade" gradientUnits="userSpaceOnUse" spreadMethod="pad">
-      <stop offset="0%"   stop-color="#ffffff"/>
-      <stop offset="100%" stop-color="#000000"/>
-    </linearGradient>
-    <mask id="beamClip" maskUnits="userSpaceOnUse">
-      <rect x="0" y="0" width="100%" height="100%" fill="url(#edgeFade)"/>
-    </mask>
-  </defs>
-  <polygon id="beamPoly" fill="url(#beamGrad)" mask="url(#beamClip)"></polygon>
-</svg>
+<img id="mosaic" src="images/contact-photo-mosaic.jpg" alt="" width="682" height="1024">
+
+<div id="letterPanel">
+  <div class="letter">
+    <p>Dear Human Computer Lab Team,</p>
+    <p>Clicking &ldquo;Wake up LeLamp&rdquo; sparked a small burst of joy in an otherwise exhausting application process. So did your entire website. And I have submitted a lot of applications for this fall&hellip;</p>
+    <p>What you are building sits at the exact intersection I have been working toward my entire career. My undergraduate degree is in Biomechanical Engineering at Stanford, yet I&rsquo;m also getting a Master's in Communication. A combination which has confused so many, yet I think I finally have an answer to give all those confused recruiters&mdash; your website and mission. Let me explain.</p>
+    <p>I chose biomechanical engineering because I wanted to understand how the physical world (weights, radiation, etc.) impacts the human. The outside world, in.</p>
+    <p>I chose communications because I wanted to understand how humans perceive and understand the world, from the inside out.</p>
+    <p>And by combining those two knowledge bases, work towards building the perfect synchrony between the two.</p>
+    <p>Human-robot interaction, character robots, new ways for people to form attachment to technology &mdash; that is the future of communication. It is also exactly what you are building. That is where I want to live, and that is where the Human Computer Lab stands.</p>
+    <p>Your manifesto hit me in a way I did not expect. The frustration that human-computer interfaces have barely evolved in forty years &mdash; I feel that deeply. Especially with an aging grandfather who can barely use his computer, since it&rsquo;s designed for young minds and eyes.</p>
+    <p>And your focus is on creating chaos, and carving order out of it is how I grew up, as my parents are both artists. They live in the chaos, and find it beautiful. And their artwork gives those who crave order a little window into the chaos, so we can enjoy it. I want to do that, but through technology.</p>
+    <p>I recently won &ldquo;Most Innovative Solution&rdquo; at a d.school hackathon hosted by the Stanford Wu Tsai Human Performance Alliance. It was for a simple concept, which arose from three hours of talking with the end user, a gentleman who had lost arm function after a stroke. And I attribute every bit of that win to trying to understand the human first, and then letting my technical expertise scope and craft a solution.</p>
+    <p>That is the kind of engineer I want to be. Not someone who just wants to get the CAD done, but rather a person who wants to build for people. I am not just a mechanical engineering intern or human psychology communications expert; rather, I am a beautiful combo of both.</p>
+    <p>I really hope how much I want this comes through. I&rsquo;d love to at least chat.</p>
+    <div class="sign">
+      <div class="name">Sebastian Esteva</div>
+      <div class="contact">sesteva@stanford.edu &nbsp;|&nbsp; 510-812-3540 &nbsp;|&nbsp; sesteva.com</div>
+    </div>
+  </div>
+</div>
+
+<canvas id="veil"></canvas>
 
 <div id="lampWrap">
   <svg id="lampSvg" viewBox="0 0 460 820" preserveAspectRatio="xMaxYMax meet">
@@ -203,7 +211,6 @@
       </linearGradient>
     </defs>
 
-    <!-- foot / base -->
     <rect class="foot" x="270" y="750" width="180" height="56" rx="14"></rect>
     <rect class="bone" x="278" y="742" width="164" height="20" rx="10"></rect>
 
@@ -232,49 +239,7 @@
   </svg>
 </div>
 
-<div id="letterPanel">
-  <div class="letter">
-    <p>Dear Human Computer Lab Team,</p>
-    <p>Clicking &ldquo;Wake up LeLamp&rdquo; sparked a small burst of joy in an otherwise exhausting application process. So did your entire website. And I have submitted a lot of applications for this fall&hellip;</p>
-    <p>What you are building sits at the exact intersection I have been working toward my entire career. My undergraduate degree is in Biomechanical Engineering at Stanford, yet I&rsquo;m also getting a Master's in Communication. A combination which has confused so many, yet I think I finally have an answer to give all those confused recruiters&mdash; your website and mission. Let me explain.</p>
-    <p>I chose biomechanical engineering because I wanted to understand how the physical world (weights, radiation, etc.) impacts the human. The outside world, in.</p>
-    <p>I chose communications because I wanted to understand how humans perceive and understand the world, from the inside out.</p>
-    <p>And by combining those two knowledge bases, work towards building the perfect synchrony between the two.</p>
-    <p>Human-robot interaction, character robots, new ways for people to form attachment to technology &mdash; that is the future of communication. It is also exactly what you are building. That is where I want to live, and that is where the Human Computer Lab stands.</p>
-    <p>Your manifesto hit me in a way I did not expect. The frustration that human-computer interfaces have barely evolved in forty years &mdash; I feel that deeply. Especially with an aging grandfather who can barely use his computer, since it&rsquo;s designed for young minds and eyes.</p>
-    <p>And your focus is on creating chaos, and carving order out of it is how I grew up, as my parents are both artists. They live in the chaos, and find it beautiful. And their artwork gives those who crave order a little window into the chaos, so we can enjoy it. I want to do that, but through technology.</p>
-    <p>I recently won &ldquo;Most Innovative Solution&rdquo; at a d.school hackathon hosted by the Stanford Wu Tsai Human Performance Alliance. It was for a simple concept, which arose from three hours of talking with the end user, a gentleman who had lost arm function after a stroke. And I attribute every bit of that win to trying to understand the human first, and then letting my technical expertise scope and craft a solution.</p>
-    <p>That is the kind of engineer I want to be. Not someone who just wants to get the CAD done, but rather a person who wants to build for people. I am not just a mechanical engineering intern or human psychology communications expert; rather, I am a beautiful combo of both.</p>
-    <p>I really hope how much I want this comes through. I&rsquo;d love to at least chat.</p>
-    <div class="sign">
-      <div class="name">Sebastian Esteva</div>
-      <div class="contact">sesteva@stanford.edu &nbsp;|&nbsp; 510-812-3540 &nbsp;|&nbsp; sesteva.com</div>
-    </div>
-  </div>
-</div>
-
-<svg id="fogSvg">
-  <defs>
-    <filter id="softEdge" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="26"/>
-    </filter>
-    <!-- black = light gets through the fog, white = stays dark -->
-    <linearGradient id="coneFalloff" gradientUnits="userSpaceOnUse">
-      <stop offset="0%"  stop-color="#000000"/>
-      <stop offset="30%" stop-color="#0d0d0d"/>
-      <stop offset="58%" stop-color="#6e6e6e"/>
-      <stop offset="82%" stop-color="#c8c8c8"/>
-      <stop offset="100%" stop-color="#ffffff"/>
-    </linearGradient>
-    <mask id="lightMask" maskUnits="userSpaceOnUse">
-      <rect id="maskBase" x="0" y="0" width="100%" height="100%" fill="#fff"/>
-      <g id="maskCone" filter="url(#softEdge)">
-        <polygon id="maskPoly" fill="url(#coneFalloff)"></polygon>
-      </g>
-    </mask>
-  </defs>
-  <rect id="fogRect" x="0" y="0" width="100%" height="100%" fill="#030209" mask="url(#lightMask)"></rect>
-</svg>
+<div id="corner">HUMAN COMPUTER LAB</div>
 
 <div id="hint">
   <p>Click anywhere to start reading <em>Sebastian Esteva&rsquo;s</em> cover letter for [Human Computer Lab]</p>
@@ -291,51 +256,113 @@
 (function(){
   // ---------- stars ----------
   var stage = document.getElementById('stage');
-  for(var i=0;i<70;i++){
+  for(var i=0;i<34;i++){
     var s = document.createElement('div');
     s.className='star';
     var size = Math.random()*2+0.5;
-    s.style.width = size+'px';
-    s.style.height = size+'px';
+    s.style.width = size+'px'; s.style.height = size+'px';
     s.style.left = (Math.random()*100)+'%';
-    s.style.top = (Math.random()*100)+'%';
+    s.style.top  = (Math.random()*100)+'%';
     s.style.animationDelay = (Math.random()*4)+'s';
     stage.appendChild(s);
   }
 
   // ---------- refs ----------
-  var svg       = document.getElementById('lampSvg');
-  var shoulder  = document.getElementById('shoulder');
-  var elbow     = document.getElementById('elbow');
-  var bulbCore  = document.getElementById('bulbCore');
-  var shadeRim  = document.getElementById('shadeRim');
-  var shadeInner= document.getElementById('shadeInner');
-  var wrap      = document.getElementById('lampWrap');
-  var hint      = document.getElementById('hint');
-  var beamSvg   = document.getElementById('beamSvg');
-  var beamPoly  = document.getElementById('beamPoly');
-  var beamGrad  = document.getElementById('beamGrad');
-  var maskCone  = document.getElementById('maskCone');
-  var maskPoly  = document.getElementById('maskPoly');
-  var coneFall  = document.getElementById('coneFalloff');
-  var fogRect   = document.getElementById('fogRect');
-  var edgeFade  = document.getElementById('edgeFade');
-  var letterPanel = document.getElementById('letterPanel');
-  var scrollHint  = document.getElementById('scrollHint');
-  var endLinks    = document.getElementById('endLinks');
+  var svg        = document.getElementById('lampSvg');
+  var shoulder   = document.getElementById('shoulder');
+  var elbow      = document.getElementById('elbow');
+  var bulbCore   = document.getElementById('bulbCore');
+  var shadeInner = document.getElementById('shadeInner');
+  var wrap       = document.getElementById('lampWrap');
+  var hint       = document.getElementById('hint');
+  var mosaic     = document.getElementById('mosaic');
+  var veil       = document.getElementById('veil');
+  var vctx       = veil.getContext('2d');
+  var letterPanel= document.getElementById('letterPanel');
+  var scrollHint = document.getElementById('scrollHint');
+  var endLinks   = document.getElementById('endLinks');
 
   var VB_W = 460, VB_H = 820;
   var SHOULDER = {x:395, y:742};
   var L1 = 270, L2 = 220, SHADE = 82;
+  var RIM = 84;                 // shade rim offset inside the wrist group
+  var HALF_ANGLE = 0.34;        // cone half-angle, radians
+  var STAMPS = 22;              // soft circles stamped along the beam
+  var ERASE = 0.92;             // per-stamp erase; they accumulate to a full hole
 
   var lit = false;
   var pointerInside = true;
+  var litAmount = 0;            // eases 0..1 so the light fades in and out
 
   var mouseClient = {x: window.innerWidth*0.3, y: window.innerHeight*0.4};
   var restLocal   = {x: SHOULDER.x-260, y: SHOULDER.y-360};
   var smooth      = {x: restLocal.x, y: restLocal.y};
-  // smoothed beam aim point, in client px
-  var aim = {x: mouseClient.x, y: mouseClient.y};
+
+  // cached layout — recomputed on resize only, never per frame
+  var scale=1, offX=0, offY=0, maxScroll=0;
+  var W=0, H=0, dpr=1, reach=0, nearHalf=40;
+  var photoBox = {x:0,y:0,w:0,h:0};       // where the portrait sits on screen
+  var drawBox  = {x:0,y:0,w:0,h:0};       // cover-fit rect for the image itself
+  var portrait = null;                     // greyscale copy, built once
+
+  function measure(){
+    var rect = svg.getBoundingClientRect();
+    scale = Math.min(rect.width/VB_W, rect.height/VB_H);
+    offX  = rect.left + (rect.width  - VB_W*scale);
+    offY  = rect.top  + (rect.height - VB_H*scale);
+
+    W = window.innerWidth; H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    veil.width  = Math.round(W*dpr);
+    veil.height = Math.round(H*dpr);
+    veil.style.width = W+'px'; veil.style.height = H+'px';
+
+    reach    = Math.hypot(W,H);
+    nearHalf = Math.max(56*scale*0.55, 34);
+
+    // match the mosaic <img> exactly, so the portrait lines up on top of it
+    var mr = mosaic.getBoundingClientRect();
+    photoBox = {x:mr.left, y:mr.top, w:mr.width, h:mr.height};
+    var iw = 682, ih = 1024;
+    var cover = Math.max(mr.width/iw, mr.height/ih);
+    drawBox = {
+      w: iw*cover, h: ih*cover,
+      x: mr.left + (mr.width  - iw*cover)/2,
+      y: mr.top  + (mr.height - ih*cover)/2
+    };
+
+    maxScroll = letterPanel.scrollHeight - letterPanel.clientHeight;
+  }
+
+  // Build the greyscale portrait once. Same pairing index.html uses: the
+  // framed shot on top, the mosaic underneath showing through the light.
+  var portraitImg = new Image();
+  portraitImg.onload = function(){
+    var c = document.createElement('canvas');
+    c.width = portraitImg.naturalWidth; c.height = portraitImg.naturalHeight;
+    var x = c.getContext('2d');
+    x.drawImage(portraitImg, 0, 0);
+    try{
+      var d = x.getImageData(0,0,c.width,c.height), p = d.data;
+      for(var i=0;i<p.length;i+=4){
+        var g = p[i]*0.299 + p[i+1]*0.587 + p[i+2]*0.114;
+        p[i]=p[i+1]=p[i+2]=g;
+      }
+      x.putImageData(d,0,0);
+    }catch(e){
+      // canvas tainted (only happens over file://) — colour copy is fine,
+      // it gets drawn heavily dimmed anyway
+    }
+    portrait = c;
+    render();               // the face is ready — show it without waiting
+  };
+  portraitImg.src = 'images/contact-photo-framed-for-mosaic.jpg';
+
+  function remeasure(){ measure(); render(); }
+  measure();
+  window.addEventListener('resize', remeasure);
+  window.addEventListener('load', remeasure);
+  if(!mosaic.complete) mosaic.addEventListener('load', remeasure);
 
   window.addEventListener('mousemove', function(e){
     pointerInside = true;
@@ -352,104 +379,117 @@
   document.addEventListener('mouseenter', function(){ pointerInside = true; });
   window.addEventListener('blur',        function(){ pointerInside = false; });
 
-  // fog + beam glow only cover the letter column, never the lamp side
-  function sizeFog(){
-    var lampW = Math.min(window.innerWidth*0.5, 720);
-    var panelW = Math.max(window.innerWidth - lampW, 0);
-    fogRect.setAttribute('width', panelW);
-    // soft 110px falloff at the column's edge instead of a hard seam
-    edgeFade.setAttribute('x1', Math.max(panelW-110, 0));
-    edgeFade.setAttribute('x2', panelW);
-    edgeFade.setAttribute('y1', 0);
-    edgeFade.setAttribute('y2', 0);
-  }
-  sizeFog();
-  window.addEventListener('resize', sizeFog);
-
   function clientToLocal(cx, cy){
-    var rect = svg.getBoundingClientRect();
-    var scale = Math.min(rect.width/VB_W, rect.height/VB_H);
-    var offsetX = rect.left + (rect.width  - VB_W*scale);
-    var offsetY = rect.top  + (rect.height - VB_H*scale);
-    return { x: (cx-offsetX)/scale, y: (cy-offsetY)/scale };
-  }
-  function localToClient(lx, ly){
-    var rect = svg.getBoundingClientRect();
-    var scale = Math.min(rect.width/VB_W, rect.height/VB_H);
-    var offsetX = rect.left + (rect.width  - VB_W*scale);
-    var offsetY = rect.top  + (rect.height - VB_H*scale);
-    return { x: lx*scale + offsetX, y: ly*scale + offsetY };
+    return { x:(cx-offX)/scale, y:(cy-offY)/scale };
   }
 
   function solveIK(ox,oy,tx,ty,l1,l2){
-    var dx = tx-ox, dy = ty-oy;
-    var dist = Math.hypot(dx,dy);
-    var maxD = l1+l2-0.5, minD = Math.max(Math.abs(l1-l2)+0.5, (l1+l2)*0.3);
+    var dx=tx-ox, dy=ty-oy, dist=Math.hypot(dx,dy);
+    var maxD=l1+l2-0.5, minD=Math.max(Math.abs(l1-l2)+0.5,(l1+l2)*0.3);
     dist = Math.min(Math.max(dist,minD),maxD);
-    var angleToTarget = Math.atan2(dy,dx);
+    var a  = Math.atan2(dy,dx);
     var a1 = Math.acos((l1*l1+dist*dist-l2*l2)/(2*l1*dist));
     var a2 = Math.acos((l1*l1+l2*l2-dist*dist)/(2*l1*l2));
-    return {shoulderAngle: angleToTarget+a1, elbowRel: -(Math.PI-a2)};
+    return {shoulderAngle:a+a1, elbowRel:-(Math.PI-a2)};
   }
 
-  // ---------- the cone, shared by the glow and the fog mask ----------
-  function updateCone(){
-    // apex at the shade's opening, so the light plainly comes from the lamp
-    var r = shadeRim.getBoundingClientRect();
-    var ax = r.left + r.width/2, ay = r.top + r.height/2;
+  // ---------- the veil ----------
+  function paintVeil(ax, ay, ux, uy){
+    vctx.setTransform(dpr,0,0,dpr,0,0);
+    vctx.globalCompositeOperation = 'source-over';
+    vctx.clearRect(0,0,W,H);
 
-    var dx = aim.x-ax, dy = aim.y-ay;
-    var len = Math.hypot(dx,dy) || 1;
-    var ux = dx/len, uy = dy/len;
-    var px = -uy, py = ux;
+    // darkness over the whole screen, not just the letter column
+    vctx.fillStyle = '#030209';
+    vctx.fillRect(0,0,W,H);
 
-    // run the cone well past the cursor so it lights everything in its path
-    var reach = Math.hypot(window.innerWidth, window.innerHeight) * 1.15;
-    var nearHalf = Math.max(r.height*0.6, 40);
-    var farHalf  = nearHalf + Math.tan(0.36) * reach;
-    var tx = ax + ux*reach, ty = ay + uy*reach;
+    // the portrait, dim enough to read as a face in the dark
+    if(portrait){
+      vctx.save();
+      vctx.beginPath();
+      vctx.rect(photoBox.x, photoBox.y, photoBox.w, photoBox.h);
+      vctx.clip();
+      vctx.globalAlpha = 0.20;
+      vctx.drawImage(portrait, drawBox.x, drawBox.y, drawBox.w, drawBox.h);
+      vctx.globalAlpha = 1;
+      vctx.restore();
+    }
 
-    var pts = (ax+px*nearHalf)+','+(ay+py*nearHalf)+' '+
-              (tx+px*farHalf)+','+(ty+py*farHalf)+' '+
-              (tx-px*farHalf)+','+(ty-py*farHalf)+' '+
-              (ax-px*nearHalf)+','+(ay-py*nearHalf);
+    if(litAmount <= 0.001) return;
 
-    beamPoly.setAttribute('points', pts);
-    maskPoly.setAttribute('points', pts);
+    // Punch the cone out by stamping soft circles along the beam. Cheap
+    // radial gradients instead of a blur filter, and it feathers the cone
+    // laterally as well as along its length.
+    vctx.globalCompositeOperation = 'destination-out';
+    for(var i=0;i<STAMPS;i++){
+      var t  = i/(STAMPS-1);
+      var d  = t*reach;
+      var cx = ax + ux*d, cy = ay + uy*d;
+      var r  = nearHalf + Math.tan(HALF_ANGLE)*d;
+      var a  = litAmount * ERASE * Math.pow(1-t, 1.4);
+      if(a <= 0.002) continue;
+      // solid core out to 65%, then feathered — same curve index.html uses
+      var g = vctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      g.addColorStop(0,    'rgba(0,0,0,'+a+')');
+      g.addColorStop(0.65, 'rgba(0,0,0,'+a+')');
+      g.addColorStop(1,    'rgba(0,0,0,0)');
+      vctx.fillStyle = g;
+      vctx.beginPath(); vctx.arc(cx,cy,r,0,6.2832); vctx.fill();
+    }
 
-    beamGrad.setAttribute('x1', ax); beamGrad.setAttribute('y1', ay);
-    beamGrad.setAttribute('x2', tx); beamGrad.setAttribute('y2', ty);
-    coneFall.setAttribute('x1', ax); coneFall.setAttribute('y1', ay);
-    coneFall.setAttribute('x2', tx); coneFall.setAttribute('y2', ty);
+    // a warm haze near the shade so the beam itself reads as light
+    vctx.globalCompositeOperation = 'lighter';
+    for(var j=0;j<5;j++){
+      var tt = j/4*0.42, dd = tt*reach;
+      var gx = ax+ux*dd, gy = ay+uy*dd;
+      var gr = nearHalf + Math.tan(HALF_ANGLE)*dd;
+      var ga = litAmount * 0.055 * (1-tt/0.42*0.75);
+      var wg = vctx.createRadialGradient(gx,gy,0,gx,gy,gr);
+      wg.addColorStop(0, 'rgba(255,236,176,'+ga+')');
+      wg.addColorStop(1, 'rgba(255,236,176,0)');
+      vctx.fillStyle = wg;
+      vctx.beginPath(); vctx.arc(gx,gy,gr,0,6.2832); vctx.fill();
+    }
+    vctx.globalCompositeOperation = 'source-over';
   }
 
-  // ---------- main loop ----------
-  function frame(){
-    // chase the cursor only while lit; otherwise ease back to the rest pose
-    var following = lit && pointerInside;
-    var targetLocal = following ? clientToLocal(mouseClient.x, mouseClient.y) : restLocal;
-    smooth.x += (targetLocal.x - smooth.x) * 0.032;
-    smooth.y += (targetLocal.y - smooth.y) * 0.032;
-
+  // ---------- rendering ----------
+  function render(){
     var dx = smooth.x - SHOULDER.x, dy = smooth.y - SHOULDER.y;
-    var dist = Math.max(Math.hypot(dx,dy), 1);
-    var ux = dx/dist, uy = dy/dist;
+    var dist = Math.max(Math.hypot(dx,dy),1);
+    var ux0 = dx/dist, uy0 = dy/dist;
     var ik = solveIK(SHOULDER.x, SHOULDER.y,
-                     smooth.x - ux*SHADE, smooth.y - uy*SHADE, L1, L2);
+                     smooth.x-ux0*SHADE, smooth.y-uy0*SHADE, L1, L2);
 
     shoulder.setAttribute('transform',
       'translate('+SHOULDER.x+','+SHOULDER.y+') rotate('+(ik.shoulderAngle*180/Math.PI)+')');
     elbow.setAttribute('transform',
       'translate('+L1+',0) rotate('+(ik.elbowRel*180/Math.PI)+')');
 
-    // aim the cone at the arm's own smoothed target, not the raw cursor, so the
-    // beam axis and the shade can never drift out of alignment
-    aim = localToClient(smooth.x, smooth.y);
-    updateCone();
-    updateChrome();
+    // shade position straight from the joint angles — no layout reads
+    var fa = ik.shoulderAngle + ik.elbowRel;
+    var rx = SHOULDER.x + L1*Math.cos(ik.shoulderAngle) + (L2+RIM)*Math.cos(fa);
+    var ry = SHOULDER.y + L1*Math.sin(ik.shoulderAngle) + (L2+RIM)*Math.sin(fa);
+    paintVeil(rx*scale+offX, ry*scale+offY, Math.cos(fa), Math.sin(fa));
+  }
 
+  // ---------- main loop ----------
+  function frame(){
+    var following = lit && pointerInside;
+    var target = following ? clientToLocal(mouseClient.x, mouseClient.y) : restLocal;
+    smooth.x += (target.x - smooth.x) * 0.032;
+    smooth.y += (target.y - smooth.y) * 0.032;
+
+    var want = lit ? 1 : 0;
+    litAmount += (want - litAmount) * 0.06;
+
+    render();
     requestAnimationFrame(frame);
   }
+  // Paint once up front. Without this the veil is a blank, fully transparent
+  // canvas until the first animation frame lands, so a slow start or a
+  // throttled/restored tab would flash the whole letter unmasked.
+  render();
   requestAnimationFrame(frame);
 
   // ---------- click anywhere to toggle ----------
@@ -457,21 +497,17 @@
     lit = true;
     wrap.classList.add('lit');
     bulbCore.style.fill = '#FFF6DC';
-    bulbCore.style.filter = 'drop-shadow(0 0 14px #FFD873)';
     shadeInner.setAttribute('fill', 'var(--cream-on)');
-    beamSvg.classList.add('on');
-    maskCone.classList.add('on');
     hint.classList.add('gone');
+    updateChrome();
   }
   function turnOff(){
     lit = false;
     wrap.classList.remove('lit');
     bulbCore.style.fill = '';
-    bulbCore.style.filter = '';
     shadeInner.setAttribute('fill', 'var(--cream-off)');
-    beamSvg.classList.remove('on');
-    maskCone.classList.remove('on');
     hint.classList.remove('gone');
+    updateChrome();
   }
   document.addEventListener('click', function(){
     if(lit) turnOff(); else turnOn();
@@ -480,24 +516,19 @@
   endLinks.addEventListener('click', function(e){ e.stopPropagation(); });
 
   // ---------- scrolling the letter ----------
-  // the wheel works wherever the pointer is, not just over the text column
   window.addEventListener('wheel', function(e){
     letterPanel.scrollTop += e.deltaY;
   }, {passive:true});
 
-  function scrollable(){
-    return letterPanel.scrollHeight - letterPanel.clientHeight;
-  }
-  function atEnd(){
-    return letterPanel.scrollTop >= scrollable() - 48;
-  }
+  function atEnd(){ return letterPanel.scrollTop >= maxScroll - 48; }
   function updateChrome(){
-    var moreBelow = scrollable() > 24 && !atEnd();
-    var cursorLow = mouseClient.y > window.innerHeight * 0.66;
+    var moreBelow = maxScroll > 24 && !atEnd();
+    var cursorLow = mouseClient.y > window.innerHeight*0.66;
     scrollHint.classList.toggle('show', lit && moreBelow && cursorLow);
     endLinks.classList.toggle('show', lit && atEnd());
   }
   letterPanel.addEventListener('scroll', updateChrome, {passive:true});
+  window.addEventListener('mousemove', updateChrome, {passive:true});
   window.addEventListener('resize', updateChrome);
   updateChrome();
 })();

@@ -211,7 +211,7 @@
       position: absolute;
       inset: 0;
       z-index: -1;
-      background: rgba(232,232,232,0.12);
+      background: rgba(232,232,232,0.32);
       pointer-events: none;
       clip-path: inset(0 0 100% 0);
     }
@@ -288,12 +288,148 @@
       background: var(--bg-panel);
     }
 
+    /* ─── MORE PROJECTS — compact list of every other project, same
+         component used at the end of the full project pages (pendant.html,
+         etc.), recolored to this page's dark theme. */
+    .more-projects { margin-top: 4rem; padding-top: 2.5rem; border-top: 1px solid var(--line); }
+
+    .more-projects-title {
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--white-faint);
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .more-projects-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.9rem;
+    }
+
+    .mini-card {
+      position: relative;
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      border-radius: 4px;
+      background: var(--bg-panel);
+    }
+
+    .mini-card img, .mini-card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: grayscale(20%) brightness(0.85);
+      transition: filter 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .mini-card:hover img, .mini-card:hover video { filter: grayscale(0%) brightness(1); transform: scale(1.05); }
+
+    .mini-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.05) 100%);
+      pointer-events: none;
+    }
+
+    .mini-card-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.75rem; z-index: 2; }
+
+    .mini-card-title {
+      font-family: var(--serif);
+      font-size: 0.8rem;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: 0.15rem;
+    }
+
+    .mini-card-tag {
+      font-size: 0.56rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--white-faint);
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mini-card-arrow {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.55rem;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--white);
+      font-size: 0.7rem;
+      transform: rotate(-45deg);
+      transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), background 0.3s;
+      z-index: 2;
+    }
+
+    .mini-card:hover .mini-card-arrow { transform: rotate(0deg); background: var(--white); color: var(--bg); }
+
+    .quick-links-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1.5rem; }
+
+    .quick-link-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      font-family: var(--sans);
+      font-size: 0.66rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--white-soft);
+      white-space: nowrap;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .quick-link-mini:hover { border-color: var(--white); color: var(--white); }
+
+    .back-bottom-wrap { text-align: center; margin-top: 3rem; }
+
+    .back-bottom {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--sans);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--white);
+      text-decoration: none;
+      padding: 0.85rem 1.8rem;
+      border: 1px solid var(--white);
+      border-radius: 100px;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .back-bottom:hover { background: var(--white); color: var(--bg); }
+
     @media (max-width: 768px) {
       nav { padding: 1rem 1rem; }
       .a11y-toggle { font-size: 0.6rem; padding: 0.4rem 0.7rem; white-space: nowrap; }
       .a11y-toggle-prefix { display: none; }
       .back-link { font-size: 0.62rem; padding: 0.5rem 0.9rem; white-space: nowrap; }
       .pdf-embed { height: 70vh; }
+      .more-projects-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
     }
   </style>
 </head>
@@ -336,6 +472,66 @@
         title="3D Printed Glasses Frames by Sebastian Esteva — ME 227 Stanford"
         loading="lazy"
       ></iframe>
+
+      <div class="more-projects">
+        <h3 class="more-projects-title">More Projects</h3>
+        <div class="more-projects-grid">
+          <a href="pendant.html" class="mini-card">
+            <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024" loading="lazy">
+            <span class="mini-card-arrow">↗</span>
+            <div class="mini-card-info">
+              <p class="mini-card-title">Graduation Pendant</p>
+              <span class="mini-card-tag">Silver · Metalworking · Design</span>
+            </div>
+          </a>
+          <a href="slipdoor.html" class="mini-card">
+            <video aria-label="3D render of The Slip Door wooden frame prototype" width="1280" height="720" autoplay loop muted playsinline disableRemotePlayback preload="auto">
+              <source src="images/slipdoor-final-result.webm" type="video/webm">
+              <source src="images/slipdoor-final-result.mp4" type="video/mp4">
+            </video>
+            <span class="mini-card-arrow">↗</span>
+            <div class="mini-card-info">
+              <p class="mini-card-title">The Slip Door</p>
+              <span class="mini-card-tag">Accessibility · Volkswagen</span>
+            </div>
+          </a>
+          <a href="baston.html" class="mini-card">
+            <img src="images/baston-hero.jpg" alt="Close-up of the Bastón foldable cane handle and joints" width="5184" height="3058" loading="lazy">
+            <span class="mini-card-arrow">↗</span>
+            <div class="mini-card-info">
+              <p class="mini-card-title">Bastón</p>
+              <span class="mini-card-tag">Woodworking · Metalworking</span>
+            </div>
+          </a>
+          <a href="timecollector.html" class="mini-card">
+            <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gears and marble mechanism" width="966" height="1192" loading="lazy">
+            <span class="mini-card-arrow">↗</span>
+            <div class="mini-card-info">
+              <p class="mini-card-title">Time Collector</p>
+              <span class="mini-card-tag">Kinetic Sculpture</span>
+            </div>
+          </a>
+          <a href="chess.html" class="mini-card">
+            <img src="images/chess-hero.jpg" alt="Wall-mounted magnetic chess set mechanism with sliding panels" width="5712" height="4284" loading="lazy">
+            <span class="mini-card-arrow">↗</span>
+            <div class="mini-card-info">
+              <p class="mini-card-title">Poser Chess Set</p>
+              <span class="mini-card-tag">3D Printing · Transformative Design</span>
+            </div>
+          </a>
+        </div>
+
+        <div class="quick-links-row">
+          <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+          <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+          <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
+          <a href="apple-medical-licensure-apple-watch.html" class="quick-link-mini">Apple's Medical Licensure <span>↗</span></a>
+        </div>
+      </div>
+
+      <div class="back-bottom-wrap">
+        <a class="back-bottom" href="index.html#projects">← Back to Main Page</a>
+      </div>
     </div>
   </main>
 

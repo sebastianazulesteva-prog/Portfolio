@@ -210,6 +210,12 @@
       line-height: 1.8;
     }
 
+    /* Atkinson Hyperlegible is only loaded at 400/700 — a font-weight:500
+       element (which has an exact match in Syne) would otherwise fall back
+       to plain 400 here and visually lose its emphasis. Force it to 700
+       instead so anything bold-ish stays bold after the switch. */
+    body.accessible .more-toggle { font-weight: 700; }
+
     html { font-size: var(--base-font-size); scroll-behavior: smooth; }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -1126,7 +1132,7 @@
       position: absolute;
       inset: 0;
       z-index: -1;
-      background: rgba(245, 245, 240, 0.12);
+      background: rgba(245, 245, 240, 0.32);
       pointer-events: none;
       clip-path: inset(0 0 100% 0);
     }

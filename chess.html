@@ -73,6 +73,17 @@
       line-height:1.9;
     }
 
+    /* Atkinson Hyperlegible is only loaded at 400/700 — a font-weight:500
+       element (which has an exact match in Poppins) would otherwise fall
+       back to plain 400 here and visually lose its emphasis. Force it to
+       700 instead so anything bold-ish stays bold after the switch. */
+    body.accessible .back-link,
+    body.accessible .hero-sub,
+    body.accessible .meta-label,
+    body.accessible .journey-sub,
+    body.accessible .back-bottom,
+    body.accessible .quick-link-mini { font-weight: 700; }
+
     body{
       background:var(--bg);
       color:var(--white);

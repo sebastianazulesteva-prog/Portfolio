@@ -21,24 +21,34 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ── The cloud's own zone, bounded to leave a CLEAR GAP on both sides ──
-  // (VR_AI_BUILD_GUIDE.md §9.1.) This used to be BACK_CENTER 180 ± ZONE_WIDTH
-  // 150/2, i.e. tile centres anywhere from 105° to 255°. That genuinely
-  // overlapped the card zones: measured, the projects grid's outer column
-  // reached 113° on the left while cloud tiles started at 105°, so the two were
-  // separated by depth alone (radius 2.0 against the cloud's 2.21–3.56) and
-  // read as tangled the moment you looked from off to one side.
+  // (VR_AI_BUILD_GUIDE.md §9.1.) Stated as explicit bounds cut to clear the
+  // real cluster edges, and NOT symmetric about 180 — the two sides hold
+  // different amounts of card.
   //
-  // Now stated as explicit bounds cut to clear the real cluster edges, which is
-  // also why they are NOT symmetric about 180 — the two sides have different
-  // amounts of card in them:
-  //   right, Experience outer edge  = 116.8°  (109.62° column + 7.18° half-card)
-  //   left,  Projects outer edge    = 131.7°  (96.5° centre + 35.2° half-grid)
-  //                                 = 228.3° in this component's angle sense
-  // A tile's own angular half-width is up to ~8° (a 0.61 m tile at radius
-  // 2.21), so bounds on tile CENTRES have to sit that far inside the visual
-  // gap. These leave ~14° of clear dome on each side.
-  var ZONE_MIN_DEG = 139;  // toward Experience (viewer's right)
-  var ZONE_MAX_DEG = 206;  // toward the projects grid (viewer's left)
+  // The gap is sized for PARITY with the hub's own tightest section boundary,
+  // per Sebastian: the writing column and the projects grid are separated by
+  // 7.8° of yaw, and that reads as "two distinct sections", so the cloud gets
+  // the same 7.8° rather than a wider moat of its own. It previously stood off
+  // by ~19° on both sides, which left the cloud bunched into 67° of dome behind
+  // the viewer and reading as one tight clump instead of an arc that wraps
+  // around to meet the sections either side.
+  //
+  // Measured off the placed panels (card edges in each card's OWN frame — an
+  // AABB of a rotated card is not its size), in this component's angle sense
+  // where 0° is straight ahead and +90° is the viewer's right:
+  //   Experience outer edge    116.75°   -> tile edges start 124.5°
+  //   projects grid outer edge 228.46°   -> tile edges stop  220.7°
+  //   (reference: projects grid 298.54° -> writing column 306.30° = 7.76°)
+  //
+  // These bound the tiles' VISUAL EDGES, not their centres, and each tile's own
+  // half-width is subtracted per tile when it's placed (below). Bounding centres
+  // instead needs a single worst-case inset — the largest tile at the nearest
+  // radius, ~8° — which then applies to every tile including the small distant
+  // ones, and since no tile lands exactly on a bound the cloud ends up standing
+  // off further than intended anyway (measured 12.4°/13.4° against a 7.8°
+  // target). Stating the gap once, here, is the whole point.
+  var EDGE_MIN_DEG = 124.5;  // toward Experience (viewer's right)
+  var EDGE_MAX_DEG = 220.7;  // toward the projects grid (viewer's left)
   var MIN_R = 2.2, MAX_R = 3.6;
   var MIN_H = 0.7, MAX_H = 2.6;
   var TILE = 0.5;          // base tile size (long edge, metres)
@@ -89,21 +99,43 @@
     setImages: function (images) {
       var self = this;
       var a11y = document.body.classList.contains('accessible');
-      (images || []).forEach(function (im, i) {
+      var list = images || [];
+      // Golden-ratio hashing spreads the tiles nicely but its extremes fall
+      // short of 0 and 1 for any finite set (0.03–0.97 across 32 images), so
+      // the arc stood off its own bounds by a further ~3° at each end on top of
+      // the per-tile inset. Normalising the ANGLE fractions to span [0,1] makes
+      // the cloud actually reach the gap the zone declares, at any image count.
+      // Only s1 is normalised: radius/height/size want their natural jitter,
+      // and pinning those to their extremes would put a tile exactly on the
+      // floor-height and far-radius limits every time.
+      var rawAngle = list.map(function (im, i) { return frac((i + 1) * 0.61803398875); });
+      var aMin = Math.min.apply(null, rawAngle), aMax = Math.max.apply(null, rawAngle);
+      var aSpread = (aMax - aMin) || 1;
+      list.forEach(function (im, i) {
         // Deterministic pseudo-random placement (golden-ratio hashing).
-        var s1 = frac((i + 1) * 0.61803398875);
+        var s1 = (rawAngle[i] - aMin) / aSpread;
         var s2 = frac((i + 1) * 0.38196601125 + 0.13);
         var s3 = frac((i + 1) * 0.27201964951 + 0.71);
         var s4 = frac((i + 1) * 0.13 + 0.37);
 
-        var angle = ZONE_MIN_DEG + s1 * (ZONE_MAX_DEG - ZONE_MIN_DEG);
         var radius = MIN_R + s2 * (MAX_R - MIN_R);
         var height = MIN_H + s3 * (MAX_H - MIN_H);
+        // Slightly varied tile size so the cloud reads organically, not gridded.
+        // Needed BEFORE the angle: this tile's own angular half-width is what
+        // gets inset from the zone's edge bounds.
+        var size = TILE * (0.82 + s4 * 0.4);
+
+        // A tile faces the viewer, so its plane is ~tangential and its angular
+        // half-width is atan((size/2) / radius): ~7.9° for the biggest tile at
+        // 2.2 m, ~3.9° for the smallest at 3.6 m. Insetting per tile means a
+        // near tile keeps its distance while a small far one is free to sit
+        // right at the boundary, so the cloud actually reaches the gap it was
+        // given instead of leaving a second, invisible margin.
+        var halfDeg = THREE.MathUtils.radToDeg(Math.atan2(size / 2, radius));
+        var lo = EDGE_MIN_DEG + halfDeg, hi = EDGE_MAX_DEG - halfDeg;
+        var angle = lo + s1 * (hi - lo);
         var rad = THREE.MathUtils.degToRad(angle);
         var home = new THREE.Vector3(Math.sin(rad) * radius, height, -Math.cos(rad) * radius);
-
-        // Slightly varied tile size so the cloud reads organically, not gridded.
-        var size = TILE * (0.82 + s4 * 0.4);
 
         var tileEl = document.createElement('a-entity');
         tileEl.classList.add('clickable');

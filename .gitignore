@@ -13,3 +13,8 @@ vr-audio/
 # site. Delete these three lines if you decide to version them.
 vr/_dev-*.js
 vr/_dev-preview.html
+
+# Local dev tooling: a cloudflared binary and the self-signed cert (private key
+# included) that .tools/vr-phone.sh generates for phone testing. Never publish.
+.tools/
+.Rhistory

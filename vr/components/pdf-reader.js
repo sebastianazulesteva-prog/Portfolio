@@ -96,14 +96,18 @@
     disposables: []
   };
 
-  var hubSelectors = ['#homeCluster', '#bioCard', '#projectsConstellation',
-                      '#experienceConstellation', '#photoCloud', '#focusStage'];
-
+  // The hub is whatever carries .hub-cluster (see index.html), plus the focus
+  // stage — the reader is opened FROM the focus stage, so unlike a project room
+  // it has to put that away too. Both of these were hardcoded id lists that had
+  // drifted apart from project-room.js's copy, and both missed
+  // #writingConstellation, leaving the other four writing cards floating in the
+  // reading space (VR_TEST_REPORT B1).
   function setHubVisible(visible) {
-    hubSelectors.forEach(function (sel) {
-      var el = document.querySelector(sel);
-      if (el) el.setAttribute('visible', visible);
+    [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
+      el.setAttribute('visible', visible);
     });
+    var focus = document.querySelector('#focusStage');
+    if (focus) focus.setAttribute('visible', visible);
   }
 
   // Same reason as project-room.js's copy: a control created after load isn't
@@ -530,7 +534,7 @@
         // the dome you just came from — and because dome.js pins the floor's
         // radius to the dome's so its rim lands exactly on the ember horizon,
         // retinting it also broke that seam. dusk-rug is untouched either way
-        // (it isn't in hubSelectors), so the warm circle underfoot carries
+        // (it carries no .hub-cluster class), so the warm circle underfoot carries
         // straight over from the dome.
         var sky = document.querySelector('[dusk-sky]');
         if (sky) sky.components['dusk-sky'].setTheme('#040404', '#0d0a08');

@@ -154,10 +154,7 @@
       if (AUDIO_ON && userChoice !== 'off') window.VRSound.enabled = true;
       if (AUDIO_ON && userChoice === 'on') startAudio();
       fadeHint();
-      // No nudge line here: `nudge` was never declared once the landscape nudge
-      // was removed from the markup and the CSS, so this threw an uncaught
-      // ReferenceError on the FIRST gesture of every session — which also
-      // skipped the listener cleanup below (VR_TEST_REPORT B2).
+      if (nudge) nudge.classList.add('dismissed');
       ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (evt) {
         window.removeEventListener(evt, firstGesture, true);
       });

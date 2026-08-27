@@ -9,23 +9,16 @@
    now smooth and user-driven. Rotation is untouched: snap-turn still handles all
    turning, there is still no teleport, and there is still no smooth *look*.
 
-   ── Why it is BOUNDED, and how the bound is meant to feel ──
-   Every constellation card sits at radius 2.0-2.3 m from the origin, and the
-   photo cloud starts at 2.21 m. Free roam of the dome would walk you straight
-   through the cards — the scene is a composition seen from a spot, not a room
-   to cross. So position is clamped to a circle.
-
-   The first pass used 1.1 m at 1.0 m/s, which was too tight to read as walking:
-   you reached the clamp in about a second and spent most of your time pressed
-   against it. 1.7 m at 1.7 m/s is the game-feel version — a couple of seconds
-   of travel in any direction, close enough to a card to read it comfortably
-   (2.0 m -> ~0.3 m) while still stopping short of any card's plane.
-
-   The edge is SOFT, which is most of why it stopped feeling like a bug. A hard
-   clamp with a slide term still ends in an abrupt halt; instead the outward
-   component of the *wanted* velocity is bled off over the last `softEdge`
-   metres, so you decelerate into the boundary the way you would into a wall in
-   any first-person game. The hard clamp stays underneath as a backstop.
+   ── Why it is BOUNDED, and why the bound is small ──
+   Every constellation card sits at radius 2.0 m from the origin, and the photo
+   cloud starts at 2.21 m. Free roam of the dome would walk you straight through
+   the cards — the scene is a composition seen from a spot, not a room to cross.
+   So position is clamped to a circle. The default 1.1 m is the largest radius
+   that still leaves clear air between you and the nearest panel face: it lets
+   you halve your distance to any card (2.0 m → ~0.9 m) and step around the home
+   panel, without ever reaching a card's plane. It also happens to keep you
+   roughly over the dusk rug (radius 1.3 at z=-0.4), so the floor still reads as
+   "your spot".
 
    Tune with ?walkRadius=<m> and ?walkSpeed=<m/s>; ?walk=0 disables it entirely
    (for comparing against the old fixed-viewpoint composition).
@@ -62,10 +55,9 @@
 
   AFRAME.registerComponent('walk-controls', {
     schema: {
-      speed: { type: 'number', default: 1.7 },   // metres/second at full deflection
-      radius: { type: 'number', default: 1.7 },  // clamp, metres from the seat
-      ramp: { type: 'number', default: 0.14 },   // seconds to reach full speed
-      softEdge: { type: 'number', default: 0.4 } // metres of decel before the clamp
+      speed: { type: 'number', default: 1.0 },   // metres/second at full deflection
+      radius: { type: 'number', default: 1.1 },  // clamp, metres from the seat
+      ramp: { type: 'number', default: 0.18 }    // seconds to reach full speed
     },
 
     init: function () {
@@ -177,25 +169,6 @@
         .addScaledVector(this._right, ix)
         .multiplyScalar(this.data.speed);
 
-      // ── Soft boundary ──
-      // Bleed the OUTWARD part of the wanted velocity away over the last
-      // `softEdge` metres, before the ramp sees it, so approaching the edge is
-      // a deceleration rather than an impact. Sideways and inward motion are
-      // untouched, so you can still run along the boundary at full speed.
-      var pos = this.el.object3D.position;
-      var r = this.data.radius;
-      var soft = Math.min(this.data.softEdge, r * 0.5);
-      var d0 = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
-      if (soft > 0 && d0 > r - soft) {
-        var ux = pos.x / (d0 || 1), uz = pos.z / (d0 || 1);
-        var out0 = this._want.x * ux + this._want.z * uz;
-        if (out0 > 0) {
-          var keep = Math.max(0, (r - d0) / soft);
-          this._want.x -= out0 * (1 - keep) * ux;
-          this._want.z -= out0 * (1 - keep) * uz;
-        }
-      }
-
       if (reducedMotion || this.data.ramp <= 0) {
         this.vel.copy(this._want);
       } else {
@@ -207,12 +180,14 @@
       }
 
       var moving = this.vel.lengthSq() > 1e-5;
+      var pos = this.el.object3D.position;
 
       if (moving) {
         pos.x += this.vel.x * dt;
         pos.z += this.vel.z * dt;
 
-        // ── Hard clamp, the backstop under the soft edge above ──
+        // ── Clamp to the circle ──
+        var r = this.data.radius;
         var d = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
         if (d > r) {
           var s = r / d;

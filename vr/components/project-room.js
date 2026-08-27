@@ -25,12 +25,7 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var TRANSITION_MS = 1400; // full dip-to-dark-and-emerge, within §7's 1.2–2s
 
-  // Read from the DOM, never a hardcoded id list: this used to be five ids that
-  // silently missed #writingConstellation (VR_TEST_REPORT B1) — the writing
-  // cards stayed visible AND clickable inside every room, so a visitor could
-  // open the PDF reader on top of an open room. See the .hub-cluster comment in
-  // index.html. Queried per call rather than cached, because the clusters are
-  // populated after load and a cached NodeList would freeze that moment.
+  var hubSelectors = ['#homeCluster', '#bioCard', '#projectsConstellation', '#experienceConstellation', '#photoCloud'];
 
   // The scene's base lighting used to be hand-copied here as two constants
   // "matching the <a-light> defaults in index.html". They had drifted: the key
@@ -78,8 +73,9 @@
   }
 
   function setHubVisible(visible) {
-    [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
-      el.setAttribute('visible', visible);
+    hubSelectors.forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (el) el.setAttribute('visible', visible);
     });
   }
 

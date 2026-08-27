@@ -62,22 +62,85 @@
     init: function () {
       this.el.setAttribute('visible', false);
       this.el.addEventListener('flash', this.flash.bind(this));
+      this._harden();
+    },
+
+    // ── Two things this sphere got wrong, both invisible until you held it on ──
+    //
+    // 1. DEPTH. It sits at the eye, so in view space its centre is z = 0. That
+    //    is the LARGEST z of anything on screen, and three.js sorts the
+    //    transparent pass back-to-front, so it drew BEFORE every panel. With
+    //    depthWrite on it stamped the depth buffer at 0.3 m and every
+    //    transparent object further away failed the depth test. As a 200 ms
+    //    flash that just looked like a flash. Held on for the duration of a
+    //    walk (walk-controls.js) it read as "the whole scene disappears the
+    //    moment I press W" — dome, floor and rug survived only because they
+    //    are opaque and had already been drawn. An overlay must not
+    //    participate in depth at all: no test, no write, and composite last.
+    //
+    // 2. IT WAS NOT A VIGNETTE. A flat black BackSide sphere is a uniform
+    //    screen dim, so "comfort vignette" at 0.30 meant the entire view went
+    //    30% darker while you moved, rather than the edges softening. The
+    //    injected radial term below fades alpha in by the angle off the view
+    //    axis, computed in VIEW space (`-normalize(mvPosition).z`) so it stays
+    //    centred on wherever the head is looking, independent of how the rig
+    //    or the sphere are oriented. Injecting into the stock MeshBasicMaterial
+    //    rather than swapping in a ShaderMaterial keeps `material.opacity` the
+    //    single strength knob, which is what both animations below drive.
+    _harden: function () {
+      var el = this.el;
+      var mesh = el.getObject3D('mesh');
+      if (!mesh) {
+        var self = this;
+        el.addEventListener('object3dset', function once (e) {
+          if (e.detail.type !== 'mesh') return;
+          el.removeEventListener('object3dset', once);
+          self._harden();
+        });
+        return;
+      }
+      var m = mesh.material;
+      if (!m || m.__vignetteHardened) return;
+      m.__vignetteHardened = true;
+      m.depthTest = false;
+      m.depthWrite = false;
+      mesh.renderOrder = 999;
+      mesh.frustumCulled = false;
+      m.onBeforeCompile = function (shader) {
+        shader.vertexShader = 'varying vec3 vVigView;\n' + shader.vertexShader.replace(
+          '#include <project_vertex>',
+          '#include <project_vertex>\n  vVigView = mvPosition.xyz;'
+        );
+        shader.fragmentShader = 'varying vec3 vVigView;\n' + shader.fragmentShader.replace(
+          '#include <alphamap_fragment>',
+          '#include <alphamap_fragment>\n'
+          // vigC = cos(angle off the view axis): 1 dead ahead, ~0.5 in the
+          // corners of a 16:9 80deg frame. Written as 1.0 - smoothstep(lo, hi)
+          // rather than smoothstep(hi, lo) because GLSL leaves smoothstep
+          // UNDEFINED when edge0 >= edge1 — the reversed form compiled clean
+          // and returned alpha 0 everywhere, i.e. a vignette that silently
+          // never drew.
+          + '  float vigC = -normalize(vVigView).z;\n  diffuseColor.a *= 1.0 - smoothstep(0.38, 0.90, vigC);'
+        );
+      };
+      m.needsUpdate = true;
     },
     // Held on for the duration of a walk (walk-controls.js). The one-shot
     // flash() below is right for a room transition but would blink once per
     // step while moving, so continuous motion gets its own steady state.
-    // Deliberately dimmer than the flash's 0.55: this one is on the whole time
-    // you're moving, and at flash strength it reads as the view going dark
-    // rather than as edge softening.
+    // Still dimmer than the flash's 0.55: this one is on the whole time you're
+    // moving. Now that the radial term in _harden() confines it to the edges,
+    // it can be stronger than the old flat 0.30 without darkening the view.
     hold: function (on) {
       var el = this.el;
       if (reducedMotion) return;
+      this._harden();
       el.removeAttribute('animation__in');
       el.removeAttribute('animation__out');
       if (on) {
         this._held = true;
         el.setAttribute('visible', true);
-        el.setAttribute('animation__hold', { property: 'material.opacity', to: 0.30, dur: 220, easing: 'easeOutQuad' });
+        el.setAttribute('animation__hold', { property: 'material.opacity', to: 0.42, dur: 220, easing: 'easeOutQuad' });
         return;
       }
       this._held = false;
@@ -87,6 +150,7 @@
     },
     flash: function () {
       var el = this.el;
+      this._harden();
       el.setAttribute('visible', true);
       el.setAttribute('animation__in', { property: 'material.opacity', from: 0, to: 0.55, dur: 80 });
       setTimeout(function () {

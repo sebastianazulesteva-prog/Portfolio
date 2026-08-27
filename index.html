@@ -368,12 +368,14 @@
     .a11y-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
-      background: rgba(245,245,240,0.7);
-      transition: background 0.2s;
+      background: transparent;
+      border: 1px solid rgba(245,245,240,0.7);
+      box-sizing: border-box;
+      transition: background 0.2s, border-color 0.2s;
       flex-shrink: 0;
     }
 
-    .a11y-toggle.active .a11y-dot { background: var(--text); }
+    .a11y-toggle.active .a11y-dot { background: var(--text); border-color: var(--text); }
 
 
     /* The button label reads "Turn on Accessibility" when the mode is off and

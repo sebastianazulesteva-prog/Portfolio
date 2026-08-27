@@ -316,23 +316,32 @@
 
     .nav-links a:hover { color: var(--text); }
 
-    /* Placeholder sitting where the "View in VR" link used to be. The VR
-       version of the site isn't public yet, so this is deliberately plain
-       text — no href, no hover, not clickable. Dimmed a little more than the
-       real nav links so it reads as a note rather than a destination. */
-    .nav-soon {
-      font-size: 0.75rem;
-      /* Dimmer than the real nav links (rgba(...,0.78) above) so it still
-         reads as a note rather than a destination, but legible on its own —
-         previously this stacked with the entrance animation's opacity, which
-         made it nearly invisible. */
-      color: rgba(245,245,240,0.5);
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      cursor: default;
-      opacity: 0;
-      animation: fadeUp 0.6s 2.2s forwards;
+    /* The "View in VR" nav entry (/vr — the WebXR version of this site).
+       This replaced the old inert "VR Website Version Coming Soon" note when
+       /vr went live in beta. The <li> only handles wrapping; the link itself
+       is styled by .nav-links a above, so it fades in and hovers exactly like
+       the other four. Kept nowrap so "View in VR" never splits from its pill. */
+    .nav-vr { white-space: nowrap; }
+
+    /* BETA pill riding beside the link. Inside the <a> on purpose: it then
+       inherits the entrance animation and the no-hero-anim override that all
+       nav links get, instead of needing its own copies of both. */
+    .nav-beta {
+      margin-left: 0.5rem;
+      padding: 0.15em 0.45em;
+      border: 1px solid rgba(245,245,240,0.28);
+      border-radius: 3px;
+      /* Dimmer than the link text it sits next to, so it reads as a label on
+         the link rather than as part of the link's name. */
+      color: rgba(245,245,240,0.55);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      vertical-align: 0.08em;
+    }
+
+    .nav-links a:hover .nav-beta {
+      border-color: rgba(245,245,240,0.5);
+      color: rgba(245,245,240,0.8);
     }
 
     /* Thin vertical rule separating "Experience" (a whole separate page)
@@ -1167,13 +1176,13 @@
     .reveal-delay-2 { transition-delay: 0.24s; }
     .reveal-delay-3 { transition-delay: 0.36s; }
 
-    /* Between phone and full desktop there isn't room for the "coming soon"
-       note beside the four links — it squeezed "Where I've Worked" into a
-       three-line stack. Below ~1200px the note drops to its own line under
-       the links instead. */
+    /* Between phone and full desktop there isn't room for the "View in VR"
+       entry beside the four links — it squeezed "Where I've Worked" into a
+       three-line stack. Below ~1200px it drops to its own line under the
+       links instead. */
     @media (max-width: 1200px) {
       .nav-links { flex-wrap: wrap; row-gap: 0.6rem; }
-      .nav-soon { flex-basis: 100%; text-align: center; }
+      .nav-vr { flex-basis: 100%; text-align: center; }
       /* Keep the toggle on one line — the wider link list would otherwise
          squeeze "Turn on Accessibility" into a two-line pill. */
       .a11y-toggle { flex-shrink: 0; white-space: nowrap; }
@@ -1186,15 +1195,15 @@
         width: 100%;
         flex-wrap: wrap;
         justify-content: space-between;
-        /* Tighter column gap so the four real links still share one row once
-           the "coming soon" note below is allowed to wrap; row gap spaces the
-           two lines apart. */
+        /* Tighter column gap so the four other links still share one row
+           once "View in VR" below is allowed to wrap; row gap spaces the two
+           lines apart. */
         gap: 0.9rem 0.35rem;
       }
       .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 1rem 0.25rem; margin: -1rem -0.25rem; }
-      /* Too long to share the row with the four real links (that's what made
-         the nav crowded before), so it drops onto its own centered line. */
-      .nav-soon { flex-basis: 100%; text-align: center; font-size: 0.7rem; letter-spacing: 0.03em; }
+      /* Dropped onto its own centered line rather than sharing the row with
+         the four other links (that's what made the nav crowded before). */
+      .nav-vr { flex-basis: 100%; text-align: center; }
       .a11y-toggle { padding: 0.85rem 0.9rem; }
       .a11y-toggle-prefix { display: none; }
       .skills-expand-btn { padding: 0.9rem 0; }
@@ -1248,7 +1257,6 @@
     html.no-hero-anim .nav-logo,
     html.no-hero-anim .nav-links a,
     html.no-hero-anim .a11y-toggle,
-    html.no-hero-anim .nav-soon,
     html.no-hero-anim .hero-scroll,
     html.no-hero-anim .hero-tagline {
       animation: none !important;
@@ -1307,7 +1315,7 @@
       <li><a href="#contact">Contact</a></li>
       <li class="nav-sep" aria-hidden="true"></li>
       <li><a href="experience.html">Where I've Worked</a></li>
-      <li class="nav-soon">VR Website Version Coming Soon</li>
+      <li class="nav-vr"><a href="vr/">View in VR<span class="nav-beta">Beta</span></a></li>
     </ul>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>

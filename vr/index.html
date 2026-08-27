@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<!--
+  ═══════════════════════════════════════════════════════════════════════
+  /vr — Sebastian Esteva's spatial portfolio (WebXR / A-Frame)
+
+  Built against VR_BUILD_SPEC.md + VR_SPEC_ADDENDUM.md (addendum wins where
+  they conflict). Uses aframe-troika-text (all in-scene text) per
+  VR_DESIGN_RESOURCES.md; aframe-environment-component was tried for the dome
+  sky and reverted (see dome.js), and super-hands + aframe-extras were dropped
+  once both were confirmed inert (see the CDN block below). No teleport-controls — per Sebastian, visitors aren't expected to
+  move around much, so locomotion is just snap-turn to face a constellation.
+
+  Standing: Experience + Projects constellations, home panel with the
+  gaze-reveal portrait + bio card, floor + carpet, and project rooms (§7) —
+  retinting the dome to that project's own palette (themes.js, pulled from
+  each project page's real CSS tokens) and shows an in-room summary + link
+  out, styled after the project's own hero. Photo Cloud (§9) is built and
+  live (photo-cloud.js) — every site image drifts as a constellation directly
+  behind the hub; turn around to find it.
+
+  Card thumbnails: the five projects with real photography (Bastón, Slip Door,
+  Pendant, Time Collector, Poser Chess Set) load their actual hero image. The
+  four PDF write-up projects (HP's Reckoning, Algorithmic Modeling, 3D-Printed
+  Glasses Frames, Social Engineering) have NO raster art anywhere in the repo —
+  their pages are just an embedded PDF + a generic og: profile photo — so they
+  fall back to a generated accent/initial panel (glass-material.js). That's the
+  correct treatment until real renders exist; drop a hero image into /images
+  (or add an `image` override in projects.json) and the card picks it up with
+  no code change (ISSUE-11).
+
+  Connective link-lines (VR_SPEC_ADDENDUM.md §D) were built, then removed —
+  in Sebastian's in-headset walkthrough they read as visual clutter, not the
+  intended "constellation" feel. VR_BUGFIX_NOTES.md item 2 reverses that part
+  of the spec; do not rebuild them.
+
+  Command-zone interaction (per Sebastian's note): this is a small central
+  zone you reach from, not a gallery you walk through — constellation cards
+  (hub-panel.js) are compact glance tiles kept close (CONSTELLATION_RADIUS,
+  within the spec's 1.5–2m band). Selecting one doesn't jump straight into a
+  project room; it "pulls" the item toward the viewer via the reusable
+  focus-stage.js panel — enlarged, full detail (blurb/tags or the full
+  bullet list) — from which the viewer chooses to enter the themed room or
+  dismiss. Hero images are feathered at their edges (glass-material.js) so
+  photos melt into their glass frame instead of reading as a hard-edged
+  snapshot.
+
+  No build step: plain files, everything loaded via CDN.
+  ═══════════════════════════════════════════════════════════════════════
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sebastian Esteva — VR</title>
+  <link rel="icon" href="../favicon.ico">
+  <!-- ?v= like the component scripts below — vr.css was previously unversioned,
+       so returning visitors would keep a cached copy across restyles. -->
+  <link rel="stylesheet" href="vr.css?v=10">
+
+  <!-- Fonts for the 2D DOM overlay only (back-link / Enter VR button).
+       In-scene text uses troika-text with real font files — see fonts.js. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- A-Frame (pinned — never "latest") -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- Vetted community components (VR_DESIGN_RESOURCES.md §1) — pinned versions.
+       aframe-environment-component was tried for the dusk sky first, but its
+       gradient shader rendered as flat black in testing (see dome.js) — the
+       sky reverted to a hand-rolled canvas gradient; troika-text is the one
+       community component still in use.
+
+       super-hands@3.0.6 and aframe-extras@7.2.0 used to load here and were
+       both provably inert: super-hands only acts on targets carrying its
+       companion components (hoverable/grabbable/stretchable/draggable) and
+       none were ever mounted, and not one of aframe-extras' 11 components was
+       mounted on any entity. Removed with them: the `delete
+       AFRAME.components.grabbable` shim that only existed to dodge
+       super-hands' name collision with A-Frame 1.5.0's built-in `grabbable`.
+       Re-add super-hands (plus the shim) alongside the first grabbable target
+       if 3D models (§10) ever land. -->
+  <script src="https://unpkg.com/aframe-troika-text@0.14.0/dist/aframe-troika-text.min.js"></script>
+  <!-- GSAP (pinned) — tweens the focus-stage's underlying object3D
+       position/quaternion/scale directly for the "pull it closer" select
+       animation (VR_BUGFIX_NOTES.md item 5). No build step: CDN, no plugins. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <!-- ══ AUDIO KILL SWITCH ══
+       ALL sound in /vr — the ambient birdsong AND the hover/select cues — is
+       off at the source while the audio design is unfinished. Nothing is
+       fetched, nothing can play, and the ♪ control is hidden rather than left
+       sitting there doing nothing.
+
+       Hard `false`, NOT `?audio=1`-switchable: the clips in vr/assets are
+       deliberately not deployed (Sebastian's call for the beta launch — see
+       .gitignore), so a URL escape hatch on the live site would 404 the
+       ambience while sfx.js still synthesized its non-file UI cues. That is
+       worse than silence. Everything else (hud.js's toggle, sfx.js's schemes,
+       the <audio> element, VRSound) is intact and gated on this one flag —
+       nothing was deleted. To audition locally, temporarily set this to true
+       with the (untracked) clips present in vr/assets.
+       See VR_AI_BUILD_GUIDE.md §2 rule 6: quiet by default, always. -->
+  <script>
+    window.VR_AUDIO = false;
+    if (!window.VR_AUDIO) console.info('[vr] audio disabled (no ambience, no UI cues)');
+  </script>
+
+  <!-- Dev override for prefers-reduced-motion. Every component captures
+       matchMedia('(prefers-reduced-motion: reduce)') into a module-scope var at
+       load, so there is otherwise no way to exercise the reduced-motion path
+       without changing an OS setting — which no headless/preview harness can
+       do. `?reducedMotion=1` forces it on, `?reducedMotion=0` forces it off;
+       with the flag absent this is a no-op and the real media query is used.
+       Must run BEFORE the component scripts below, since they read it at load.
+       Same convention as ?sunflower / ?sunflowerRate (see the wiring script). -->
+  <script>
+    (function () {
+      var f = new URLSearchParams(location.search).get('reducedMotion');
+      if (f !== '1' && f !== '0') return;
+      var forced = f === '1';
+      var real = window.matchMedia && window.matchMedia.bind(window);
+      if (!real) return;
+      window.matchMedia = function (q) {
+        var mql = real(q);
+        if (!/prefers-reduced-motion/.test(q)) return mql;
+        // Can't assign to mql.matches (getter on the prototype) — hand back a
+        // thin proxy that keeps addEventListener/addListener working.
+        return {
+          media: mql.media, matches: forced, onchange: null,
+          addEventListener: mql.addEventListener && mql.addEventListener.bind(mql),
+          removeEventListener: mql.removeEventListener && mql.removeEventListener.bind(mql),
+          addListener: mql.addListener && mql.addListener.bind(mql),
+          removeListener: mql.removeListener && mql.removeListener.bind(mql),
+          dispatchEvent: mql.dispatchEvent && mql.dispatchEvent.bind(mql)
+        };
+      };
+      console.info('[vr] reduced motion forced', forced ? 'ON' : 'OFF', 'by ?reducedMotion');
+    })();
+  </script>
+
+  <!-- Our components — must load before <a-scene> so they're registered in time -->
+  <script src="components/fonts.js?v=5"></script>
+  <script src="components/themes.js?v=1"></script>
+  <script src="components/dome.js?v=4"></script>
+  <script src="components/glass-material.js?v=15"></script>
+  <script src="components/text-flow.js?v=2"></script>
+  <script src="components/ui-button.js?v=15"></script>
+  <!-- Shared controls, loaded before every consumer: the one exit button
+       (exit-button.js) and the one scroll bar (scroll-arrows.js). Both are used
+       at build time by focus-stage, project-room, pdf-reader and the writing
+       column, so they sit above all of them. scroll-arrows is first because
+       exit-button borrows its rounded-rect and triangle geometry helpers. -->
+  <script src="components/scroll-arrows.js?v=3"></script>
+  <script src="components/exit-button.js?v=4"></script>
+  <script src="components/reticle.js?v=4"></script>
+  <script src="components/name-scatter-3d.js?v=16"></script>
+  <script src="components/hub-panel.js?v=30"></script>
+  <script src="components/focus-stage.js?v=20"></script>
+  <script src="components/photo-cloud.js?v=10"></script>
+  <script src="components/mosaic-reveal.js?v=11"></script>
+  <script src="components/bio-card.js?v=31"></script>
+  <script src="components/project-room.js?v=21"></script>
+  <script src="components/pdf-reader.js?v=5"></script>
+  <script src="components/sunflower.js?v=1"></script>
+  <script src="components/constellation.js?v=9"></script>
+  <script src="components/carousel-drag.js?v=1"></script>
+  <script src="components/locomotion.js?v=3"></script>
+  <script src="components/walk-controls.js?v=2"></script>
+  <script src="components/column-scroll.js?v=2"></script>
+  <script src="components/onboarding.js?v=2"></script>
+  <script src="components/data-loader.js?v=8"></script>
+  <script src="components/fallback.js?v=4"></script>
+  <script src="components/hud.js?v=10"></script>
+  <!-- Portrait-phone recomposition of the home view (narrow horizontal fov).
+       Loads after hud.js; only acts below a 0.70 aspect ratio. -->
+  <!-- portrait-layout.js is RETIRED by decision (VR_AI_BUILD_GUIDE.md §9.4):
+       Sebastian wants the phone to load the same composition as the headset,
+       "no special mobile version". The file is kept for reference because the
+       fov arithmetic in its header is still the best record of WHY a portrait
+       phone crops badly (~42° horizontal against a hub composed across ±1.6 m)
+       — which is now answered by the §9.7 "built for VR" disclaimer instead of
+       by recomposing the scene. Do not re-enable without asking.
+  <script src="components/portrait-layout.js?v=5"></script> -->
+  <script src="components/sfx.js?v=5"></script>
+</head>
+<body>
+
+  <!-- xr-mode-ui, NOT vr-mode-ui: there is no `vr-mode-ui` component in
+       A-Frame 1.5.0, so that attribute was a silent no-op and the default
+       Enter-VR button injected itself at z-index 9999 over the ♪ ambient-sound
+       toggle (only 13% of ♪ was hittable, which also meant UI SFX — gated
+       behind VRSound.enabled — could never be turned on). The scene's own
+       styled #enterVrBtn is the VR entry point; fallback.js shows and wires it
+       only when navigator.xr reports immersive-vr support. enterAREnabled:
+       false honours the standing no-AR rule — it defaults to true. -->
+  <!-- device-orientation-permission-ui disabled deliberately (§9.7): A-Frame's
+       built-in modal fires the iOS motion prompt behind a generic "this
+       immersive website requires access to your device motion sensors" dialog.
+       onboarding.js replaces it with a panel that explains WHY, warns that the
+       system prompt is coming, and asks the visitor to allow it. -->
+  <a-scene xr-mode-ui="enabled: false; enterAREnabled: false"
+            device-orientation-permission-ui="enabled: false"
+            renderer="colorManagement: true" background="color: #050505">
+
+    <a-assets timeout="8000"></a-assets>
+
+    <!-- Dusk dome (§8 / addendum C): dark overhead, thin warm ember band at
+         the horizon, solid-color floor + a grounding carpet. -->
+    <a-entity dusk-sky></a-entity>
+    <a-entity dusk-floor position="0 0 0"></a-entity>
+    <a-entity dusk-rug="radius: 1.3" position="0 0 -0.4"></a-entity>
+
+    <!-- Lighting. Until recently NOTHING in this scene consumed a light —
+         every surface was either MeshBasicMaterial or a self-lit custom
+         shader — so both of these entities, and project-room.js's per-room
+         retint of them, were invisible no-ops. The glass card shader
+         (glass-material.js) and the home title's letters (name-scatter-3d.js)
+         now genuinely respond, which is what makes the retint show up.
+
+         POINT lights, not directional: the shader's specular term reflects a
+         light POSITION toward the eye, and a directional light has only a
+         direction. VR_POLISH_STANDARDS.md §2 asks for one fixed key
+         direction — the rack below keeps that spirit (all four overhead and
+         forward of the viewer, never moving) while giving the highlights
+         enough variation to read as stagecraft rather than one flat wash. -->
+    <a-light id="ambientLight" type="ambient" color="#2a2018" intensity="0.5"></a-light>
+
+    <!-- The rack: four fixtures in a row overhead, centred above the home
+         title (which sits at y≈2.42, z=-1.5) and spanning a little wider than
+         the name so the light spills onto the Projects and Experience clusters
+         either side rather than pooling only on the home panel.
+
+         Every fixture carries class="key-light" — that class, not the ids, is
+         what glass-material.js reads to build its light array, so adding or
+         moving one here needs no code change. #keyLight stays on the first
+         fixture because project-room.js retints that id per room; the system
+         mirrors its colour onto the rest of the rack.
+
+         Slight colour temperature variation across the four (amber at the
+         edges, warmer white in the middle) keeps the highlights from reading
+         as one flat wash. -->
+    <a-light id="keyLight"  class="key-light" type="point" color="#ffc98a" intensity="1.5" distance="9" position="-1.45 3.30 -1.30"></a-light>
+    <a-light id="keyLight2" class="key-light" type="point" color="#ffe0bb" intensity="1.7" distance="9" position="-0.48 3.34 -1.36"></a-light>
+    <a-light id="keyLight3" class="key-light" type="point" color="#ffe0bb" intensity="1.7" distance="9" position="0.48 3.34 -1.36"></a-light>
+    <a-light id="keyLight4" class="key-light" type="point" color="#ffc98a" intensity="1.5" distance="9" position="1.45 3.30 -1.30"></a-light>
+
+    <!-- Visible housings, so the rack reads as intentional stagecraft rather
+         than light arriving from nowhere. Unlit flat spheres with fog off —
+         they are the source, so nothing should shade them. -->
+    <a-entity light-rack-housings></a-entity>
+
+    <!-- Rig: camera + hand controllers. No teleport — Sebastian doesn't
+         expect visitors to move around much, everything lives in reach of
+         one spot; snap-turn covers facing a constellation. The camera-
+         mounted cursor below is the universal gaze/click/pinch select —
+         laser-controls on the hands adds the Quest-style ray+trigger on top
+         for tracked controllers specifically. (super-hands used to ride along
+         here as "grab-readiness"; it was inert without grabbable targets, so
+         it and its library are gone — see the CDN block above.) -->
+    <!-- walk-controls owns rig POSITION (bounded WASD/arrows/joystick, §9.5);
+         snap-turn on the hands and the HUD's ‹ › own rig ROTATION. Two
+         components, two transforms, no contention. -->
+    <a-entity id="rig" position="0 0 0" walk-controls>
+      <!-- reverseMouseDrag/reverseTouchDrag: "grab the scene and push it"
+           semantics, per Sebastian (VR_AI_BUILD_GUIDE.md §9.5) — drag LEFT and
+           the world slides left, revealing what was on your RIGHT, like
+           dragging a Street View panorama or a map. A-Frame's default is the
+           opposite (a first-person head turn: drag left, look left), which is
+           what felt wrong. Both axes flip together, so dragging DOWN reveals
+           what is above — the same grab-and-push mental model vertically.
+           Deliberately not pointer-lock: capturing the mouse would make the
+           2D HUD and the "Back to site" link unclickable until Esc. -->
+      <a-entity id="head" camera="near: 0.05" position="0 1.6 0"
+                 look-controls="magicWindowTrackingEnabled: true; reverseMouseDrag: true; reverseTouchDrag: true">
+        <!-- The reticle component builds its own dot+ring meshes (matched to
+             the flat site's custom cursor) and grows/brightens them on hover
+             — so no inline geometry/material here. -->
+        <!-- fuse:false — selection requires an explicit click/tap/trigger/
+             pinch everywhere (Sebastian: nothing should open from just looking
+             at it). fallback.js no longer re-enables fuse for any device.
+             rayOrigin:mouse — on desktop/phone the ray follows the mouse/touch
+             point, so ANY visible panel is directly clickable without first
+             dragging it to dead-centre (VR_BUGFIX item 9). fallback.js swaps
+             this back to gaze ('entity') + shows the reticle on entering VR,
+             where head-aim is the fallback selection for controller-less
+             headsets.
+
+             NO position offset here, deliberately — this entity must sit AT
+             the eye. reticle.js now owns the reticle's depth (it follows the
+             raycast hit distance), so a `position="0 0 -1"` here stacked on
+             top of that and put the reticle at 2 m at rest instead of 1 m.
+             It also mattered for the ray itself: under rayOrigin:entity (the
+             in-VR gaze mode) the ray STARTS at this entity, so a 1 m offset
+             both under-measured every hit distance by 1 m and made anything
+             nearer than 1 m impossible to hit. -->
+        <a-entity cursor="fuse: false; rayOrigin: mouse"
+                   reticle
+                   raycaster="objects: .clickable; far: 20"></a-entity>
+      </a-entity>
+      <!-- lineColor/lineOpacity match the reticle's off-white (#f5f5f0) and
+           sit near its rest opacity, so the Quest ray reads as the same
+           design language as the gaze/mouse reticle instead of A-Frame's
+           default laser look. -->
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn></a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn></a-entity>
+    </a-entity>
+
+    <!-- Comfort vignette overlay — flashes briefly during a project-room
+         transition (§7). No-ops under prefers-reduced-motion. Hidden (not
+         just opacity 0) whenever it isn't actively flashing — see
+         locomotion.js's vignette-flash (VR_BUGFIX_NOTES.md item 9: a
+         low-poly BackSide sphere left permanently in the scene graph at the
+         camera position was the stray "spherical outline" artifact). Higher
+         segment count + fog:false so on the rare frames it IS visible, it
+         reads as a clean vignette, not a faceted, fog-tinted sphere. -->
+    <a-entity id="comfortVignette" vignette-flash visible="false"
+               geometry="primitive: sphere; radius: 0.3; segments-width: 24; segments-height: 16"
+               material="color: #000; side: back; shader: flat; transparent: true; opacity: 0; fog: false"
+               position="0 1.6 0"></a-entity>
+
+    <!-- Home panel cluster — anchor, dead ahead (§2). Name/tagline are
+         static furniture; the portrait is real content with the gaze-reveal
+         effect; selecting it opens the full bio card (addendum §B). Brought
+         in close per Sebastian's command-zone note — this is a small central
+         zone you reach from, not a room you walk across. -->
+    <a-entity id="homeCluster" position="0 0 -1.5">
+      <!-- The 3D "Tenet effect" name intro (name-scatter-3d.js) — one big
+           line "Sebastian Esteva" spanning the top with the tagline under it
+           (per Sebastian). Wide + centered so it reads as the hero header;
+           position/size chosen to clear the portrait + bio below (re-verify
+           the bounding-box sweep if these change). -->
+      <a-entity name-scatter-3d="width: 1.85; height: 0.34; accent: #b8863b; subtitle: Bringing wonder through technology"
+                 position="0 2.42 0"></a-entity>
+
+      <!-- Shifted left, bio card to its right (VR_BUGFIX_NOTES.md item 8) —
+           both sit in front of the viewer on load, no turning required. -->
+      <a-entity id="homePortrait"
+                 mosaic-reveal="gray: ../images/contact-photo-framed-for-mosaic.jpg; color: ../images/contact-photo-mosaic.jpg; width: 0.72; height: 1.08; radius: 0.14"
+                 position="-0.5 1.42 0" class="clickable"></a-entity>
+    </a-entity>
+
+    <!-- Bio card — visible by default once content loads (VR_BUGFIX_NOTES.md
+         item 8: a permanent companion beside the portrait, not a
+         click-to-reveal modal). z is offset from homeCluster's -1.5 as a
+         defensive measure against z-fighting (item 4) even though item 8's
+         reposition (below) also removes the positional overlap that caused
+         it in the first place. -->
+    <a-entity id="bioCard" bio-card="width: 1.05; height: 1.46" position="0.62 1.35 -1.52"></a-entity>
+
+    <!-- Focus stage — the single reusable "pulled closer" detail view
+         (focus-stage.js). Repositioned in front of the viewer's current look
+         direction each time a constellation card is selected; hidden
+         otherwise. Command-zone interaction: glance at the small tile, pull
+         it in for the full detail, then decide whether to enter its room. -->
+    <a-entity id="focusStage" visible="false"></a-entity>
+
+    <!-- Constellation containers — populated with real data once
+         data-loader.js resolves (see script below). The projects arc is a
+         draggable carousel (ISSUE-03): grab a card and sweep horizontally to
+         spin the whole cylinder, with momentum + a gentle snap onto the column
+         detent. snapDeg is NOT authored here on purpose: layoutCluster's
+         onColStep writes the derived column step (currently 33.12°) at build
+         time, and the hand-copied literal that used to sit here had already
+         drifted to 26.58 — a wrong number the markup advertised as truth. -->
+    <a-entity id="projectsConstellation" carousel-drag=""></a-entity>
+    <!-- Writing column (VR_AI_BUILD_GUIDE.md §9.1/§9.2) — the written pieces
+         are their own section now, a vertical stack on the INNER left, with the
+         projects grid outboard of it. Deliberately NOT carousel-drag: a single
+         column has nothing to spin, and its scroll (dormant until there are
+         more than 5 pieces) is a vertical mechanism, not a rotational one. -->
+    <a-entity id="writingConstellation"></a-entity>
+    <a-entity id="experienceConstellation"></a-entity>
+
+    <!-- Photo Cloud (§9) — a drifting constellation of every site image,
+         behind the viewer (turn around to find it). Populated from
+         data.images once the loader resolves. -->
+    <a-entity id="photoCloud" photo-cloud></a-entity>
+
+  </a-scene>
+
+  <!-- Arrival veil — fades away on load (hud.js). Outside .vr-overlay so it
+       covers the whole viewport including chrome during the fade-in. -->
+  <div class="arrival-veil" id="arrivalVeil"></div>
+
+  <div class="vr-overlay">
+    <a class="back-link" href="../index.html">← Back to site</a>
+    <button class="enter-vr-btn" id="enterVrBtn" hidden>Enter VR</button>
+    <div class="phase-note" id="phaseNote">loading projects &amp; experience…</div>
+
+    <!-- Onboarding hint — fades on first interaction (hud.js). This is the
+         desktop wording; hud.js rewrites it on touch devices ("Click" → "Tap",
+         surfaces tilt-to-look) and appends the VR clause only where WebXR is
+         actually available (never on iOS, which is WebKit-only).
+         Kept to ONE short line: the old two-sentence version wrapped to two
+         lines and, at its old position, covered a fifth of the bio card on
+         arrival (VR_TEST_REPORT A5). The VR select gesture is now appended by
+         hud.js on devices that can enter VR, instead of being promised to
+         everyone up front. -->
+    <div class="onboard-hint" id="onboardHint">Click a panel to open it — drag to look around, WASD to move.</div>
+
+    <!-- ── Arrival gate (§9.7) ── The "built for VR" disclaimer plus the
+         explanation that has to precede iOS's motion prompt. Outside
+         .vr-overlay's pointer-events rules on purpose: this one DOES take
+         pointer events, because it is a gate. onboarding.js removes it from
+         the DOM on acknowledgement (a scrim left at opacity 0 keeps eating
+         clicks meant for the scene). -->
+    <div class="onboard-gate" id="onboardGate">
+      <div class="onboard-card" role="dialog" aria-modal="true" aria-labelledby="onboardTitle">
+        <!-- The beta pill matches the "View in VR — Beta" entry on the flat
+             site's nav: /vr shipped in beta, and the gate is the one place
+             every visitor reads before entering. A pill, not a sentence —
+             the copy below is Sebastian's and stays untouched. -->
+        <p class="onboard-eyebrow">Before you go in<span class="onboard-beta">Beta</span></p>
+        <h2 class="onboard-title" id="onboardTitle">This was designed to be seen in a headset.</h2>
+        <!-- Sebastian's own words, near enough verbatim — he cut two earlier
+             drafts for being too explanatory. The analogy is doing the work
+             here; don't add a sentence explaining the analogy. The first line
+             lives in the h2 above so it isn't said twice. -->
+        <p>
+          This view works, but the experience here is going to be worse — like
+          watching an IMAX film on your phone, cropped vertically for TikTok.
+        </p>
+        <p id="onboardMotion" class="onboard-motion">
+          <strong>Your phone is about to ask for motion &amp; orientation
+          access — please tap “Allow.”</strong> That permission is what lets you
+          look around by physically moving your phone, which is the closest this
+          gets to the real thing. It is used for nothing else: no data is
+          recorded, stored, or sent anywhere. Decline and you can still look
+          around by dragging.
+        </p>
+        <!-- Non-iOS wording. onboarding.js rewrites this to "Grant permission to
+             enter the dome" where a motion prompt is actually about to appear —
+             the label should say what the next tap does, and on iOS that is the
+             system dialog, not the dome. -->
+        <button class="onboard-enter" id="onboardEnter">Enter the dome</button>
+        <p class="onboard-status" id="onboardStatus" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <!-- The landscape nudge ("Turn your phone sideways for the full view") was
+         REMOVED at Sebastian's request: "let's not ask people to turn the phone
+         sideways." The portrait crop is real (~42° horizontal vs 112° on
+         desktop) but the arrival gate already says the flat view is a lesser
+         experience, and asking for a posture change on top of that is one
+         instruction too many. Don't reinstate it. -->
+
+    <!-- HUD: turn / recenter / mute. Turn + recenter are the phone/desktop
+         fallback's locomotion (no controller to snap-turn with); mute toggles
+         the ambient birdsong (which starts muted until the first gesture, per
+         autoplay policy + the build directive's "quiet default"). -->
+    <div class="hud-controls">
+      <button class="hud-btn" id="turnLeftBtn" aria-label="Turn left" title="Turn left">‹</button>
+      <button class="hud-btn" id="turnRightBtn" aria-label="Turn right" title="Turn right">›</button>
+      <button class="hud-btn muted" id="muteBtn" aria-label="Toggle ambient sound" title="Ambient sound" aria-pressed="false">♪</button>
+    </div>
+
+    <!-- Movement controls, bottom LEFT — the counterpart to the turn controls
+         on the right (§9.5/§9.6). Recenter lives HERE now, not as a lone ⌖
+         between the two turn arrows: it is a movement action ("go back to the
+         seat"), it only means anything now that you can leave the seat, and
+         between the arrows it was the easiest thing on the HUD to hit by
+         mistake while turning. The joystick is touch-only (CSS); on desktop
+         this block is just the recenter pill, because moving is WASD there. -->
+    <div class="move-controls">
+      <div class="joystick" id="moveStick" role="application" aria-label="Move around">
+        <span class="joystick-thumb" id="moveThumb"></span>
+      </div>
+      <button class="hud-btn recenter-btn" id="recenterBtn" aria-label="Return to the centre" title="Return to the centre">⌖</button>
+    </div>
+
+    <!-- Ambient birdsong loop (vr-audio/ assets, copied to vr/assets/). Starts
+         muted; hud.js unmutes on the first user gesture unless the visitor has
+         opted to keep it off. ogg first, mp3 fallback.
+         preload="none", not "auto": with the audio kill switch off (the default
+         — see the top of this file) the clip should not even be downloaded.
+         hud.js flips this to "auto" and calls load() only when audio is on.
+         NOTE: these two files are not deployed (see the kill switch), so on
+         the live site the srcs resolve to nothing — which is harmless only
+         because load() is never reached while VR_AUDIO is false. -->
+    <audio id="ambientAudio" loop preload="none">
+      <source src="assets/birdsong-ambience.ogg" type="audio/ogg">
+      <source src="assets/birdsong-ambience.mp3" type="audio/mpeg">
+    </audio>
+  </div>
+
+  <script>
+    // ─── Wire up live data: bio, projects, experience (§5) ───
+    var phaseNote = document.querySelector('#phaseNote');
+
+    // Angles matter here: with the outer-rotates/inner-translates-forward
+    // pattern used throughout, a positive Y rotation puts something on the
+    // LEFT (Projects, per the §2 diagram) and negative on the RIGHT
+    // (Experience, then Photo Catalog further right still). Pushed further
+    // out than the first pass (VR_BUGFIX_NOTES.md item 1) — the home
+    // portrait/title's own angular footprint needs real clearance before the
+    // first column starts, or the array reads as overlapping the moment you
+    // turn partway toward either side.
+    // Pushed further still after the item-8 reposition (below) — shifting
+    // the portrait/bio off-center toward each side tightened their clearance
+    // from the nearest constellation column; a bounding-box sweep caught the
+    // Experience cluster's innermost card nearly colliding with the bio card
+    // at the previous angles.
+    var PROJECTS_ANGLE = 72;
+    // -82, not -74: at -74 the Experience cluster's inner column edge sat at
+    // 39.2° while the BIO CARD's right edge is at 37.0° (x=1.145 at z=-1.52),
+    // and the camera sweep measured up to 100% screen-space overlap between the
+    // bio card and that column at yaw -37° to -51°, depth-separated by only
+    // 0.21-0.51 m. -82 moves the inner edge to 47.2°, clearing the card by
+    // 10.2°. Sebastian chose this over keeping the photo cloud wider — the
+    // cloud's right bound has to follow (photo-cloud.js ZONE_MIN 131 -> 139).
+    var EXPERIENCE_ANGLE = -82;
+    // A small central command zone, not a gallery to walk across — kept at
+    // the near end of the spec's 1.5–2m panel-radius range (VR_BUILD_SPEC.md
+    // §2) per Sebastian's note not to put things too far away. The full
+    // detail view (focus-stage.js) then pulls the selected item in closer
+    // still, to FOCUS_DISTANCE there. Bumped from 1.75 to 2.0 (bugfix item 1)
+    // to buy the angular clearance above without cards touching.
+    var CONSTELLATION_RADIUS = 2.0;
+
+    // Lay a cluster out as a tidy grid inside its angular zone: fixed column
+    // angles and fixed row heights, filled left-to-right, top row first.
+    // colStepDeg is *derived* from the desired physical gap between card
+    // centers (cardWidth + gapM) at the current radius, via the chord/angle
+    // relationship — not hand-picked — so retuning CONSTELLATION_RADIUS never
+    // silently reintroduces overlap or drifts a cluster past its zone.
+    // ── Sunflower effect ──
+    // Every constellation card slowly turns to keep facing the viewer, rather
+    // than being aimed once at an assumed seated eye height (see
+    // sunflower.js). On by default; `?sunflower=0` restores the old
+    // fixed-aim behaviour so the two can be compared directly in-headset,
+    // and `?sunflowerRate=N` tunes the drift speed in degrees/second.
+    var SUNFLOWER = new URLSearchParams(location.search).get('sunflower') === '0'
+      ? null
+      : { rate: parseFloat(new URLSearchParams(location.search).get('sunflowerRate')) || 18 };
+
+    function layoutCluster(container, items, opts) {
+      var cols = opts.columns;
+      var rows = Math.ceil(items.length / cols);
+      // Accessible mode: cards grow by exactly the type multiplier (see
+      // VRType.cardMult) so anything that fitted at ×1 still fits. Gaps stay
+      // put — they're empty space.
+      var cardMult = VRType.cardMult();
+      var cardWidth = opts.cardWidth * cardMult;
+      var cardHeight = opts.cardHeight * cardMult;
+      var gapM = opts.gapM != null ? opts.gapM : 0.14;
+      // Horizontal and vertical gaps are separate needs, so they're separate
+      // options now (colGapM defaults to gapM, so clusters that pass only gapM
+      // are unchanged). The projects grid's 0.42 row gap exists purely to clear
+      // the floating caption ABOVE a card and the button BELOW it — a vertical
+      // footprint. Feeding that same number into the column chord was what made
+      // each column cost 33.1° of yaw, so going to 4 columns would have spanned
+      // 99° and thrown the outer column out to ~122° (into the photo cloud's
+      // zone) while dragging the inner column to 22° (deeper into the arrival
+      // view). Captions are laid out at maxWidth = card width, so they never
+      // reach a neighbour: a normal 0.14 side gap is enough.
+      var colGapM = opts.colGapM != null ? opts.colGapM : gapM;
+      function stepFor(w) {
+        return THREE.MathUtils.radToDeg(2 * Math.asin(Math.min(0.98, (w + colGapM) / (2 * CONSTELLATION_RADIUS))));
+      }
+      var colStepDeg = stepFor(cardWidth);
+      if (opts.onColStep) opts.onColStep(colStepDeg);
+      // Wider cards in accessible mode widen the whole angular footprint, which
+      // would eat into the home panel's clearance on the inner side. Push the
+      // zone outward by half the widening so the inner edge — the one facing
+      // home — sits where it does at ×1, and the extra width goes outward into
+      // empty dome instead.
+      var baseAngle = opts.baseAngleDeg;
+      if (cardMult !== 1) {
+        var widening = (cols - 1) * (colStepDeg - stepFor(opts.cardWidth));
+        baseAngle += (baseAngle >= 0 ? 1 : -1) * widening / 2;
+      }
+      var startAngle = baseAngle - ((cols - 1) * colStepDeg) / 2;
+
+      // Built up front, not inside the placement loop below, because row
+      // heights (next) need every item's height before any row can be
+      // positioned. A builder can return its own `height` — the paper-title
+      // writing cards do, at roughly half a photo card's — and it falls back
+      // to the uniform opts.cardHeight when it doesn't, so this is a no-op
+      // for every existing all-photo cluster (Experience).
+      var attrsList = items.map(function (item, k) {
+        var attrs = opts.panelBuilder(item, k);
+        attrs.width = cardWidth;
+        // A builder-supplied height (the half-height writing cards) is authored
+        // against opts.cardHeight, so it takes the same multiplier.
+        attrs.height = attrs.height == null ? cardHeight : attrs.height * cardMult;
+        return attrs;
+      });
+
+      // A row's height is its TALLEST card's — mixing a half-height writing
+      // card into a row of full-height photo cards (BUILD_NOTES ISSUE-11)
+      // can't shrink the row, or the photo cards above/below would clip it.
+      // Every card in a row then shares that row's centre line (VRConstellation
+      // .place positions by centre), so a shorter card just gets equal
+      // breathing room top and bottom instead of overlapping a neighbour.
+      var rowHeights = [];
+      for (var r = 0; r < rows; r++) {
+        var maxH = 0;
+        for (var c = 0; c < cols; c++) {
+          var idx = r * cols + c;
+          if (idx < attrsList.length) maxH = Math.max(maxH, attrsList[idx].height);
+        }
+        rowHeights.push(maxH || cardHeight);
+      }
+      var totalHeight = rowHeights.reduce(function (a, b) { return a + b; }, 0) + (rows - 1) * gapM;
+      // `topHeight` anchors the cluster by its TOP edge instead of its centre.
+      // Two clusters of different heights can then be top-aligned (§9.1's
+      // writing column and projects grid) without either of them recomputing
+      // totalHeight outside this function — which would also have silently
+      // broken alignment in accessible mode, where cardMult grows each cluster
+      // by a different absolute amount.
+      var topEdge = opts.topHeight != null
+        ? opts.topHeight
+        : opts.centerHeight + totalHeight / 2;
+      var rowCenters = [];
+      var cursor = topEdge;
+      for (var r2 = 0; r2 < rows; r2++) {
+        rowCenters.push(cursor - rowHeights[r2] / 2);
+        cursor -= rowHeights[r2] + gapM;
+      }
+
+      // ── Which column an item lands in: incomplete last row fills from the
+      // INNER (home-facing) edge ──
+      // `startAngle` is the zone's SMALLEST angle, and in place()'s convention
+      // positive is left. So in a left/positive zone column 0 is already the
+      // one nearest home, but in a right/negative zone (Experience) column 0 is
+      // the OUTERMOST one — which is why Experience's incomplete bottom row sat
+      // against the far edge, away from where a seated viewer's eye starts
+      // (measured: its two remaining cards at 101.6° and 83.2°, the two
+      // outermost of four columns, where they belong at 46.4° and 64.8°).
+      // Shift an incomplete last row over by the number of missing columns when
+      // the inner edge is the LAST column. Full rows are untouched.
+      var innerIsFirstColumn = baseAngle >= 0;
+      function columnOf(k) {
+        var col = k % cols;
+        if (innerIsFirstColumn) return col;
+        var itemsInRow = Math.min(cols, items.length - Math.floor(k / cols) * cols);
+        return cols - itemsInRow + col;
+      }
+
+      var placedList = [];
+      items.forEach(function (item, k) {
+        var placed = VRConstellation.place(container, {
+          angleDeg: startAngle + columnOf(k) * colStepDeg,
+          height: rowCenters[Math.floor(k / cols)],
+          radius: CONSTELLATION_RADIUS, eyeHeight: 1.6,
+          sunflower: SUNFLOWER,
+          panelAttrs: attrsList[k]
+        });
+        if (opts.onPlaced) opts.onPlaced(item, k, placed);
+        placedList.push(placed);
+      });
+      // Returned so a caller can attach behaviour that needs every placed
+      // entity — column-scroll.js needs each card's inner entity and its
+      // layout height.
+      return placedList;
+    }
+
+    window.VRFocusStage.init(document.querySelector('#focusStage'));
+
+    VRData.load().then(function (data) {
+      // ── Home panel: gaze-reveal portrait selects open the bio card ──
+      // Entity component init and this data fetch happen on independent
+      // timelines — on a slow/fast network the fetch can resolve before the
+      // bio-card entity has finished attaching its component. Guard for both.
+      var bioCardEl = document.querySelector('#bioCard');
+      var applyBio = function () {
+        // Accessible mode: grow the card with the type (VRType.cardMult), so
+        // the auto-fitter isn't forced to shrink the ×1.25 bump back out again.
+        // Both dimensions, because text is 2D — widening alone just makes the
+        // same number of lines longer at the bigger size, and needs the same
+        // extra height anyway. Re-anchored so the taller card's bottom edge
+        // stays at the same height off the floor rather than dropping toward it.
+        var cm = VRType.cardMult();
+        if (cm !== 1) {
+          var base = bioCardEl.getAttribute('bio-card');
+          var pos = bioCardEl.getAttribute('position');
+          var h0 = base.height, h1 = h0 * cm;
+          bioCardEl.setAttribute('bio-card', { width: base.width * cm, height: h1 });
+          bioCardEl.setAttribute('position', { x: pos.x, y: pos.y + (h1 - h0) / 2, z: pos.z });
+        }
+        bioCardEl.components['bio-card'].setContent(data.bio.paragraphs, data.bio.stats, data.bio.skillGroups);
+      };
+      if (bioCardEl.hasLoaded) applyBio();
+      else bioCardEl.addEventListener('loaded', applyBio);
+      document.querySelector('#homePortrait').addEventListener('click', function () {
+        var visible = bioCardEl.getAttribute('visible');
+        bioCardEl.setAttribute('visible', !visible);
+      });
+
+      // ── The left side, now TWO sections (§9.1) ──
+      // Was one 4-column grid holding all ten items, with the half-height
+      // writing cards mixed in among the full-height photo cards. Now: the
+      // written pieces are their own vertical column on the INNER left, the
+      // photo projects are a grid outboard of it, and the two are top-aligned.
+      //
+      // The classification is unchanged and still follows the real site: a
+      // project with no photography anywhere in the repo but WITH a PDF is a
+      // writing piece — it gets the compact paper-title card and the reader
+      // instead of a themed room, which was built around gallery images these
+      // pieces don't have (BUILD_NOTES ISSUE-11). `p.pdf` is scraped from the
+      // project's own page by data-loader.js. Measured on the live data: 5
+      // photo projects, 5 writing pieces.
+      function isWritingPiece(p) { return !p.image && !!p.pdf; }
+      var writingPieces = data.projects.filter(isWritingPiece);
+      var photoProjects = data.projects.filter(function (p) { return !isWritingPiece(p); });
+
+      var PROJECT_CARD_HEIGHT = 0.5;
+      // Half a photo card, which is what the paperTitle card is designed for.
+      // Named rather than a second hand-copied 0.25 that can drift out of sync.
+      var WRITING_CARD_HEIGHT = PROJECT_CARD_HEIGHT / 2;
+
+      // Row pitch for the writing column. A paperTitle card carries its title
+      // ON the card (no floating caption above it) but DOES hang a "Read the
+      // piece" + "Link" button row below, reaching 0.122 m past its bottom edge
+      // (hub-panel.js's readH/rowY). So the gap has to clear THAT, not the
+      // ~0.31 m caption-plus-button footprint the photo grid's 0.42 exists for.
+      // 0.20 leaves ~8 cm of real space under the buttons.
+      var WRITING_GAP = 0.20;
+
+      // One builder for both clusters, so a card can't drift depending on which
+      // section it landed in.
+      function projectPanelAttrs(p) {
+        var writing = isWritingPiece(p);
+        return {
+          title: p.title, subtitle: (p.tags || []).slice(0, 3).join('  ·  '),
+          image: p.image, accent: p.accent || '#b8863b', imagetone: p.heroTone || 0,
+          // placeholder:true when there's no hero image → hub-panel draws a
+          // generated accent graphic instead of an empty frame (bugfix item 6).
+          placeholder: !p.image && !writing,
+          height: writing ? WRITING_CARD_HEIGHT : undefined,
+          paperTitle: writing, hasroom: true
+        };
+      }
+      // Selecting a tile opens the focus stage (pull-closer detail), not the
+      // room directly — set after creation because hub-panel's schema can't
+      // carry a rich object through its string-based attribute parsing.
+      function openFocusStage(item, i, placed) {
+        placed.panelEl.components['hub-panel'].detail = { type: 'project', data: item };
+      }
+
+      // ── Angles ──
+      // All derived from the real geometry, not guessed. (The old comment here
+      // claimed a 33.12° column step; the actual step at cardWidth 0.72,
+      // colGap 0.14, radius 2.0 is 24.83° — measured off the placed panels.)
+      //   card angular width = 2·asin(0.36/2.0) = 20.74°
+      //   column step        = 2·asin(0.86/4.0) = 24.83°
+      // WRITING_ANGLE puts the writing column's inner edge at 28.38°, exactly
+      // where the old grid's innermost column sat — so its clearance from the
+      // home panel is unchanged and already proven rather than re-litigated.
+      // The projects grid starts 7° outboard of the writing column's outer edge
+      // (49.12°) and spans three columns, ending at 126.52°. That outer edge is
+      // what photo-cloud.js's zone bounds are cut to clear.
+      // 43.5, not the old grid's 38.75: at 38.75 the writing column's inner
+      // edge lands at 28.38° while the home PORTRAIT's left edge is at 29.85°
+      // (x=-0.86 at z=-1.5), so the two crossed by 1.5° of yaw — and because
+      // the portrait is 1.08 m tall it crossed the 3rd and 4th cards
+      // vertically too. Measured on the camera sweep: 12-45% screen overlap
+      // between the portrait and three writing cards at yaw 36-51°, depth
+      // separated by 0.49-0.74 m but visibly tangled. 43.5 puts the inner edge
+      // at 33.13°, clearing the portrait by 3.3°.
+      var WRITING_ANGLE = 43.5;
+      // Follows the writing column outward by the same amount, keeping the 7°
+      // gap between the two sections. Outer edge moves 126.51° -> 131.71°,
+      // which is what photo-cloud.js's ZONE_MAX is cut to clear.
+      var PROJECTS_GRID_ANGLE = 96.5;
+
+      // Top-aligned, per §9.1: "top-aligned to line up with where the writing
+      // stack starts". Both clusters are anchored by their TOP edge (topHeight),
+      // so neither has to know the other's height and accessible mode can grow
+      // them by different amounts without breaking the alignment.
+      var SECTIONS_TOP = 2.475;
+
+      var writingPlaced = layoutCluster(document.querySelector('#writingConstellation'), writingPieces, {
+        baseAngleDeg: WRITING_ANGLE, columns: 1,
+        cardWidth: 0.72, cardHeight: WRITING_CARD_HEIGHT,
+        gapM: WRITING_GAP, topHeight: SECTIONS_TOP,
+        panelBuilder: projectPanelAttrs,
+        onPlaced: openFocusStage
+      });
+
+      // ── The writing column's scroll, dormant until there are more than
+      // WRITING_VISIBLE pieces (§9.2) ──
+      // Called unconditionally and on purpose: with 5 pieces and 5 slots it
+      // returns null and draws nothing, so today the column simply shows all
+      // five as Sebastian asked. Add a 6th piece to the site and this same call
+      // starts windowing 4 at a time with an arrow bar above and below — no
+      // code change needed here, which is the whole point of wiring it now.
+      // Show everything while the column still fits (5 today), window 4 at a
+      // time once it doesn't. Two numbers, not one — see column-scroll.js.
+      var WRITING_SHOW_ALL_UPTO = 5;
+      var WRITING_VISIBLE = 4;
+      var writingScroll = VRColumnScroll.attach(
+        document.querySelector('#writingConstellation'), writingPlaced, {
+          visible: WRITING_VISIBLE, activateAbove: WRITING_SHOW_ALL_UPTO,
+          pitch: (WRITING_CARD_HEIGHT * VRType.cardMult()) + WRITING_GAP,
+          cardHeight: WRITING_CARD_HEIGHT * VRType.cardMult(),
+          angleDeg: WRITING_ANGLE, radius: 2.0,
+          width: 0.72 * VRType.cardMult(), accent: '#b8863b',
+          // hub-panel hangs the paper card's "Read the piece" + "Link" row
+          // 0.122 m below the card's own bottom edge, so the bottom bar has to
+          // clear that too or it lands on the buttons.
+          belowCardClearance: 0.122
+        });
+      // Both exposed for the dev harnesses: VRWritingScroll is null while the
+      // column fits, and VRWritingPlaced lets a test wake the mechanism on the
+      // real cards (attach a second instance with a lower activateAbove) without
+      // having to invent a sixth writing piece.
+      window.VRWritingScroll = writingScroll; // null while dormant
+      window.VRWritingPlaced = writingPlaced;
+
+      layoutCluster(document.querySelector('#projectsConstellation'), photoProjects, {
+        baseAngleDeg: PROJECTS_GRID_ANGLE, columns: 3,
+        cardWidth: 0.72, cardHeight: PROJECT_CARD_HEIGHT,
+        // 0.42 row gap clears the floating caption ABOVE a card plus the "Enter
+        // the project room" button BELOW it (~0.31 m together). colGapM stays a
+        // normal side gap so that vertical need isn't charged to yaw — feeding
+        // 0.42 into the column chord is what made each column cost 33.1°.
+        gapM: 0.42, colGapM: 0.14, topHeight: SECTIONS_TOP,
+        // The carousel's drag-snap angle must match the column step exactly or
+        // the snap settles a fraction off-column. Computed from the same
+        // chord/radius formula colStepDeg itself uses, never hand-copied.
+        onColStep: function (colStepDeg) {
+          document.querySelector('#projectsConstellation').setAttribute('carousel-drag', 'snapDeg', colStepDeg);
+        },
+        panelBuilder: projectPanelAttrs,
+        onPlaced: openFocusStage
+      });
+
+      // ── Experience constellation (right zone) ── Informational (no page
+      // to navigate to), but still selectable — pulling one closer shows its
+      // full bullet list, which doesn't fit the small glance tile.
+      // Silvery, deliberately distinct from the Projects side's warm tan/
+      // accent tones (per Sebastian) — kept in sync with focus-stage.js's
+      // buildExperience, which has no shared-constant path to this file to
+      // pull from (no build step, no module system across script tags).
+      var EXPERIENCE_ACCENT = '#d6dbe0';
+      layoutCluster(document.querySelector('#experienceConstellation'), data.experience, {
+        baseAngleDeg: EXPERIENCE_ANGLE, columns: 4, cardWidth: 0.5, cardHeight: 0.34, gapM: 0.14, centerHeight: 1.55,
+        panelBuilder: function (exp) {
+          // arrowHint: the card has no image/button of its own to signal it's
+          // clickable — the whole card already opens the focus-stage detail
+          // view (onPlaced below), this just hints that. It is NOT a link:
+          // nothing here ever opens exp.companyHref — that would pull the
+          // visitor out of VR, which Sebastian was explicit about not doing.
+          return { title: exp.company, subtitle: exp.role + ' · ' + exp.date, accent: EXPERIENCE_ACCENT, arrowHint: true };
+        },
+        onPlaced: function (exp, i, placed) {
+          placed.panelEl.components['hub-panel'].detail = { type: 'experience', data: exp };
+        }
+      });
+
+      // ── Photo Cloud (behind, §9) ── every site image as a drifting
+      // constellation. Guard for the component being ready (same race as the
+      // bio card).
+      var cloudEl = document.querySelector('#photoCloud');
+      // ── Each photo once (§9.1) ──
+      // data-loader.js's catalog already dedupes by src, so every tile was a
+      // distinct FILE. What Sebastian was seeing is a photo that exists as more
+      // than one file: contact-photo-professional.jpg and
+      // contact-photo-framed-for-mosaic.jpg are the same headshot at different
+      // crops, and contact-photo-mosaic.jpg is the mosaic artwork — and BOTH of
+      // the latter two are the home portrait's own source textures, so his face
+      // was in the cloud twice over on top of already being the hero of the
+      // home panel.
+      //
+      // The rule is therefore "don't put an image in the cloud that the scene
+      // already shows somewhere else", read straight off the mosaic-reveal
+      // entity rather than hardcoded here — swap the portrait and the exclusion
+      // follows it. Compared by filename because the attribute is authored
+      // relative ('../images/x.jpg') while the catalog is rooted ('/images/x.jpg').
+      // Read the raw DOM attribute and parse it by hand rather than trusting
+      // getAttribute(). On a multi-property component A-Frame's getAttribute
+      // only returns the parsed DATA OBJECT once the component has
+      // initialised — before that it hands back the raw STRING, so `mr.gray`
+      // reads undefined, the exclusion set comes out empty, and the filter
+      // silently keeps everything. That is exactly what happened on the first
+      // attempt: the logic was correct and measured 32/34 when run by hand
+      // afterwards, while the actual page had already built all 34 tiles. The
+      // DOM attribute is authored in the markup and is always there.
+      var portraitEl = document.querySelector('[mosaic-reveal]');
+      var sceneHeroFiles = {};
+      if (portraitEl && portraitEl.attributes['mosaic-reveal']) {
+        var mr = AFRAME.utils.styleParser.parse(portraitEl.attributes['mosaic-reveal'].value) || {};
+        [mr.gray, mr.color].forEach(function (src) {
+          if (src) sceneHeroFiles[String(src).split('/').pop()] = true;
+        });
+      }
+      var cloudImages = (data.images || []).filter(function (im) {
+        return !sceneHeroFiles[String(im.src).split('/').pop()];
+      });
+      // A photo's project is tagged by TITLE in the catalog; entering its room
+      // needs the whole project record, so hand the cloud a lookup rather than
+      // duplicating the project list inside the component (§9.8).
+      var projectByTitle = {};
+      (data.projects || []).forEach(function (p) { if (p.title) projectByTitle[p.title] = p; });
+
+      var applyCloud = function () {
+        var cloud = cloudEl.components['photo-cloud'];
+        cloud.setProjectResolver(function (title) { return projectByTitle[title] || null; });
+        cloud.setImages(cloudImages);
+      };
+      if (cloudEl.hasLoaded) applyCloud();
+      else cloudEl.addEventListener('loaded', applyCloud);
+
+      phaseNote.remove();
+    }).catch(function (err) {
+      console.error('[vr] data load failed:', err);
+      phaseNote.textContent = "couldn't load projects/experience — check console";
+    });
+  </script>
+
+</body>
+</html>

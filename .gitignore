@@ -1,1 +1,15 @@
 Sebastian_Esteva_Resume.pdf
+
+# /vr audio — the ambience + UI cue clips stay local. The scene ships with its
+# audio kill switch hard-off (vr/index.html), so nothing on the live site
+# looks for these. Drop the ignore when the sound design is finished and the
+# switch is turned back on.
+vr/assets/*.mp3
+vr/assets/*.ogg
+vr-audio/
+
+# /vr dev-only harnesses — none are referenced by the shipped scene
+# (VR_AI_BUILD_GUIDE.md §"dev-only files"), so they stay out of the public
+# site. Delete these three lines if you decide to version them.
+vr/_dev-*.js
+vr/_dev-preview.html

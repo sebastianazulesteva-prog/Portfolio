@@ -1,0 +1,567 @@
+/* ═══ vr.css ═══
+   2D overlay chrome (back link, Enter VR button). Tokens match the flat
+   site's :root values. The dusk dome itself is painted in dome.js — this
+   file is just the DOM layer on top of the <a-scene> canvas. */
+
+:root {
+  --bg: #080808;
+  --text: #f5f5f0;
+  --muted: rgba(245, 245, 240, 0.4);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --ember: #b8863b;
+  --serif: 'Playfair Display', Georgia, serif;
+  --sans: 'Syne', system-ui, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow: hidden;
+}
+
+body.accessible {
+  --sans: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --serif: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  font-size: 1.1em;
+}
+
+a-scene {
+  width: 100%;
+  height: 100%;
+}
+
+.vr-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.vr-overlay > * {
+  pointer-events: auto;
+}
+
+.back-link {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  background: rgba(15, 15, 15, 0.55);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.back-link:hover {
+  border-color: var(--border-hover);
+  background: rgba(15, 15, 15, 0.75);
+}
+
+.enter-vr-btn {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.85rem 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 15, 15, 0.55);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.enter-vr-btn:hover {
+  border-color: var(--ember);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.enter-vr-btn[hidden] {
+  display: none;
+}
+
+.loading-note {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+.phase-note {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+/* ─── HUD controls (bottom-right): turn ‹ ›, recenter ⌖, mute ♪ ───
+   Primarily the phone/desktop 2D fallback's only way to turn + recenter
+   (VR_IPHONE_FALLBACK_ADDENDUM.md §5) — no controller to snap-turn with — but
+   present on desktop too. Small, semi-transparent, never over panel content. */
+.hud-controls {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.hud-btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(15, 15, 15, 0.55);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.hud-btn:hover { border-color: var(--border-hover); background: rgba(15, 15, 15, 0.75); }
+.hud-btn:active { transform: scale(0.92); }
+.hud-btn.muted { color: var(--muted); }
+.hud-btn.recenter-btn { font-size: 1.2rem; }
+
+
+
+/* Onboarding hint — one line, centered near the bottom, fades after the
+   first interaction (§14 of the build directive).
+   Sits at the very bottom of the frame, not 5.25rem up: at 5.25rem it landed
+   across the lower body text of the bio card and covered 20% of its on-screen
+   area on arrival — precisely when a visitor is reading it (VR_TEST_REPORT A5).
+   1.4rem clears the .hud-controls row's own 1.25rem baseline, and the pill is
+   centred while the HUD is right-aligned, so they don't meet until the viewport
+   gets very narrow (where the copy is shorter anyway). */
+.onboard-hint {
+  position: absolute;
+  bottom: 1.4rem;
+  /* Centred via left/right:0 + auto margins, NOT left:50% + translateX(-50%).
+     With left:50% and no explicit width, an absolutely-positioned box
+     shrink-to-fits into only the space from the 50% line to the right edge —
+     187px on a 375px phone — so this wrapped to a cramped 5-line block on
+     mobile while looking fine on desktop. fit-content keeps the pill hugging
+     one line of text when there's room. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  width: fit-content;
+  /* Narrower than the old 34rem: with the full desktop sentence this pill ran
+     nearly the width of the frame and read as a browser notification bar rather
+     than part of the dusk scene. The copy is one short line now (index.html). */
+  max-width: min(90vw, 26rem);
+  /* border-box so max-width covers the padding+border too — as content-box it
+     resolved to 337 + 35 padding + 2 border = 375px, i.e. edge-to-edge on a
+     375px phone with no breathing room at the screen edges. */
+  box-sizing: border-box;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  /* Quieter fill than the 0.5 pill: it should read as a whisper over the dome,
+     not a system banner. */
+  background: rgba(15, 15, 15, 0.38);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  opacity: 1;
+  /* cubic-bezier ≈ GSAP power2.inOut — the scene-wide curve (§3). */
+  transition: opacity 0.8s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.onboard-hint.hidden { opacity: 0; }
+
+/* The landscape nudge ("Turn your phone sideways for the full view") was
+   removed at Sebastian's request — see the note in index.html. Its styles are
+   gone with it; don't reinstate without asking. */
+
+}
+
+/* Arrival veil — a full-screen dark wash that fades away on load, so the
+   dome eases in rather than snapping on (build directive item 12's "elegant
+   fade-in"; the per-letter name-scatter is the other half of the arrival).
+   Under reduced-motion it's removed instantly (no fade). */
+.arrival-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #050505;
+  opacity: 1;
+  pointer-events: none;
+  /* Quick fade (was 1.2s) — a long dark hold read as a broken/stuck load
+     (VR_BUGFIX item 10). The per-letter name-scatter carries the arrival now. */
+  transition: opacity 0.6s cubic-bezier(0.45, 0, 0.55, 1);
+}
+.arrival-veil.gone { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .arrival-veil { transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-link, .enter-vr-btn, .hud-btn { transition: none; }
+  .onboard-hint { transition: none; }
+}
+
+/* ─── iOS device-motion permission dialog ───────────────────────────────
+   A-Frame's built-in `device-orientation-permission-ui` (enabled by default
+   on the scene) gates gyroscope "magic window" look-around behind iOS's
+   mandatory DeviceOrientationEvent.requestPermission() tap. On iPhone this
+   dialog is the FIRST thing a visitor sees, before they can look around at
+   all — and A-Frame's stock styling is a white 300x200 box in `sans-serif`
+   with a cyan Allow button and a hot-pink Deny button, which reads as a
+   browser error against the dusk dome.
+
+   VR_IPHONE_FALLBACK_ADDENDUM.md §3 asks for it to match the site, so these
+   restyle it to the same glass-pill language as the HUD (.hud-btn) and back
+   link. Selectors are A-Frame's own (a-modal / a-dialog / a-dialog-*); they
+   are load-bearing, so don't rename them. Only visible on iOS Safari — there
+   is no way to trigger it on desktop, so verify on a real device. */
+.a-modal {
+  background: rgba(5, 5, 5, 0.72) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.a-dialog {
+  width: min(88vw, 21rem) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 1.5rem 1.35rem 1.2rem !important;
+  box-sizing: border-box !important;
+  border-radius: 1.25rem !important;
+  background-color: rgba(15, 15, 15, 0.92) !important;
+  border: 1px solid var(--border-hover);
+  color: var(--text);
+  font-family: var(--sans) !important;
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+.a-dialog-text-container { height: auto !important; }
+
+.a-dialog-text {
+  font-family: var(--sans);
+  font-size: 0.95rem !important;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 1.1rem !important;
+}
+
+.a-dialog-buttons-container {
+  height: auto !important;
+  gap: 0.6rem;
+}
+
+/* 2.75rem tall matches .hud-btn — the iOS 44px minimum touch target. */
+.a-dialog-button {
+  height: 2.75rem !important;
+  border-radius: 999px !important;
+  border: 1px solid var(--border) !important;
+  font-family: var(--sans);
+  font-size: 0.9rem !important;
+  letter-spacing: 0.02em;
+  margin: 0 !important;
+  opacity: 1 !important;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.a-dialog-button:active { transform: scale(0.96); }
+
+/* Allow is the path to the actual experience, so it carries the ember
+   accent; Deny stays quiet glass rather than an alarming red — declining
+   just leaves you in the drag-to-look view, which is not an error. */
+.a-dialog-allow-button,
+.a-dialog-ok-button {
+  background-color: var(--ember) !important;
+  border-color: transparent !important;
+  color: #0b0b0b !important;
+  font-weight: 600;
+}
+
+.a-dialog-deny-button {
+  background-color: rgba(245, 245, 240, 0.06) !important;
+  color: var(--text) !important;
+}
+
+.a-dialog-permission-button:hover { box-shadow: none !important; }
+.a-dialog-allow-button:hover,
+.a-dialog-ok-button:hover { filter: brightness(1.08); }
+.a-dialog-deny-button:hover { border-color: var(--border-hover) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .a-dialog-button { transition: none; }
+}
+
+/* ─── Arrival gate (§9.7) ───
+   A real modal: it takes pointer events (unlike the rest of the overlay, which
+   is pass-through) and it is the first thing the visitor reads. Deliberately
+   plain and text-forward — this is the one place on the site that is allowed to
+   be a wall of words, because it is saying "what you are about to see is not
+   the real thing" and that needs sentences, not a badge. */
+.onboard-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 40; /* over the HUD, the back link and the canvas */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(5, 5, 5, 0.82);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  transition: opacity 0.4s cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+.onboard-gate.dismissed { opacity: 0; pointer-events: none; }
+
+.onboard-card {
+  max-width: 34rem;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 1.9rem 1.9rem 1.6rem;
+  border-radius: 1.1rem;
+  border: 1px solid var(--border);
+  background: rgba(15, 15, 15, 0.9);
+  font-family: var(--sans);
+  color: var(--text);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+}
+
+.onboard-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ember);
+}
+
+/* BETA pill in the arrival gate's eyebrow — same idea as the flat site's nav
+   entry. Border in --ember at low alpha rather than the solid --ember of the
+   eyebrow text it sits beside, so it labels the line without competing with
+   it for the eye. */
+.onboard-beta {
+  margin-left: 0.6rem;
+  padding: 0.15em 0.45em;
+  border: 1px solid rgba(184, 134, 59, 0.55);
+  border-radius: 3px;
+  color: rgba(245, 245, 240, 0.6);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  vertical-align: 0.1em;
+}
+
+.onboard-title {
+  margin: 0 0 0.9rem;
+  font-family: var(--serif, var(--sans));
+  font-size: 1.65rem;
+  line-height: 1.15;
+  font-weight: 500;
+}
+
+.onboard-card p {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.onboard-card .onboard-quiet { color: var(--muted); }
+
+/* The motion paragraph is the one the visitor must actually act on, so it gets
+   a left rule and its own ground rather than sitting in the flow as one more
+   block of body copy. */
+.onboard-motion {
+  padding: 0.75rem 0.9rem;
+  border-left: 2px solid var(--ember);
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: rgba(184, 134, 59, 0.10);
+}
+
+.onboard-enter {
+  margin-top: 0.5rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.85rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-hover);
+  background: var(--ember, #b8863b);
+  color: #0d0d0d;
+  font-family: var(--sans);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+
+.onboard-enter:hover { filter: brightness(1.08); }
+.onboard-enter:active { transform: scale(0.985); }
+
+.onboard-status {
+  margin: 0.7rem 0 0;
+  min-height: 1.2em;
+  font-size: 0.85rem;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.onboard-status.shown { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .onboard-gate, .onboard-enter, .onboard-status { transition: none; }
+}
+
+/* ─── Movement controls (bottom-left) ───
+   The mirror of .hud-controls on the right: turning/looking lives there,
+   moving lives here. On a fine pointer the joystick is hidden (WASD does the
+   job) and this block collapses to the recenter pill alone. */
+.move-controls {
+  position: absolute;
+  bottom: 1.25rem;
+  left: 1.25rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.joystick {
+  display: none; /* touch only — see the coarse-pointer block at the end */
+  position: relative;
+  /* 5.75rem (92px) rather than the first pass's 6.5rem: at 6.5 the pad's top
+     edge reached into the onboarding hint on a 375px phone (measured 2884 px²
+     of overlap). Still a comfortable thumb target — well past the 44px minimum
+     — and it buys the hint room to sit clear above it. */
+  width: 5.75rem;
+  height: 5.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(12, 12, 12, 0.5);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  /* The pad is a drag surface: without this, dragging on it scrolls//zooms the
+     page on iOS instead of moving the thumb, and the browser's own gesture
+     wins over ours. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.joystick.active { border-color: var(--border-hover); background: rgba(12, 12, 12, 0.68); }
+
+.joystick-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: -1.3rem 0 0 -1.3rem;
+  border-radius: 999px;
+  background: rgba(245, 245, 240, 0.82);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  pointer-events: none; /* the PAD handles the pointer, not the thumb */
+  transition: transform 0.12s ease-out;
+}
+
+.joystick.active .joystick-thumb { transition: none; } /* follow the finger 1:1 */
+
+@media (prefers-reduced-motion: reduce) {
+  .joystick-thumb { transition: none; }
+}
+
+/* ═══ Touch-pointer overrides — MUST stay at the end of this file ═══
+   A media query adds no specificity, so these rules only win by coming after
+   the base ones. The first attempt sat next to .hud-btn, which is ABOVE
+   .onboard-hint's own `bottom: 1.4rem` — so the hint never moved and the
+   enlarged control row kept sitting on top of it. Anything added here that
+   overrides an earlier selector has the same constraint. */
+
+/* ─── Touch: the controls are the ONLY way to look around, so size them like it ───
+   On a phone these buttons were 2.75rem at rgba(15,15,15,0.55) with a 1.05rem
+   glyph — the bare iOS 44px minimum, and the thin ‹ › guillemets read as faint
+   scratches against a bright dusk sky (Sebastian: "just too small/opaque").
+   Desktop keeps the small, unobtrusive size: there the buttons are a fallback,
+   because looking around is the mouse's job (§9.5).
+
+   Sized and contrasted, not just scaled: 3.4rem targets, a near-opaque fill so
+   the glyph always has a dark ground under it whatever the sky is doing behind,
+   a brighter border, a heavier/larger glyph, and a drop shadow to lift the whole
+   pill off the scene. */
+@media (hover: none) and (pointer: coarse) {
+  .hud-controls {
+    gap: 0.7rem;
+    right: 1rem;
+    /* Lifted clear of the onboarding hint, which is centred at the very bottom
+       of the frame and collided with this row on a 375px-wide phone. */
+    bottom: 1.15rem;
+  }
+
+  .hud-btn {
+    width: 3.4rem;
+    height: 3.4rem;
+    font-size: 1.5rem;
+    font-weight: 500;
+    background: rgba(12, 12, 12, 0.82);
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  }
+
+  .hud-btn.recenter-btn { font-size: 1.7rem; }
+
+  /* The joystick is the phone's movement control, so it appears here and only
+     here. Sized for a thumb resting at the bottom-left corner of the frame. */
+  .joystick { display: block; }
+  .move-controls { bottom: 1.15rem; left: 1rem; }
+
+  /* No hover state on touch — :hover sticks after a tap on iOS, leaving one
+     button permanently lit. The :active press feedback below is the real
+     affordance. */
+  .hud-btn:hover { background: rgba(12, 12, 12, 0.82); border-color: var(--border-hover); }
+  .hud-btn:active { background: rgba(30, 30, 30, 0.9); }
+}
+
+/* The hint sits at the very bottom centre; on a narrow phone the wider control
+   row above reaches into it. Lift the hint rather than shrinking the controls —
+   it's transient copy that fades on the first interaction, and the controls are
+   permanent. */
+@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+  /* Above BOTH bottom clusters: the joystick is the tall one (92px at a 1.15rem
+     inset reaches y=702 on an 812px-tall phone), so 8.5rem puts the hint's
+     bottom edge at y=676 — clear by 26px. Landscape leaves the hint at the very
+     bottom, where the joystick is off to one side and never meets it. */
+  .onboard-hint { bottom: 8.5rem; }
+}

@@ -172,6 +172,9 @@
        --muted     = dimmer text, used for labels/captions
        --muted2    = even dimmer, used for faint decorative text
        --border    = thin divider lines between sections
+       --ember     = the dome's warm gold — used ONLY by the "Experience in VR"
+                     nav entry, so the link wears the colour of the place it
+                     leads to. Same value as vr.css's --ember; change both.
     */
     :root {
       --base-font-size: 17px; /* one notch above the 16px browser default */
@@ -186,6 +189,7 @@
       --text: #f5f5f0;
       --muted: rgba(245,245,240,0.4);
       --muted2: rgba(245,245,240,0.2);
+      --ember: #b8863b;
       --serif: 'Playfair Display', Georgia, serif;   /* used for big headlines */
       --sans: 'Syne', system-ui, sans-serif;          /* used for body/nav text */
     }
@@ -316,32 +320,46 @@
 
     .nav-links a:hover { color: var(--text); }
 
-    /* The "View in VR" nav entry (/vr — the WebXR version of this site).
+    /* The "Experience in VR" nav entry (/vr — the WebXR version of this site).
        This replaced the old inert "VR Website Version Coming Soon" note when
-       /vr went live in beta. The <li> only handles wrapping; the link itself
-       is styled by .nav-links a above, so it fades in and hovers exactly like
-       the other four. Kept nowrap so "View in VR" never splits from its pill. */
+       /vr went live in beta. The <li> only handles wrapping; sizing, spacing
+       and the entrance animation come from .nav-links a above — only the
+       colour is overridden. Kept nowrap so the label never splits from its
+       pill. */
     .nav-vr { white-space: nowrap; }
+
+    /* Gold, not the off-white of the other four links: this is the one nav
+       entry that leaves the flat site, and it wears the dome's own colour so
+       it reads as a door rather than another section. #b8863b on this
+       near-black clears 6:1 contrast, so it stays legible at nav's 0.75rem
+       despite being a mid-tone. */
+    .nav-vr a { color: var(--ember); }
+
+    /* Hover lifts toward white instead of deeper into gold — the other links
+       brighten on hover, and going darker/more saturated here would read as
+       the link switching off. */
+    .nav-vr a:hover { color: #e8c48a; }
 
     /* BETA pill riding beside the link. Inside the <a> on purpose: it then
        inherits the entrance animation and the no-hero-anim override that all
-       nav links get, instead of needing its own copies of both. */
+       nav links get, instead of needing its own copies of both. Gold-tinted to
+       match the label, but held below it in weight — a border at low alpha and
+       dimmer fill — so it labels the link without competing with it. Mirrors
+       .onboard-beta in vr.css, which does the same job inside the dome. */
     .nav-beta {
       margin-left: 0.5rem;
       padding: 0.15em 0.45em;
-      border: 1px solid rgba(245,245,240,0.28);
+      border: 1px solid rgba(184,134,59,0.5);
       border-radius: 3px;
-      /* Dimmer than the link text it sits next to, so it reads as a label on
-         the link rather than as part of the link's name. */
-      color: rgba(245,245,240,0.55);
+      color: rgba(184,134,59,0.75);
       font-size: 0.62rem;
       letter-spacing: 0.12em;
       vertical-align: 0.08em;
     }
 
-    .nav-links a:hover .nav-beta {
-      border-color: rgba(245,245,240,0.5);
-      color: rgba(245,245,240,0.8);
+    .nav-vr a:hover .nav-beta {
+      border-color: rgba(232,196,138,0.7);
+      color: rgba(232,196,138,0.9);
     }
 
     /* Thin vertical rule separating "Experience" (a whole separate page)
@@ -1176,8 +1194,8 @@
     .reveal-delay-2 { transition-delay: 0.24s; }
     .reveal-delay-3 { transition-delay: 0.36s; }
 
-    /* Between phone and full desktop there isn't room for the "View in VR"
-       entry beside the four links — it squeezed "Where I've Worked" into a
+    /* Between phone and full desktop there isn't room for the "Experience in
+       VR" entry beside the four links — it squeezed "Where I've Worked" into a
        three-line stack. Below ~1200px it drops to its own line under the
        links instead. */
     @media (max-width: 1200px) {
@@ -1196,8 +1214,8 @@
         flex-wrap: wrap;
         justify-content: space-between;
         /* Tighter column gap so the four other links still share one row
-           once "View in VR" below is allowed to wrap; row gap spaces the two
-           lines apart. */
+           once "Experience in VR" below is allowed to wrap; row gap spaces the
+           two lines apart. */
         gap: 0.9rem 0.35rem;
       }
       .nav-links a { font-size: 0.75rem; letter-spacing: 0.03em; padding: 1rem 0.25rem; margin: -1rem -0.25rem; }
@@ -1315,7 +1333,7 @@
       <li><a href="#contact">Contact</a></li>
       <li class="nav-sep" aria-hidden="true"></li>
       <li><a href="experience.html">Where I've Worked</a></li>
-      <li class="nav-vr"><a href="vr/">View in VR<span class="nav-beta">Beta</span></a></li>
+      <li class="nav-vr"><a href="vr/">Experience in VR<span class="nav-beta">Beta</span></a></li>
     </ul>
     <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
       <span class="a11y-dot"></span>

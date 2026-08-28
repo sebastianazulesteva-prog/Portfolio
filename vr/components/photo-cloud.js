@@ -87,6 +87,32 @@
   var FOCUSED_RENDER_ORDER = 5;   // hover/reach — same fix, one rung down
   var SELECT_SCALE = 1.9;
   var OTHERS_PUSH = 1.18;  // multiplier on every other tile's home radius
+  // ── Caption backing ──
+  // Sebastian: "add a little background to the text for the cloud photos once
+  // they are pulled in (the descriptions) because it gets hard to read." The
+  // caption floats free below the tile, so whatever it happens to be over —
+  // another photo, the ember horizon, a bright shirt — sets its contrast, and
+  // some of those backgrounds are near-white. A rounded chip behind it makes
+  // the background known.
+  //
+  // Deliberately a chip, not a card: 0.86 alpha over the dome's near-black, no
+  // ember rim, no glass shader. The glass card material is the scene's word for
+  // "this is a surface you interact with"; a caption is a label, and at this
+  // size a full card behind every hovered tile would read as a second panel
+  // floating in the cloud. Tone matches the notice's and the skills panel's
+  // plates (#0e0c09) so the three backings in the scene agree.
+  var CAP_BG_COLOR = '#0e0c09';
+  // 0.92, not the 0.86 first tried: at 0.86 a bright photo behind the chip
+  // still came through at ~30 luma and you could read ANOTHER tile's caption
+  // ghosting under this one. Measured on the worst case in the cloud, the
+  // background behind a caption ranges 11-216 luma; the chip flattens that to
+  // 12-40 at 0.86 and to 12-27 here, which is the difference between "legible"
+  // and "clean".
+  var CAP_BG_ALPHA = 0.92;
+  var CAP_BG_PAD_X = 0.030;
+  var CAP_BG_PAD_Y = 0.018;
+  var CAP_BG_RADIUS = 0.020;
+
   var OTHERS_DIM = 0.55;   // uDim for the rest of the cloud while one is selected
   var SELECT_TOP = 2.05;   // as FOCUS_TOP, but the selected tile is bigger
 
@@ -180,11 +206,21 @@
 
         // Caption — hidden until reached. Placed below the tile; sized so that
         // at FOCUS_SCALE it's comfortably readable.
+        //
+        // maxWidth is the TILE's width, not 2.2x it. At 2.2 a long alt string
+        // stayed on one line and ran to 1.12 m in the tile's own units — x1.9
+        // when selected, that is a 2.2 m line at 1.15 m from the eye, about 88
+        // degrees of yaw to read one sentence, with both ends outside a phone's
+        // frame entirely (measured on the pendant tile: the caption was more
+        // than twice the width of the photo it belongs to). Wrapping to two or
+        // three lines under the photo is both easier to read and what a caption
+        // should look like. This is the other half of "it gets hard to read" —
+        // the backing chip below is the first half.
         var cap = document.createElement('a-entity');
         cap.setAttribute('troika-text', {
           value: caption(im), align: 'center', anchor: 'center', baseline: 'top',
           color: '#f5f5f0', fillOpacity: 0.9, font: VRFonts.body(),
-          fontSize: VRType.body(), maxWidth: size * 2.2, lineHeight: 1.25
+          fontSize: VRType.body(), maxWidth: size * 1.05, lineHeight: 1.3
         });
         cap.object3D.position.set(0, -size * 0.62, 0.02);
         cap.object3D.visible = false;
@@ -224,7 +260,7 @@
     // Float a tile forward + enlarge (reach), or ease it back into the cloud.
     _focus: function (tile, on) {
       tile.hovered = on;
-      if (tile.cap) tile.cap.object3D.visible = on;
+      this._setCaptionVisible(tile, on);
       // Same paint-order problem as selection, one step smaller: a reached tile
       // floats to 1.6 m while the rest of the cloud stays at 2.2 m+, and
       // without a lift the later-in-DOM tiles paint over it and its caption.
@@ -283,7 +319,7 @@
       if (prev) {
         prev.selected = false;
         this._teardownAction(prev);
-        if (prev.cap) prev.cap.object3D.visible = false;
+        this._setCaptionVisible(prev, false);
         this._setRenderOrder(prev, 0);
         this._moveTile(prev, prev.home.clone(), 1, prev.depthDim, 0.6);
       }
@@ -297,7 +333,7 @@
 
       tile.selected = true;
       tile.hovered = false;
-      if (tile.cap) tile.cap.object3D.visible = true;
+      this._setCaptionVisible(tile, true);
 
       // Forward along the tile's OWN direction, so it stays in the cloud's zone
       // behind the hub rather than swinging around into the arrival view — same
@@ -322,6 +358,71 @@
       }
     },
 
+    // Show/hide a caption, building its backing chip the first time it is
+    // needed. Lazy on purpose: 32 tiles x (poll troika + build a mesh) at load
+    // would pay for 32 backings when a visit typically reveals a handful, and
+    // troika has not laid the text out at build time anyway.
+    _setCaptionVisible: function (tile, on) {
+      if (!tile || !tile.cap) return;
+      tile.cap.object3D.visible = on;
+      if (on) this._ensureCaptionBg(tile);
+    },
+
+    // The chip is sized from the caption's REAL measured text block, not from
+    // an estimate off fontSize x characters — these captions wrap to one or two
+    // lines depending on the alt text, and a fixed-height chip would either
+    // clip the second line or float a slab under a single one.
+    //
+    // troika measures asynchronously and `blockBounds` simply does not exist
+    // until it has (VR_AI_BUILD_GUIDE.md §3.2), so this polls. It also bails
+    // out if the caption has been hidden again in the meantime — a tile the
+    // pointer brushed past should not build geometry a beat later.
+    _ensureCaptionBg: function (tile) {
+      if (tile.capBg || tile.capBgPending) return;
+      tile.capBgPending = true;
+      var cap = tile.cap;
+      var tries = 0;
+      (function poll() {
+        if (!tile.cap || !tile.cap.object3D.visible) { tile.capBgPending = false; return; }
+        var comp = cap.components['troika-text'];
+        var mesh = comp && comp.troikaTextMesh;
+        var bb = mesh && mesh.textRenderInfo && mesh.textRenderInfo.blockBounds;
+        if (!bb) {
+          if (++tries > 120) { tile.capBgPending = false; return; }
+          setTimeout(poll, 40);
+          return;
+        }
+        var w = (bb[2] - bb[0]) + CAP_BG_PAD_X * 2;
+        var h = (bb[3] - bb[1]) + CAP_BG_PAD_Y * 2;
+        var geo = VRScrollArrows.roundedRectGeometry(w, h, Math.min(CAP_BG_RADIUS, h / 2));
+        var mat = new THREE.MeshBasicMaterial({
+          color: CAP_BG_COLOR, transparent: true, opacity: CAP_BG_ALPHA,
+          // An overlay behind a label, not a surface: it must not stamp depth
+          // and cut a hole in the feathered tile above it (§3.6's warning about
+          // depthWrite on soft-edged materials).
+          depthWrite: false
+        });
+        var bg = new THREE.Mesh(geo, mat);
+        // Centred on the text's own block, which is anchored top-centre — so
+        // the block hangs BELOW the caption's origin and its centre is not 0.
+        bg.position.set((bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2, -0.004);
+        // Marked so _setRenderOrder can keep it one rung BEHIND its own text.
+        // It is added to the subtree AFTER troika's mesh (it had to wait for the
+        // measurement), and with equal renderOrder the transparent pass falls
+        // back to scene-graph order — which would paint the chip over the words
+        // it exists to support.
+        bg.__capBg = true;
+        cap.setObject3D('cap-bg', bg);
+        tile.capBg = bg;
+        tile.capBgPending = false;
+        // Adopt whatever paint order the tile is currently sitting at.
+        var order = 0;
+        if (tile.selected) order = SELECTED_RENDER_ORDER;
+        else if (tile.hovered) order = FOCUSED_RENDER_ORDER;
+        bg.renderOrder = order - 1;
+      })();
+    },
+
     // Lift or drop a tile's whole subtree in the transparent paint order. Walks
     // the object3D tree rather than just the 'tile' mesh, so the caption and the
     // "View full project" button ride along instead of being painted over by the
@@ -329,7 +430,10 @@
     _setRenderOrder: function (tile, order) {
       if (!tile || !tile.el) return;
       tile.el.object3D.traverse(function (n) {
-        if (n.isMesh || n.isSprite || n.isPoints || n.isLine) n.renderOrder = order;
+        if (!(n.isMesh || n.isSprite || n.isPoints || n.isLine)) return;
+        // The caption's backing chip rides one rung behind the caption itself,
+        // or it paints over the text (see _ensureCaptionBg).
+        n.renderOrder = n.__capBg ? order - 1 : order;
       });
     },
 
@@ -440,7 +544,18 @@
     },
 
     remove: function () {
-      this._tiles.forEach(function (t) { if (t.tween) t.tween.kill(); });
+      this._tiles.forEach(function (t) {
+        if (t.tween) t.tween.kill();
+        // The caption chips are the one thing here built lazily at runtime, so
+        // they are the one thing this has to free — three.js never auto-disposes
+        // (the tile meshes and their textures predate this method and are still
+        // not freed; the cloud is never actually removed in the shipped scene).
+        if (t.capBg) {
+          if (t.capBg.geometry) t.capBg.geometry.dispose();
+          if (t.capBg.material) t.capBg.material.dispose();
+          t.capBg = null;
+        }
+      });
       this._tiles = [];
       this._selected = null;
     }

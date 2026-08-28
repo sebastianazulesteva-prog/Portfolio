@@ -68,6 +68,23 @@
   // cloud pushes 18% further out and dims, so the neighbours stop competing for
   // the frame instead of merely being behind.
   var SELECT_R = 1.15;
+  // Bringing the selected tile FORWARD is not enough on its own to bring it to
+  // the FRONT, because this scene runs with A-Frame's
+  // `sortTransparentObjects: false` — transparent draw order is scene-graph
+  // order, not depth order — and the tile shader is transparent with
+  // depthWrite:false, so nothing depth-rejects a farther tile either. A tile
+  // later in #photoCloud's child list therefore paints straight over the
+  // selected one: measured 12–36% of the selected tile's OWN face overwritten
+  // by other tiles, while it sat a full metre nearer the eye.
+  //
+  // renderOrder is honoured even under that stable sort, so lifting the whole
+  // selected subtree (tile, caption, action button) above the rest of the cloud
+  // fixes the paint order without touching depth semantics, without reordering
+  // the DOM (the tile must stay inside #photoCloud so rooms/reader still hide
+  // it), and without turning on scene-wide transparent sorting — which would
+  // change how every other panel composites.
+  var SELECTED_RENDER_ORDER = 10;
+  var FOCUSED_RENDER_ORDER = 5;   // hover/reach — same fix, one rung down
   var SELECT_SCALE = 1.9;
   var OTHERS_PUSH = 1.18;  // multiplier on every other tile's home radius
   var OTHERS_DIM = 0.55;   // uDim for the rest of the cloud while one is selected
@@ -208,6 +225,12 @@
     _focus: function (tile, on) {
       tile.hovered = on;
       if (tile.cap) tile.cap.object3D.visible = on;
+      // Same paint-order problem as selection, one step smaller: a reached tile
+      // floats to 1.6 m while the rest of the cloud stays at 2.2 m+, and
+      // without a lift the later-in-DOM tiles paint over it and its caption.
+      // Below SELECTED_RENDER_ORDER, so a selected tile still wins if the ray
+      // happens to be resting on a different one.
+      if (!tile.selected) this._setRenderOrder(tile, on ? FOCUSED_RENDER_ORDER : 0);
 
       var target;
       if (on) {
@@ -261,6 +284,7 @@
         prev.selected = false;
         this._teardownAction(prev);
         if (prev.cap) prev.cap.object3D.visible = false;
+        this._setRenderOrder(prev, 0);
         this._moveTile(prev, prev.home.clone(), 1, prev.depthDim, 0.6);
       }
 
@@ -286,6 +310,27 @@
 
       this._recedeOthers(true);
       this._buildAction(tile);
+      // After _buildAction, so the button is included. Its ui-button meshes are
+      // built when that entity loads, which is a frame or two away — hence the
+      // repeat on 'loaded' rather than trusting this pass to have caught it.
+      this._setRenderOrder(tile, SELECTED_RENDER_ORDER);
+      if (tile.actionEl && !tile.actionEl.hasLoaded) {
+        var self = this;
+        tile.actionEl.addEventListener('loaded', function () {
+          if (self._selected === tile) self._setRenderOrder(tile, SELECTED_RENDER_ORDER);
+        }, { once: true });
+      }
+    },
+
+    // Lift or drop a tile's whole subtree in the transparent paint order. Walks
+    // the object3D tree rather than just the 'tile' mesh, so the caption and the
+    // "View full project" button ride along instead of being painted over by the
+    // cloud they now float in front of.
+    _setRenderOrder: function (tile, order) {
+      if (!tile || !tile.el) return;
+      tile.el.object3D.traverse(function (n) {
+        if (n.isMesh || n.isSprite || n.isPoints || n.isLine) n.renderOrder = order;
+      });
     },
 
     // Push the rest of the cloud back and dim it, or restore it.

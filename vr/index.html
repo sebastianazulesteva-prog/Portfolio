@@ -165,8 +165,8 @@
   <script src="components/sunflower.js?v=1"></script>
   <script src="components/constellation.js?v=9"></script>
   <script src="components/carousel-drag.js?v=1"></script>
-  <script src="components/locomotion.js?v=3"></script>
-  <script src="components/walk-controls.js?v=2"></script>
+  <script src="components/locomotion.js?v=6"></script>
+  <script src="components/walk-controls.js?v=4"></script>
   <script src="components/column-scroll.js?v=2"></script>
   <script src="components/onboarding.js?v=2"></script>
   <script src="components/data-loader.js?v=8"></script>
@@ -314,9 +314,18 @@
          camera position was the stray "spherical outline" artifact). Higher
          segment count + fog:false so on the rare frames it IS visible, it
          reads as a clean vignette, not a faceted, fog-tinted sphere. -->
+    <!-- depthTest/depthWrite OFF is load-bearing, not tidiness. This sphere
+         sits AT the eye, so in view space its centre is z=0 — which sorts it
+         FIRST in three.js's back-to-front transparent pass, ahead of every
+         panel. With depth writes on it stamped the depth buffer at 0.3 m and
+         depth-rejected every transparent object beyond that: hold it on (which
+         walking does, for the whole move) and the entire scene vanished, dome
+         and floor surviving only because they are opaque. It is an overlay —
+         it must never participate in depth. renderOrder is forced in
+         vignette-flash so it always composites last. -->
     <a-entity id="comfortVignette" vignette-flash visible="false"
-               geometry="primitive: sphere; radius: 0.3; segments-width: 24; segments-height: 16"
-               material="color: #000; side: back; shader: flat; transparent: true; opacity: 0; fog: false"
+               geometry="primitive: sphere; radius: 0.3; segments-width: 32; segments-height: 24"
+               material="color: #000; side: back; shader: flat; transparent: true; opacity: 0; fog: false; depthTest: false; depthWrite: false"
                position="0 1.6 0"></a-entity>
 
     <!-- Home panel cluster — anchor, dead ahead (§2). Name/tagline are

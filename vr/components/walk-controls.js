@@ -9,18 +9,35 @@
    now smooth and user-driven. Rotation is untouched: snap-turn still handles all
    turning, there is still no teleport, and there is still no smooth *look*.
 
-   ── Why it is BOUNDED, and why the bound is small ──
-   Every constellation card sits at radius 2.0 m from the origin, and the photo
-   cloud starts at 2.21 m. Free roam of the dome would walk you straight through
-   the cards — the scene is a composition seen from a spot, not a room to cross.
-   So position is clamped to a circle. The default 1.1 m is the largest radius
-   that still leaves clear air between you and the nearest panel face: it lets
-   you halve your distance to any card (2.0 m → ~0.9 m) and step around the home
-   panel, without ever reaching a card's plane. It also happens to keep you
-   roughly over the dusk rug (radius 1.3 at z=-0.4), so the floor still reads as
-   "your spot".
+   ── Why it is BOUNDED, and how the bound is meant to feel ──
+   Every constellation card sits at radius 2.0-2.3 m from the origin, and the
+   photo cloud starts at 2.21 m. Free roam of the dome would walk you straight
+   through the cards — the scene is a composition seen from a spot, not a room
+   to cross. So position is clamped to a circle.
 
-   Tune with ?walkRadius=<m> and ?walkSpeed=<m/s>; ?walk=0 disables it entirely
+   The first pass used a 1.1 m CIRCLE at 1.0 m/s, and it was too tight to read as
+   walking: you hit the clamp in about a second and then spent the whole time
+   pressed against it.
+
+   The bound is no longer a circle, because the scene is not radially symmetric.
+   Forward is the tight direction — the home cluster sits at z = -1.5, so a
+   circle wide enough to feel like anything sideways walks you straight THROUGH
+   the home panel and leaves you staring at an empty dome. (Tested: at radius
+   1.7 the rig ends up at z = -1.68, behind the panel, with two objects in
+   frame. It looks exactly like the bug this change set out to fix.) So the
+   bound is an ellipse, offset backwards: `forward` (1.15 m) caps travel toward
+   -Z with ~0.35 m of clearance to the home panel, while `radius` (1.6 m) gives
+   the sides and the space behind you the room they can afford. Nearest card at
+   2.0-2.3 m stays comfortably out of reach in every direction.
+
+   The edge is SOFT, which is most of why it stopped feeling broken. A hard
+   clamp plus a slide term still ends in an abrupt halt; instead the outward
+   component of the *wanted* velocity is bled off across the outer `softFrac` of
+   the bound, so you decelerate into it the way you would into a wall in any
+   first-person game. The hard clamp stays underneath as a backstop.
+
+   Tune with ?walkRadius=<m>, ?walkForward=<m> and ?walkSpeed=<m/s>; ?walk=0
+   disables it entirely
    (for comparing against the old fixed-viewpoint composition).
 
    ── Reduced motion ──
@@ -55,9 +72,11 @@
 
   AFRAME.registerComponent('walk-controls', {
     schema: {
-      speed: { type: 'number', default: 1.0 },   // metres/second at full deflection
-      radius: { type: 'number', default: 1.1 },  // clamp, metres from the seat
-      ramp: { type: 'number', default: 0.18 }    // seconds to reach full speed
+      speed: { type: 'number', default: 1.5 },    // metres/second at full deflection
+      radius: { type: 'number', default: 1.6 },   // side/back half-extent, metres
+      forward: { type: 'number', default: 1.15 }, // how far toward -Z you may go
+      ramp: { type: 'number', default: 0.14 },    // seconds to reach full speed
+      softFrac: { type: 'number', default: 0.3 }  // outer fraction of the bound spent decelerating
     },
 
     init: function () {
@@ -68,6 +87,7 @@
       this.moving = false;
 
       if (params.get('walkRadius')) this.data.radius = parseFloat(params.get('walkRadius'));
+      if (params.get('walkForward')) this.data.forward = parseFloat(params.get('walkForward'));
       if (params.get('walkSpeed')) this.data.speed = parseFloat(params.get('walkSpeed'));
 
       this._forward = new THREE.Vector3();
@@ -95,6 +115,7 @@
         get axis() { return { x: self.axis.x, y: self.axis.y }; },
         get active() { return self.moving; },
         get radius() { return self.data.radius; },
+        get forward() { return self.data.forward; },
         disabled: DISABLED
       };
     },
@@ -169,6 +190,35 @@
         .addScaledVector(this._right, ix)
         .multiplyScalar(this.data.speed);
 
+      // ── Soft boundary ──
+      // Work in the ellipse's normalised space, where the bound is the unit
+      // circle: d < 1 inside, d == 1 on the edge. The world-space outward
+      // normal of an ellipse is NOT the radial direction — it is (ux/ax,
+      // uz/az) — and using the radial one instead makes you drift along the
+      // boundary in the wrong direction on the flatter arcs.
+      var pos = this.el.object3D.position;
+      var ax = this.data.radius;
+      var az = (this.data.radius + this.data.forward) / 2;
+      var cz = (this.data.radius - this.data.forward) / 2;
+      var ux = pos.x / ax, uz = (pos.z - cz) / az;
+      var d0 = Math.sqrt(ux * ux + uz * uz);
+      var soft = Math.max(0, Math.min(0.9, this.data.softFrac));
+
+      if (soft > 0 && d0 > 1 - soft) {
+        var nx = ux / ax, nz = uz / az;
+        var nl = Math.sqrt(nx * nx + nz * nz) || 1;
+        nx /= nl; nz /= nl;
+        // Bleed off only the OUTWARD component of the WANTED velocity, before
+        // the ramp sees it. Inward and along-the-edge motion are untouched, so
+        // you can still run the full length of the boundary at full speed.
+        var out0 = this._want.x * nx + this._want.z * nz;
+        if (out0 > 0) {
+          var keep = Math.max(0, (1 - d0) / soft);
+          this._want.x -= out0 * (1 - keep) * nx;
+          this._want.z -= out0 * (1 - keep) * nz;
+        }
+      }
+
       if (reducedMotion || this.data.ramp <= 0) {
         this.vel.copy(this._want);
       } else {
@@ -180,24 +230,28 @@
       }
 
       var moving = this.vel.lengthSq() > 1e-5;
-      var pos = this.el.object3D.position;
 
       if (moving) {
         pos.x += this.vel.x * dt;
         pos.z += this.vel.z * dt;
 
-        // ── Clamp to the circle ──
-        var r = this.data.radius;
-        var d = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
-        if (d > r) {
-          var s = r / d;
-          pos.x *= s; pos.z *= s;
+        // ── Hard clamp, the backstop under the soft edge above ──
+        // The soft edge should mean this almost never fires; it still has to be
+        // here for the cases that skip the ramp (reduced motion) or arrive with
+        // a big delta.
+        var ex = pos.x / ax, ez = (pos.z - cz) / az;
+        var d = Math.sqrt(ex * ex + ez * ez);
+        if (d > 1) {
+          pos.x = (ex / d) * ax;
+          pos.z = cz + (ez / d) * az;
+          var kx = (ex / d) / ax, kz = (ez / d) / az;
+          var kl = Math.sqrt(kx * kx + kz * kz) || 1;
+          kx /= kl; kz /= kl;
           // Kill the OUTWARD part of the velocity so you slide along the
           // boundary instead of pressing into it and stopping dead — otherwise
           // walking into the edge at an angle feels like hitting glue.
-          var nx = pos.x / r, nz = pos.z / r;
-          var outward = this.vel.x * nx + this.vel.z * nz;
-          if (outward > 0) { this.vel.x -= outward * nx; this.vel.z -= outward * nz; }
+          var outward = this.vel.x * kx + this.vel.z * kz;
+          if (outward > 0) { this.vel.x -= outward * kx; this.vel.z -= outward * kz; }
         }
       }
 

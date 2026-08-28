@@ -25,7 +25,12 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var TRANSITION_MS = 1400; // full dip-to-dark-and-emerge, within §7's 1.2–2s
 
-  var hubSelectors = ['#homeCluster', '#bioCard', '#projectsConstellation', '#experienceConstellation', '#photoCloud'];
+  // Read from the DOM, never a hardcoded id list: this used to be five ids that
+  // silently missed #writingConstellation (VR_TEST_REPORT B1) — the writing
+  // cards stayed visible AND clickable inside every room, so a visitor could
+  // open the PDF reader on top of an open room. See the .hub-cluster comment in
+  // index.html. Queried per call rather than cached, because the clusters are
+  // populated after load and a cached NodeList would freeze that moment.
 
   // The scene's base lighting used to be hand-copied here as two constants
   // "matching the <a-light> defaults in index.html". They had drifted: the key
@@ -73,9 +78,8 @@
   }
 
   function setHubVisible(visible) {
-    hubSelectors.forEach(function (sel) {
-      var el = document.querySelector(sel);
-      if (el) el.setAttribute('visible', visible);
+    [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
+      el.setAttribute('visible', visible);
     });
   }
 
@@ -323,6 +327,11 @@
 
     var mat = mesh.material;
     var half = (TRANSITION_MS / 1000) / 2;
+    var flash = v.components && v.components['vignette-flash'];
+    // A FLAT fill, not the walking vignette: dead ahead the radial term is
+    // exactly 0, so without this the swap happens in plain view at the centre
+    // of the screen however high opacity goes (see locomotion.js's setFlat).
+    if (flash && flash.setFlat) flash.setFlat(true);
     v.setAttribute('visible', true);
     mat.opacity = 0;
     state.transTween = gsap.to(mat, {
@@ -331,7 +340,11 @@
         applyChanges(); // swap at peak darkness
         state.transTween = gsap.to(mat, {
           opacity: 0, duration: half, ease: 'power2.inOut',
-          onComplete: function () { v.setAttribute('visible', false); state.transTween = null; }
+          onComplete: function () {
+            v.setAttribute('visible', false);
+            if (flash && flash.setFlat) flash.setFlat(false);
+            state.transTween = null;
+          }
         });
       }
     });

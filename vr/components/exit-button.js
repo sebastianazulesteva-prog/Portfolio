@@ -32,9 +32,13 @@
      not a card tint — so the way out can never be mistaken for content, and it
      reads the same over the dark dome and over a white PDF page. The ember ring
      is what ties it back to the dome it returns you to.
-   • Size: 0.82 × 0.20 — about 20% larger again than the 0.68 × 0.18 first pass,
-     and the largest control in the scene, because it is the one you look for
-     when you feel stuck.
+   • Size: 0.60 × 0.16. It was 0.82 × 0.20 — the largest control in the scene, on
+     the reasoning that it is the one you look for when you feel stuck. In the
+     reader that came out ~24° wide sitting over the page's top-right corner,
+     and Sebastian's read was blunt: "far too annoying and big, push it off to
+     the side a bit for now." So it is smaller and further out — see RIGHT_DEG /
+     UP_DEG below. This is an interim placement he intends to design properly;
+     don't build anything that depends on these exact numbers.
    • Arrow: a LEFT-pointing triangle, not ui-button's ↗ badge. You are going
      back, not out; ↗ is the flat site's external-link cue and means the wrong
      thing here.
@@ -49,7 +53,11 @@
    • Position: UPPER RIGHT, defined by ANGLE rather than by metres, so it lands
      in the same place in your field of view whether the content it belongs to
      sits at 1.05 m (focus stage) or 1.9 m (reader). Same look, same spot,
-     every time.
+     every time. Pushed out from 23°/16° to 26°/20° per the note above — far
+     enough that its inner edge (~18.3° at the reader's 1.9 m) clears the
+     reading band, and no further: a portrait phone has only ~±21° of horizontal
+     field (§9.4), so pushing it much wider would put the one way out off the
+     side of the screen on exactly the devices that most need it.
 
    ── No arrow glyph in the label ──
    '←' is U+2190, and the Syne latin subset (fonts.js) is exactly the kind of
@@ -67,8 +75,8 @@
   // One size, one label, one variant. Exported so a caller can reserve space
   // for it without hardcoding numbers that would then drift.
   var LABEL = 'Back to the dome';
-  var WIDTH = 0.82;
-  var HEIGHT = 0.20;
+  var WIDTH = 0.60;
+  var HEIGHT = 0.16;
 
   var RUST = '#9e4526';    // fill — deliberately unused elsewhere in the scene
   var RING = '#b8863b';    // the dome's ember, as a thick rule
@@ -88,8 +96,8 @@
   // Where "upper right" is, in degrees off the view centre. Converted to metres
   // per call site using that context's own viewing distance, which is what keeps
   // the button in the same place on screen everywhere.
-  var RIGHT_DEG = 23;
-  var UP_DEG = 16;
+  var RIGHT_DEG = 26;
+  var UP_DEG = 20;
 
   function make(opts) {
     opts = opts || {};
@@ -135,8 +143,8 @@
     var tri = new THREE.Mesh(triGeo, triMat);
     tri.rotation.z = Math.PI / 2;
     // Inset from the left edge. The label is centred by ui-button and measures
-    // roughly 0.34 m wide at this size, so it spans about ±0.17 — this sits
-    // well clear of it at -0.33.
+    // roughly 0.28 m wide at this size, so it spans about ±0.14 — this sits
+    // clear of it at -0.23.
     tri.position.set(-(WIDTH / 2) + HEIGHT * 0.42, 0, 0.02);
     el.setObject3D('exit-arrow', tri);
 

@@ -106,6 +106,32 @@
     if (!window.VR_AUDIO) console.info('[vr] audio disabled (no ambience, no UI cues)');
   </script>
 
+  <!-- ══ PROJECT-ROOM KILL SWITCH ══
+       The themed per-project rooms (project-room.js) are unfinished — Sebastian:
+       "the project rooms are just ugly right now, so I don't want there to be a
+       way into them just yet." So every DOOR into one is sealed while the rooms
+       themselves stay exactly as they are, ready for the dedicated rebuild
+       (VR_AI_BUILD_GUIDE.md §9.11).
+
+       Sealed, NOT removed: "let's have a little 'project rooms will be coming
+       soon' pop up when people hit that." The three doors stay visible and stay
+       clickable, and each one now shows the notice (notice.js) instead of
+       entering. A control that silently does nothing reads as broken; one that
+       vanishes reads as a feature you can't ask about. While this is false:
+         • hub-panel.js  — "Enter the project room" on a photo card → notice.
+           A body tap on that card pulls it into the focus stage instead of
+           entering, which is what an Experience card already does.
+         • focus-stage.js — its "Enter the project room" CTA → notice.
+         • photo-cloud.js — a selected photo's "View full project" → notice.
+       The PDF reader is NOT affected: writing pieces never had a room, and
+       their reading space is finished. Flip this to true to reopen all three.
+       Same pattern as the audio switch above: one flag, nothing deleted.
+  -->
+  <script>
+    window.VR_ROOMS = false;
+    if (!window.VR_ROOMS) console.info('[vr] project rooms disabled (no entry points)');
+  </script>
+
   <!-- Dev override for prefers-reduced-motion. Every component captures
        matchMedia('(prefers-reduced-motion: reduce)') into a module-scope var at
        load, so there is otherwise no way to exercise the reduced-motion path
@@ -152,26 +178,30 @@
        column, so they sit above all of them. scroll-arrows is first because
        exit-button borrows its rounded-rect and triangle geometry helpers. -->
   <script src="components/scroll-arrows.js?v=3"></script>
-  <script src="components/exit-button.js?v=4"></script>
+  <script src="components/exit-button.js?v=5"></script>
+  <!-- Transient in-scene message card. Above the three files that call it
+       (hub-panel, focus-stage, photo-cloud) and below glass-material, whose
+       card shader and lit-text helper it uses. -->
+  <script src="components/notice.js?v=3"></script>
   <script src="components/reticle.js?v=4"></script>
   <script src="components/name-scatter-3d.js?v=16"></script>
-  <script src="components/hub-panel.js?v=30"></script>
-  <script src="components/focus-stage.js?v=20"></script>
-  <script src="components/photo-cloud.js?v=14"></script>
+  <script src="components/hub-panel.js?v=32"></script>
+  <script src="components/focus-stage.js?v=21"></script>
+  <script src="components/photo-cloud.js?v=15"></script>
   <script src="components/mosaic-reveal.js?v=11"></script>
   <script src="components/bio-card.js?v=31"></script>
-  <script src="components/project-room.js?v=21"></script>
-  <script src="components/pdf-reader.js?v=5"></script>
-  <script src="components/sunflower.js?v=1"></script>
+  <script src="components/project-room.js?v=22"></script>
+  <script src="components/pdf-reader.js?v=7"></script>
+  <script src="components/sunflower.js?v=2"></script>
   <script src="components/constellation.js?v=9"></script>
   <script src="components/carousel-drag.js?v=1"></script>
-  <script src="components/locomotion.js?v=6"></script>
-  <script src="components/walk-controls.js?v=4"></script>
+  <script src="components/locomotion.js?v=7"></script>
+  <script src="components/walk-controls.js?v=5"></script>
   <script src="components/column-scroll.js?v=2"></script>
   <script src="components/onboarding.js?v=2"></script>
   <script src="components/data-loader.js?v=8"></script>
   <script src="components/fallback.js?v=4"></script>
-  <script src="components/hud.js?v=10"></script>
+  <script src="components/hud.js?v=11"></script>
   <!-- Portrait-phone recomposition of the home view (narrow horizontal fov).
        Loads after hud.js; only acts below a 0.70 aspect ratio. -->
   <!-- portrait-layout.js is RETIRED by decision (VR_AI_BUILD_GUIDE.md §9.4):
@@ -333,7 +363,23 @@
          effect; selecting it opens the full bio card (addendum §B). Brought
          in close per Sebastian's command-zone note — this is a small central
          zone you reach from, not a room you walk across. -->
-    <a-entity id="homeCluster" position="0 0 -1.5">
+    <!-- class="hub-cluster" marks every entity that IS the hub, i.e. everything
+         a project room or the PDF reader has to hide while it owns the view.
+         project-room.js and pdf-reader.js both read this class rather than
+         keeping their own hardcoded id lists — those two lists had already
+         drifted apart AND both missed #writingConstellation when it was added,
+         so all five writing cards floated inside every room and reading space,
+         still clickable (VR_TEST_REPORT B1). Same single-source-of-truth
+         convention as .key-light for the light rack: add a cluster here and the
+         hiding follows it with no code change. #focusStage is deliberately NOT
+         one of these — it's the transient detail view, not part of the hub.
+
+         These markers were lost once already: they were backed out of main by
+         commit 077f264 while the two components that READ them stayed on disk,
+         so `setHubVisible()` silently matched nothing and every cluster stayed
+         visible inside the reader. Measured in-browser: 0 elements matched. If
+         you ever back this markup out again, back the components out with it. -->
+    <a-entity id="homeCluster" class="hub-cluster" position="0 0 -1.5">
       <!-- The 3D "Tenet effect" name intro (name-scatter-3d.js) — one big
            line "Sebastian Esteva" spanning the top with the tagline under it
            (per Sebastian). Wide + centered so it reads as the hero header;
@@ -355,7 +401,7 @@
          defensive measure against z-fighting (item 4) even though item 8's
          reposition (below) also removes the positional overlap that caused
          it in the first place. -->
-    <a-entity id="bioCard" bio-card="width: 1.05; height: 1.46" position="0.62 1.35 -1.52"></a-entity>
+    <a-entity id="bioCard" class="hub-cluster" bio-card="width: 1.05; height: 1.46" position="0.62 1.35 -1.52"></a-entity>
 
     <!-- Focus stage — the single reusable "pulled closer" detail view
          (focus-stage.js). Repositioned in front of the viewer's current look
@@ -372,19 +418,19 @@
          onColStep writes the derived column step (currently 33.12°) at build
          time, and the hand-copied literal that used to sit here had already
          drifted to 26.58 — a wrong number the markup advertised as truth. -->
-    <a-entity id="projectsConstellation" carousel-drag=""></a-entity>
+    <a-entity id="projectsConstellation" class="hub-cluster" carousel-drag=""></a-entity>
     <!-- Writing column (VR_AI_BUILD_GUIDE.md §9.1/§9.2) — the written pieces
          are their own section now, a vertical stack on the INNER left, with the
          projects grid outboard of it. Deliberately NOT carousel-drag: a single
          column has nothing to spin, and its scroll (dormant until there are
          more than 5 pieces) is a vertical mechanism, not a rotational one. -->
-    <a-entity id="writingConstellation"></a-entity>
-    <a-entity id="experienceConstellation"></a-entity>
+    <a-entity id="writingConstellation" class="hub-cluster"></a-entity>
+    <a-entity id="experienceConstellation" class="hub-cluster"></a-entity>
 
     <!-- Photo Cloud (§9) — a drifting constellation of every site image,
          behind the viewer (turn around to find it). Populated from
          data.images once the loader resolves. -->
-    <a-entity id="photoCloud" photo-cloud></a-entity>
+    <a-entity id="photoCloud" class="hub-cluster" photo-cloud></a-entity>
 
   </a-scene>
 

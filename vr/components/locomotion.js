@@ -61,6 +61,10 @@
   AFRAME.registerComponent('vignette-flash', {
     init: function () {
       this.el.setAttribute('visible', false);
+      // Shared with the injected shader below, by reference, so setFlat() can
+      // change it without a recompile. 0 = radial vignette (walking), 1 = flat
+      // blackout (a room transition, which has to actually COVER the swap).
+      this._flat = { value: 0 };
       this.el.addEventListener('flash', this.flash.bind(this));
       this._harden();
     },
@@ -111,12 +115,14 @@
       m.depthWrite = false;
       mesh.renderOrder = 999;
       mesh.frustumCulled = false;
+      var self2 = this;
       m.onBeforeCompile = function (shader) {
+        shader.uniforms.uVigFlat = self2._flat;
         shader.vertexShader = 'varying vec3 vVigView;\n' + shader.vertexShader.replace(
           '#include <project_vertex>',
           '#include <project_vertex>\n  vVigView = mvPosition.xyz;'
         );
-        shader.fragmentShader = 'varying vec3 vVigView;\n' + shader.fragmentShader.replace(
+        shader.fragmentShader = 'varying vec3 vVigView;\nuniform float uVigFlat;\n' + shader.fragmentShader.replace(
           '#include <alphamap_fragment>',
           '#include <alphamap_fragment>\n'
           // vigC = cos(angle off the view axis): 1 dead ahead, ~0.5 in the
@@ -125,7 +131,17 @@
           // UNDEFINED when edge0 >= edge1 — the reversed form compiled clean
           // and returned alpha 0 everywhere, i.e. a vignette that silently
           // never drew.
-          + '  float vigC = -normalize(vVigView).z;\n  diffuseColor.a *= 1.0 - smoothstep(0.38, 0.90, vigC);'
+          // uVigFlat lifts the radial term to a uniform screen fill. The radial
+          // vignette is right for walking, and WRONG for a room transition: dead
+          // ahead vigC is 1, so `1.0 - smoothstep(0.38, 0.90, vigC)` is exactly
+          // 0 there and the centre of the view stays perfectly clear no matter
+          // how high material.opacity goes. Both room transitions
+          // (project-room.js, pdf-reader.js) tween that opacity to 0.95 in the
+          // belief that it dips to black and hides the swap — after the radial
+          // term was added for walking they were swapping the world in plain
+          // view. Anything that needs real cover calls setFlat(true) first.
+          + '  float vigC = -normalize(vVigView).z;\n'
+          + '  diffuseColor.a *= mix(1.0 - smoothstep(0.38, 0.90, vigC), 1.0, uVigFlat);'
         );
       };
       m.needsUpdate = true;
@@ -153,6 +169,12 @@
       var self = this;
       setTimeout(function () { if (!self._held) el.setAttribute('visible', false); }, 320);
     },
+    // Flat screen fill instead of an edge vignette, for the duration of a
+    // transition that has to hide a world swap. Idempotent; always paired with
+    // a setFlat(false) when the transition finishes, so walking gets its
+    // edges-only treatment back.
+    setFlat: function (on) { this._flat.value = on ? 1 : 0; },
+
     flash: function () {
       var el = this.el;
       this._harden();

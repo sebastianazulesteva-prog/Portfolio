@@ -70,6 +70,18 @@
     }
     function recenter() {
       if (!rig) return;
+      // While the viewer is at a SITE — the reading alcove (pdf-reader.js) is
+      // the one today — "the centre" is that site's centre, not the origin.
+      // Recentring to 0,0,0 there would teleport them out of the room they are
+      // reading in and back into the hub they can't even see.
+      var site = window.VRWalk && window.VRWalk.site;
+      if (site) {
+        // Position only: the site's content is built facing wherever the viewer
+        // was looking when they entered, so there is no "correct" yaw to snap
+        // back to, and zeroing rig rotation would just turn them away from it.
+        rig.setAttribute('position', { x: site.x, y: 0, z: site.z });
+        return;
+      }
       rig.setAttribute('rotation', { x: 0, y: 0, z: 0 });
       rig.setAttribute('position', { x: 0, y: 0, z: 0 });
     }
@@ -154,7 +166,10 @@
       if (AUDIO_ON && userChoice !== 'off') window.VRSound.enabled = true;
       if (AUDIO_ON && userChoice === 'on') startAudio();
       fadeHint();
-      if (nudge) nudge.classList.add('dismissed');
+      // No nudge line here: `nudge` was never declared once the landscape nudge
+      // was removed from the markup and the CSS, so this threw an uncaught
+      // ReferenceError on the FIRST gesture of every session — which also
+      // skipped the listener cleanup below (VR_TEST_REPORT B2).
       ['pointerdown', 'touchstart', 'keydown', 'click'].forEach(function (evt) {
         window.removeEventListener(evt, firstGesture, true);
       });

@@ -37,6 +37,13 @@
 (function () {
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // three.js does not cache effective visibility, so walk the (shallow) parent
+  // chain. Cheap: ~4 links x 20 panels.
+  function visibleInScene(obj) {
+    for (var o = obj; o; o = o.parent) { if (!o.visible) return false; }
+    return true;
+  }
+
   AFRAME.registerComponent('sunflower', {
     schema: {
       // Degrees per second. Slow on purpose — see the note above.
@@ -67,6 +74,14 @@
       if (!cam) return;
 
       var obj = this.el.object3D;
+      // A hidden panel must not keep tracking. The reader and the project rooms
+      // hide the whole hub (.hub-cluster) while they own the view, and the
+      // reader now MOVES the viewer 12 m away — so an invisible panel would
+      // spend that time slowly turning to face the reading alcove and then be
+      // caught mid-swing back on the way home, which reads as the whole
+      // constellation drifting when you return. Effective visibility, not just
+      // this entity's own flag: the clusters are hidden at the parent.
+      if (!visibleInScene(obj)) return;
       if (!this._restQuat) this._restQuat = obj.quaternion.clone();
 
       cam.getWorldPosition(this._camWorld);

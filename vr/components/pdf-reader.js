@@ -44,8 +44,21 @@
    an emissive floor, so the scene's light rack genuinely shades them instead
    of them reading as flat unlit chips.
 
-   THE GROUND IS THE DOME'S GROUND. open() does not retint dusk-floor — you
-   are meant to be standing on the same floor you arrived on.
+   YOU ARE ACTUALLY MOVED THERE. Sebastian, on the shipped version: "I don't
+   think they actually enter / are moved to another room right now?" — correct.
+   The reader used to build itself around the seat and hide the hub, so the room
+   changed around a viewer who never went anywhere. Now the rig is genuinely
+   translated to a reading alcove across the dome (READING_SITE), the alcove
+   brings its own ground and the key-light rack with it, and walk-controls'
+   movement bound is re-centred there so you can step around inside it. Two
+   reasons it is worth doing for real rather than faking it: a backdrop swap
+   reads as a backdrop swap, and leaving the hub one metre off your shoulder
+   means anything that forgets to hide is suddenly IN your reading space —
+   which is exactly what happened to the writing column (VR_TEST_REPORT B1).
+
+   THE GROUND IS THE DOME'S GROUND. open() does not retint dusk-floor — the
+   alcove stands on the same dusk floor as the hub, and lays its own rug on top
+   of it (the dome's own rug stays behind at the seat, 12 m away).
 
    PDF.js is loaded from CDN, pinned, on first use only — it is a sizeable
    dependency and most visits never open a paper. No build step, per the
@@ -75,6 +88,22 @@
   var RENDER_PX = 1700;        // canvas height per page — ~870px/m at this size
   var RENDER_WINDOW = 1;       // pages either side of the current one to keep rendered
 
+  // ── Where the reading room IS ──
+  // A real spot in the dome, 12 m from the seat: far enough that the hub is
+  // unmistakably somewhere else, well inside the 40 m dome floor (dome.js), and
+  // near enough the centre that the sky sphere's off-axis distortion stays
+  // invisible — which it is anyway here, since open() paints the whole dome
+  // near-black and the ember horizon band with it.
+  var READING_SITE = { x: 0, z: 12 };
+  // How far you may walk once you are there. A circle, not the seat's
+  // -Z-squashed ellipse: the page is 1.9 m ahead of wherever you were looking
+  // when you opened it, not on a world axis. 1.2 m is enough to lean around the
+  // page or step back from it without walking through it.
+  var SITE_WALK_RADIUS = 1.2;
+  // The alcove's own rug, a little wider than the dome's (1.3) so the standing
+  // area reads as a room rather than a mat.
+  var RUG_RADIUS = 1.75;
+
   // Scroll-control visuals. The arrow triangles and the position thumb carry a
   // small emissive floor at rest and brighten on hover — see litMaterial().
   var TRACK_W = 0.075;
@@ -90,20 +119,26 @@
     project: null,
     transTween: null,
     thumbMesh: null,
+    rackOffset: null,   // non-null while the key rack is parked at the alcove
+    seatPos: null,      // fallback when walk-controls isn't running (?walk=0 aside)
     // three.js never auto-disposes: removing `root` from the DOM frees the
     // entities but leaks every geometry/material hung off them. Collected here
     // on build, dispose()d on close.
     disposables: []
   };
 
-  var hubSelectors = ['#homeCluster', '#bioCard', '#projectsConstellation',
-                      '#experienceConstellation', '#photoCloud', '#focusStage'];
-
+  // The hub is whatever carries .hub-cluster (see index.html), plus the focus
+  // stage — the reader is opened FROM the focus stage, so unlike a project room
+  // it has to put that away too. Both of these were hardcoded id lists that had
+  // drifted apart from project-room.js's copy, and both missed
+  // #writingConstellation, leaving the other four writing cards floating in the
+  // reading space (VR_TEST_REPORT B1).
   function setHubVisible(visible) {
-    hubSelectors.forEach(function (sel) {
-      var el = document.querySelector(sel);
-      if (el) el.setAttribute('visible', visible);
+    [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
+      el.setAttribute('visible', visible);
     });
+    var focus = document.querySelector('#focusStage');
+    if (focus) focus.setAttribute('visible', visible);
   }
 
   // Same reason as project-room.js's copy: a control created after load isn't
@@ -125,6 +160,83 @@
       head.object3D.getWorldQuaternion(new THREE.Quaternion())
     );
     return THREE.MathUtils.radToDeg(Math.atan2(-fwd.x, -fwd.z));
+  }
+
+  // ── Going there, and coming back ─────────────────────────────────────────
+  // The four .key-light fixtures and their visible housings sit above the home
+  // title (index.html). Once the viewer is moved for real, every lit surface in
+  // the reading room — the scroll bars, the exit button's ember ring and back
+  // mark, the lit troika text — is 12 m outside a point light with distance:9,
+  // so it all collapses to its emissive floor and the controls read as flat
+  // unlit chips. So the rack travels with you. Moving the fixture ENTITIES (not
+  // just the shader uniforms) is what keeps the real three.js lights and the
+  // glass shader's own light array in agreement; syncRack() re-reads the world
+  // positions, which is exactly what it exists for.
+  //
+  // Direct object3D writes are safe here: these entities were created at load,
+  // long before this runs, so the `position` component has already initialised
+  // and cannot clobber them afterwards (trap §3.4).
+  function moveLightRack(dx, dz) {
+    [].slice.call(document.querySelectorAll('.key-light'))
+      .concat([].slice.call(document.querySelectorAll('[light-rack-housings]')))
+      .forEach(function (el) {
+        el.object3D.position.x += dx;
+        el.object3D.position.z += dz;
+        el.object3D.updateMatrixWorld();
+      });
+    var scene = document.querySelector('a-scene');
+    var sys = scene && scene.systems && scene.systems['vr-key-light'];
+    if (sys) sys.syncRack();
+  }
+
+  function goToReadingRoom() {
+    // Idempotent: a second open() while the first reader's close transition is
+    // still in flight must not stack a second rack offset (which would park the
+    // lights 24 m out and leave the alcove unlit).
+    if (state.rackOffset) return;
+    if (window.VRWalk && VRWalk.enterSite) {
+      // walk-controls owns rig position (§9.5) — it does the teleport and moves
+      // its own soft bound with it, so nothing here fights it next tick. The
+      // HUD's recentre button reads the same site.
+      VRWalk.enterSite({ x: READING_SITE.x, z: READING_SITE.z, radius: SITE_WALK_RADIUS });
+    } else {
+      var rig = document.querySelector('#rig');
+      if (rig) {
+        state.seatPos = rig.object3D.position.clone();
+        rig.object3D.position.set(READING_SITE.x, rig.object3D.position.y, READING_SITE.z);
+      }
+    }
+    moveLightRack(READING_SITE.x, READING_SITE.z);
+    state.rackOffset = { x: READING_SITE.x, z: READING_SITE.z };
+  }
+
+  function returnToDome() {
+    if (state.rackOffset) {
+      moveLightRack(-state.rackOffset.x, -state.rackOffset.z);
+      state.rackOffset = null;
+    }
+    if (window.VRWalk && VRWalk.leaveSite) {
+      VRWalk.leaveSite();
+    } else if (state.seatPos) {
+      var rig = document.querySelector('#rig');
+      if (rig) rig.object3D.position.copy(state.seatPos);
+      state.seatPos = null;
+    }
+  }
+
+  // The alcove's ground. The dome's own rug (dusk-rug, radius 1.3 at the seat)
+  // stays behind, so without this you arrive standing on the bare void floor
+  // and the one cue that says "this is a place" is missing. Same flat unlit
+  // treatment and near-tone as dusk-rug — a shade cooler and darker, because
+  // this room is deliberately not the warm dusk one you left.
+  function buildGround(root) {
+    var geo = new THREE.CircleGeometry(RUG_RADIUS, 48);
+    var mat = new THREE.MeshBasicMaterial({ color: '#151109' });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.y = 0.004; // above dusk-floor (-0.02); no rug here to fight
+    root.setObject3D('reading-ground', mesh);
+    state.disposables.push(geo, mat);
   }
 
   // ── PDF.js loading ───────────────────────────────────────────────────────
@@ -258,6 +370,12 @@
   // ── Build ────────────────────────────────────────────────────────────────
   function build(project, pdfDoc) {
     var root = document.createElement('a-entity');
+    // At the alcove, facing wherever the viewer was looking when they opened it.
+    // setAttribute for both, not object3D writes: this entity is created in the
+    // same synchronous block, so the `position`/`rotation` components would
+    // initialise afterwards and overwrite direct writes with the attribute
+    // values (trap §3.4).
+    root.setAttribute('position', { x: READING_SITE.x, y: 0, z: READING_SITE.z });
     root.setAttribute('rotation', { x: 0, y: currentHeadYawDeg(), z: 0 });
 
     var pageCount = pdfDoc.numPages;
@@ -293,6 +411,7 @@
       state.pages.push({ el: pageEl, mesh: mesh, material: mat, texture: null, rendering: false, index: i, wanted: false });
     }
 
+    buildGround(root);
     buildScrollControl(root, project);
     return root;
   }
@@ -301,7 +420,7 @@
   // The arrows are real GEOMETRY, not a font glyph. The first version labelled
   // two ui-buttons with troika-text '▲' / '▼' and they rendered as empty
   // rounded rects — exactly the failure documented for '↗' in
-  // VR_AI_BUILD_GUIDE.md §3.6: the Syne latin subset (fonts.js) carries no
+  // VR_AI_BUILD_GUIDE.md §3.7: the Syne latin subset (fonts.js) carries no
   // Geometric Shapes block, so troika silently substitutes or drops the glyph.
   // ui-button.js sidesteps that for its arrow badge by drawing into a canvas;
   // here a THREE.Shape is simpler and resolution-independent, and a triangle
@@ -475,7 +594,9 @@
     // identical to the one in every other context. It used to be a small ghost
     // button low and LEFT at knee height — deliberately out of the way, which
     // also made it the hardest thing in the scene to find. The up bar occupies
-    // x ±0.41 at a similar height, and this lands at x 0.81, so they don't meet.
+    // x ±0.41 at a similar height; at RIGHT_DEG 26 this lands at x 0.93 and is
+    // 0.60 wide, so its inner edge is at 0.63 and the two clear each other by
+    // 0.21 m.
     VRExitButton.mount(root, { distance: READ_DISTANCE, eye: EYE_HEIGHT, onExit: close });
   }
 
@@ -487,6 +608,11 @@
     if (reducedMotion || !mesh || typeof gsap === 'undefined') { applyChanges(); return; }
     var mat = mesh.material;
     var half = 0.7;
+    var flash = v.components && v.components['vignette-flash'];
+    // Flat fill for the duration — the walking vignette leaves the centre of
+    // the view completely clear, and this transition now has a real teleport to
+    // hide, not just a backdrop swap. See locomotion.js's setFlat.
+    if (flash && flash.setFlat) flash.setFlat(true);
     v.setAttribute('visible', true);
     mat.opacity = 0;
     state.transTween = gsap.to(mat, {
@@ -495,7 +621,11 @@
         applyChanges();
         state.transTween = gsap.to(mat, {
           opacity: 0, duration: half, ease: 'power2.inOut',
-          onComplete: function () { v.setAttribute('visible', false); state.transTween = null; }
+          onComplete: function () {
+            v.setAttribute('visible', false);
+            if (flash && flash.setFlat) flash.setFlat(false);
+            state.transTween = null;
+          }
         });
       }
     });
@@ -520,6 +650,13 @@
       state.open = true;
       state.scroll = 0;
       runTransition(function () {
+        // At the dark peak, so the move itself is never seen. The comfort
+        // vignette is parented to the rig (walk-controls._mountVignette), so it
+        // travels with the viewer and the dip holds through the teleport.
+        goToReadingRoom();
+        // Still hidden even though it is now 12 m behind you: two constellations
+        // and 32 drifting photo tiles glowing at that distance read as
+        // distraction, not as scenery.
         setHubVisible(false);
         // Read in a neutral dark room — no themed sky. The piece is the only
         // thing that should carry colour here.
@@ -530,7 +667,7 @@
         // the dome you just came from — and because dome.js pins the floor's
         // radius to the dome's so its rim lands exactly on the ember horizon,
         // retinting it also broke that seam. dusk-rug is untouched either way
-        // (it isn't in hubSelectors), so the warm circle underfoot carries
+        // (it carries no .hub-cluster class), so the warm circle underfoot carries
         // straight over from the dome.
         var sky = document.querySelector('[dusk-sky]');
         if (sky) sky.components['dusk-sky'].setTheme('#040404', '#0d0a08');
@@ -571,6 +708,7 @@
       // No floor to reset — open() never retints it (see the ground note there).
       var sky = document.querySelector('[dusk-sky]');
       if (sky) sky.components['dusk-sky'].clearTheme();
+      returnToDome();
       setHubVisible(true);
       refreshClickableRaycasters();
     });

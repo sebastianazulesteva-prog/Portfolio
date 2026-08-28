@@ -85,6 +85,10 @@
       this.axis = { x: 0, y: 0 };      // resolved input this frame
       this.vel = new THREE.Vector3();
       this.moving = false;
+      // Non-null while the viewer is standing somewhere OTHER than the seat —
+      // see enterSite/leaveSite below.
+      this.site = null;
+      this.seatPos = null;
 
       if (params.get('walkRadius')) this.data.radius = parseFloat(params.get('walkRadius'));
       if (params.get('walkForward')) this.data.forward = parseFloat(params.get('walkForward'));
@@ -116,8 +120,54 @@
         get active() { return self.moving; },
         get radius() { return self.data.radius; },
         get forward() { return self.data.forward; },
+        // ── Sites: standing areas away from the seat ──
+        // A "site" is a bounded patch of dome somewhere else that the viewer is
+        // genuinely MOVED to — the reading alcove (pdf-reader.js) is the first
+        // one. Entering one teleports the rig and takes the movement bound with
+        // it; leaving puts the viewer back exactly where they were standing.
+        // Everything that used to assume "the rig lives at the origin" reads
+        // this instead (the ellipse above, the HUD's recentre button).
+        //
+        // The site bound is a CIRCLE by default (forward = radius): the seat's
+        // ellipse is squashed toward -Z because the home panel is 1.5 m that
+        // way, and that asymmetry is authored in WORLD axes, so it would land
+        // somewhere arbitrary relative to whatever a site's content faces.
+        enterSite: function (site) { self.enterSite(site); },
+        leaveSite: function () { self.leaveSite(); },
+        get site() { return self.site; },
         disabled: DISABLED
       };
+    },
+
+    // Teleport the rig to a site and move the movement bound with it. The seat
+    // position is remembered so leaveSite() can put the viewer back on the
+    // exact spot they walked from, rather than snapping them to the origin —
+    // you should return to where you were standing when you chose to leave.
+    enterSite: function (site) {
+      var pos = this.el.object3D.position;
+      // Only the FIRST entry records the seat. Re-entering while already at a
+      // site (the reader's open() closes an open reader first, and that close
+      // runs a transition that can be killed mid-flight) would otherwise record
+      // the alcove as "the seat", and leaving would drop the viewer back into
+      // the empty dome instead of the hub.
+      if (!this.site) this.seatPos = pos.clone();
+      var r = site.radius != null ? site.radius : 1.2;
+      this.site = {
+        x: site.x, z: site.z, radius: r,
+        forward: site.forward != null ? site.forward : r
+      };
+      pos.set(site.x, pos.y, site.z);
+      this.vel.set(0, 0, 0);
+    },
+
+    leaveSite: function () {
+      if (!this.site) return;
+      this.site = null;
+      if (this.seatPos) {
+        this.el.object3D.position.copy(this.seatPos);
+        this.seatPos = null;
+      }
+      this.vel.set(0, 0, 0);
     },
 
     remove: function () {
@@ -196,11 +246,19 @@
       // normal of an ellipse is NOT the radial direction — it is (ux/ax,
       // uz/az) — and using the radial one instead makes you drift along the
       // boundary in the wrong direction on the flatter arcs.
+      // The bound is centred on the current SITE, not on the world origin. The
+      // seat is the default site; the PDF reader moves you to a real reading
+      // alcove metres away and hands its centre over here, so the soft edge
+      // travels with you instead of hauling you back toward the hub the moment
+      // you take a step (which is what a hardcoded origin did).
       var pos = this.el.object3D.position;
-      var ax = this.data.radius;
-      var az = (this.data.radius + this.data.forward) / 2;
-      var cz = (this.data.radius - this.data.forward) / 2;
-      var ux = pos.x / ax, uz = (pos.z - cz) / az;
+      var site = this.site;
+      var ax = site ? site.radius : this.data.radius;
+      var fwd = site ? site.forward : this.data.forward;
+      var az = (ax + fwd) / 2;
+      var cz = (site ? site.z : 0) + (ax - fwd) / 2;
+      var cx = site ? site.x : 0;
+      var ux = (pos.x - cx) / ax, uz = (pos.z - cz) / az;
       var d0 = Math.sqrt(ux * ux + uz * uz);
       var soft = Math.max(0, Math.min(0.9, this.data.softFrac));
 
@@ -239,10 +297,10 @@
         // The soft edge should mean this almost never fires; it still has to be
         // here for the cases that skip the ramp (reduced motion) or arrive with
         // a big delta.
-        var ex = pos.x / ax, ez = (pos.z - cz) / az;
+        var ex = (pos.x - cx) / ax, ez = (pos.z - cz) / az;
         var d = Math.sqrt(ex * ex + ez * ez);
         if (d > 1) {
-          pos.x = (ex / d) * ax;
+          pos.x = cx + (ex / d) * ax;
           pos.z = cz + (ez / d) * az;
           var kx = (ex / d) / ax, kz = (ez / d) / az;
           var kl = Math.sqrt(kx * kx + kz * kz) || 1;

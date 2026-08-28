@@ -407,6 +407,9 @@
       btn.object3D.position.set(0, -tile.size * 0.62 - 0.20, 0.03);
       btn.addEventListener('click', function (e) {
         if (e && e.stopPropagation) e.stopPropagation();
+        // Sealed door (index.html's VR_ROOMS): the tile stays selected and
+        // forward, the notice explains why nothing opened.
+        if (window.VR_ROOMS === false) return window.VRNotice.comingSoonRooms();
         window.VRProjectRoom.enter(project);
       });
       tile.el.appendChild(btn);

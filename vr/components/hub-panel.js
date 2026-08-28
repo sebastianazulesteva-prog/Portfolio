@@ -427,7 +427,21 @@
       this.el.classList.add('clickable');
       this._onClick = function () {
         if (!this.detail) return;
-        if (this.detail.type === 'project') window.VRProjectRoom.enter(this.detail.data);
+        // A writing piece has no themed room — the reader replaces it (see the
+        // paperTitle branch below). The card body used to fall through to
+        // VRProjectRoom.enter() with the rest of the projects, so tapping the
+        // biggest target on a paper card took you into an empty themed room
+        // instead of the piece, while the card's own 'Read the piece' button
+        // went to the reader. Same card, two destinations.
+        if (this.data.paperTitle) window.VRPdfReader.open(this.detail.data);
+        // Rooms sealed (window.VR_ROOMS, see index.html): a photo card's body
+        // tap pulls it into the focus stage instead of entering — the same
+        // thing an Experience card does, and the detail view is the useful
+        // half of what the room offered anyway. The explicit CTA below is what
+        // reports the rooms as coming soon; a body tap that popped a notice
+        // would make the biggest target on the card do nothing but nag.
+        else if (this.detail.type === 'project' && window.VR_ROOMS === false) window.VRFocusStage.open(this.detail, this.el);
+        else if (this.detail.type === 'project') window.VRProjectRoom.enter(this.detail.data);
         else window.VRFocusStage.open(this.detail, this.el);
       }.bind(this);
       this.el.addEventListener('click', this._onClick);
@@ -490,6 +504,8 @@
         enterBtn.setAttribute('position', { x: 0, y: -h / 2 - enterH / 2 - 0.022, z: 0.01 });
         enterBtn.addEventListener('click', function (evt) {
           if (evt && evt.stopPropagation) evt.stopPropagation();
+          // Sealed door: say so, don't fail silently (index.html's VR_ROOMS).
+          if (window.VR_ROOMS === false) return window.VRNotice.comingSoonRooms();
           if (this.detail) window.VRProjectRoom.enter(this.detail.data);
         }.bind(this));
         this.el.appendChild(enterBtn);

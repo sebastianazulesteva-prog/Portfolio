@@ -259,7 +259,15 @@
     var enterBtn = document.createElement('a-entity');
     enterBtn.setAttribute('ui-button', { label: 'Enter the project room', width: 0.62, height: 0.12, accent: accent, variant: 'solid', arrow: true });
     enterBtn.setAttribute('position', { x: -W / 2 + PAD + 0.31, y: actionY, z: 0.02 });
-    enterBtn.addEventListener('click', function () { close(true); window.VRProjectRoom.enter(data); });
+    enterBtn.addEventListener('click', function () {
+      // Sealed door (index.html's VR_ROOMS). The stage stays OPEN behind the
+      // notice: closing it would take away the detail the visitor is reading
+      // and leave them looking at the constellation, which reads as the click
+      // having thrown them out.
+      if (window.VR_ROOMS === false) return window.VRNotice.comingSoonRooms();
+      close(true);
+      window.VRProjectRoom.enter(data);
+    });
     el.appendChild(enterBtn);
 
     // Close, top-right — see mountClose. Was a '‹ Back' ghost pill tucked into

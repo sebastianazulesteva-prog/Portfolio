@@ -64,6 +64,46 @@
   // corner — same job, same gesture — but inside the panel's own plate here.
   var SKILLS_CLOSE_W = 0.30, SKILLS_CLOSE_H = 0.12;
 
+  // ── Why the panel is wide, and why the skills are a LIST ──
+  // Second pass, after the first Vision Pro session: "the skill section was way
+  // too hard to read, when you hit more skills that card should be bigger. Font
+  // size — generally a good font size is the bio font size."
+  //
+  // Measured on the shipped panel before touching it: the values were ALREADY
+  // at VRType.body() (0.028 m), and because the panel flies to 1.02 m their cap
+  // height is 1.1 deg — larger than the bio card's own body text, which reads
+  // at 0.68 deg from 1.66 m. So em size was not what was failing.
+  //
+  // What was failing is line length. Each group was ONE 197-character
+  // interpunct-separated run, wrapping to three lines across a panel 54 deg
+  // wide. Reading it means sweeping your head most of a right angle per line
+  // and then finding the start of the next one with no anchor to come back to —
+  // the exact thing typographic measure limits exist to prevent, and no font
+  // size fixes it. (The flat site gets away with the same string because a
+  // browser line is ~10 deg wide at desk distance.)
+  //
+  // So: one skill per LINE, in TWO COLUMNS. The eye travels down a short list
+  // instead of across a long line, each column is ~28 deg, and the panel grew
+  // to hold it — which is also the "make the card bigger" that was asked for.
+  // Type goes up to 0.034 as well; it is a reading surface, so it gets more
+  // than the shared body step.
+  //
+  // All four scale with a11yMode via VRType.cardMult(), the same way the bio
+  // card's own geometry does (hard rule 4): a 25% type bump inside a fixed
+  // column just wraps every second item, which is the opposite of help.
+  var SKILLS_COL_W_BASE = 0.52;         // text measure per column
+  var SKILLS_COL_GAP_BASE = 0.07;
+  var SKILLS_PAD_BASE = 0.055;          // reading margin, fixed rather than a % of width
+  var SKILLS_VALUE_SIZE_BASE = 0.034;   // vs VRType.body()'s 0.028
+  var SKILLS_LINE_HEIGHT = 1.42;        // a list wants more air than a paragraph
+
+  function skillsMult() { return VRType.cardMult ? VRType.cardMult() : 1; }
+  function skillsColW() { return SKILLS_COL_W_BASE * skillsMult(); }
+  function skillsColGap() { return SKILLS_COL_GAP_BASE * skillsMult(); }
+  function skillsPad() { return SKILLS_PAD_BASE * skillsMult(); }
+  function skillsValueSize() { return SKILLS_VALUE_SIZE_BASE * skillsMult(); }
+  function skillsPanelW() { return skillsColW() * 2 + skillsColGap() + skillsPad() * 2; }
+
   AFRAME.registerComponent('bio-card', {
     schema: {
       width: { type: 'number', default: 1.05 },
@@ -579,12 +619,41 @@
     // The expandable panel itself: its own glass card (so it picks up the
     // scene's key-light rig exactly like every other panel) holding the
     // Technical / Professional groups.
+    // Split one interpunct-separated run into two column strings of roughly
+    // equal RENDERED height. Balancing by item count would put the two longest
+    // items ("Rapid Prototyping & Additive Manufacturing", "VR/AR Hardware
+    // (Apple Vision Pro, Meta Quest, HTC Vive, Snap Spectacles)") in the same
+    // column and leave the other half empty, so this estimates wrapped lines
+    // per item from the measure instead. An estimate is enough — the real
+    // heights are measured later, in the layout pass, and drive the plate.
+    _splitSkillColumns: function (value, fontSize, colW) {
+      var items = String(value || '').split('·')
+        .map(function (t) { return t.trim(); }).filter(Boolean);
+      if (items.length < 4) return [items.join('\n'), ''];
+
+      // ~0.52 em average advance for Syne at this size — close enough to rank
+      // a one-line item against a two-line one, which is all this needs.
+      var perLine = Math.max(8, Math.floor(colW / (fontSize * 0.52)));
+      var lines = items.map(function (t) { return Math.max(1, Math.ceil(t.length / perLine)); });
+      var total = lines.reduce(function (a, b) { return a + b; }, 0);
+
+      var a = [], b = [], used = 0;
+      for (var i = 0; i < items.length; i++) {
+        // Column-major reading order: fill A down, then B. The `used + half of
+        // this item` test stops a tall item from tipping A well past halfway
+        // just because it started under the line.
+        if (used + lines[i] / 2 <= total / 2 || !a.length) { a.push(items[i]); used += lines[i]; }
+        else b.push(items[i]);
+      }
+      return [a.join('\n'), b.join('\n')];
+    },
+
     _buildSkillsPanel: function (cardW, accent, labelFontSize) {
-      // Wider than the old 0.92 now that it is read head-on at ~1 m: the skill
-      // lists are long comma-separated runs, and the extra width buys fewer
-      // wrapped lines rather than a bigger footprint in the composition (it is
-      // invisible until opened, and when opened it is in front of you).
-      var panelW = 1.05;
+      // Two columns of skillsColW() plus the gap and the padding — see the
+      // constants block for why this is a list in columns and not a run of
+      // text. Its footprint in the composition costs nothing: it is invisible
+      // until opened, and when opened it is in front of you.
+      var panelW = skillsPanelW();
       var panel = document.createElement('a-entity');
       panel.setAttribute('visible', false);
       // Sunflower, per Sebastian — same treatment as every constellation
@@ -602,11 +671,14 @@
       panel.setAttribute('sunflower', '');
       this.el.appendChild(panel);
 
-      var pad = panelW * 0.05;
+      var pad = skillsPad();
+      var colW = skillsColW();
       // The section labels ("TECHNICAL", "PROFESSIONAL") stay at label size —
-      // they are metadata. The VALUES are the thing you came to read, so they
-      // move up to body size, the same step the focus stage's blurb sits at.
-      var valueFontSize = VRType.body();
+      // they are metadata. The VALUES are the thing you came to read.
+      var valueFontSize = skillsValueSize();
+      var self = this;
+      var colX = [-panelW / 2 + pad, -panelW / 2 + pad + colW + skillsColGap()];
+
       var groups = this.skillGroups.map(function (g) {
         var label = document.createElement('a-entity');
         label.setAttribute('troika-text', {
@@ -614,20 +686,36 @@
           color: accent, fillOpacity: 0.9, font: VRFonts.bodyBold(),
           fontSize: labelFontSize, maxWidth: panelW - pad * 2, letterSpacing: 0.04
         });
-        label.setAttribute('position', { x: -panelW / 2 + pad, y: 0, z: 0.014 });
+        label.setAttribute('position', { x: colX[0], y: 0, z: 0.014 });
         panel.appendChild(label);
         VRGlass.lightTroikaText(label, accent);
 
-        var value = document.createElement('a-entity');
-        value.setAttribute('troika-text', {
-          value: g.value, align: 'left', anchor: 'left', baseline: 'top',
-          color: '#f5f5f0', fillOpacity: 0.9, font: VRFonts.body(),
-          fontSize: valueFontSize, maxWidth: panelW - pad * 2, lineHeight: 1.34
+        // fillOpacity 1, not 0.9: on a translucent aside 0.9 kept the text from
+        // reading as a hard overlay, but this is now an opaque reading surface
+        // and the only thing 0.9 costs here is contrast.
+        // Empty strings are dropped, not laid out: an empty troika-text never
+        // reports a block height, and the layout pass below waits for EVERY
+        // child to measure before it builds the plate — so one empty column
+        // would stall it for 120 retries and then leave the panel with no
+        // backing plate at all. (Only reachable if the site's skills list
+        // shrinks below four items per group, which is exactly the kind of
+        // content change this file is supposed to survive.)
+        var cols = self._splitSkillColumns(g.value, valueFontSize, colW)
+          .filter(function (text) { return !!text; })
+          .map(function (text, i) {
+          var col = document.createElement('a-entity');
+          col.setAttribute('troika-text', {
+            value: text, align: 'left', anchor: 'left', baseline: 'top',
+            color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
+            fontSize: valueFontSize, maxWidth: colW, lineHeight: SKILLS_LINE_HEIGHT
+          });
+          col.setAttribute('position', { x: colX[i], y: 0, z: 0.014 });
+          panel.appendChild(col);
+          VRGlass.lightTroikaText(col, '#f5f5f0');
+          return col;
         });
-        value.setAttribute('position', { x: -panelW / 2 + pad, y: 0, z: 0.014 });
-        panel.appendChild(value);
-        VRGlass.lightTroikaText(value, '#f5f5f0');
-        return { label: label, value: value };
+
+        return { label: label, cols: cols };
       });
 
       panel.__panelW = panelW;
@@ -636,6 +724,7 @@
       panel.__accent = accent;
       panel.__labelSize = labelFontSize;
       panel.__valueSize = valueFontSize;
+      panel.__colX = colX;
       return panel;
     },
 
@@ -658,7 +747,9 @@
       // different, smaller component sitting next to the card.
       groups.forEach(function (g) {
         g.label.setAttribute('troika-text', 'fontSize', panel.__labelSize * fitScale);
-        g.value.setAttribute('troika-text', 'fontSize', panel.__valueSize * fitScale);
+        g.cols.forEach(function (c) {
+          c.setAttribute('troika-text', 'fontSize', panel.__valueSize * fitScale);
+        });
       });
 
       function heightOf(entity) {
@@ -668,10 +759,20 @@
         return bb[3] - bb[1];
       }
 
+      // A group is as tall as its TALLEST column, not the sum of the two — the
+      // columns sit side by side. Getting this wrong is invisible until a group
+      // with a lopsided split appears, and then the plate is twice the height it
+      // needs or the second group overlaps the first.
+      function groupBodyH(g) {
+        var tallest = 0;
+        g.cols.forEach(function (c) { tallest = Math.max(tallest, heightOf(c) || 0); });
+        return tallest;
+      }
+
       var tries = 0;
       (function layout() {
         var all = [];
-        groups.forEach(function (g) { all.push(g.label, g.value); });
+        groups.forEach(function (g) { all.push(g.label); g.cols.forEach(function (c) { all.push(c); }); });
         if (!all.every(function (e) { return heightOf(e) != null; })) {
           if (++tries > 120) return;
           setTimeout(layout, 40);
@@ -680,7 +781,7 @@
 
         var contentH = 0;
         groups.forEach(function (g, i) {
-          contentH += heightOf(g.label) + LABEL_GAP + heightOf(g.value);
+          contentH += heightOf(g.label) + LABEL_GAP + groupBodyH(g);
           if (i < groups.length - 1) contentH += GROUP_GAP;
         });
         // A reserved band across the top for the panel's own Close control, so
@@ -773,8 +874,11 @@
         groups.forEach(function (g, i) {
           g.label.object3D.position.y = yy;
           yy -= heightOf(g.label) + LABEL_GAP;
-          g.value.object3D.position.y = yy;
-          yy -= heightOf(g.value) + GROUP_GAP;
+          // Both columns start on the SAME baseline — they are two halves of
+          // one list, and staggering their tops would read as two unrelated
+          // blocks. Their x was set at build time from panel.__colX.
+          g.cols.forEach(function (c) { c.object3D.position.y = yy; });
+          yy -= groupBodyH(g) + GROUP_GAP;
         });
       })();
 

@@ -122,10 +122,27 @@
     // A dark ground with a bright arrow reads against both — same trick the 2D
     // HUD buttons use over a bright sky — so one bar design works everywhere
     // and the two scrolling surfaces stay identical.
-    var padMat = litMaterial('#12100d', 0.06, 0.82);
+    //
+    // groundColor/rim are for the RAIL (see makeRail): a bar lives over white
+    // paper, but the rail lives off the page against the near-black room, where
+    // a #12100d ground is the invisible one. Both default to the bar's values,
+    // so no existing caller changes.
+    var padMat = litMaterial(opts.groundColor || '#12100d', 0.06, 0.82);
     padMat.roughness = 0.6;
-    var padGeo = roundedRectGeometry(W, H, H * 0.46);
+    var padGeo = roundedRectGeometry(W, H, Math.min(W, H) * 0.46);
     el.setObject3D('pad', new THREE.Mesh(padGeo, padMat));
+
+    // Optional hairline rim, one layer behind the ground. Against the dark room
+    // the ground alone has almost no edge, so the pad reads as a floating arrow
+    // rather than a button; the rim is what gives it a shape to aim at.
+    if (opts.rim) {
+      var rimMat = litMaterial(accent, 0.20, 0.55);
+      var rimGeo = roundedRectGeometry(W + 0.014, H + 0.014, (Math.min(W, H) + 0.014) * 0.46);
+      var rim = new THREE.Mesh(rimGeo, rimMat);
+      rim.position.z = -0.003;
+      el.setObject3D('rim', rim);
+      disposables.push(rimGeo, rimMat);
+    }
 
     // Wide and shallow, matching the bar: a tall narrow triangle on a flat bar
     // reads as a stray mark, a wide flat one reads as a direction.
@@ -135,7 +152,9 @@
     // family tint through the glow.
     var triMat = litMaterial('#f5f5f0', ARROW_EMISSIVE);
     triMat.emissive = new THREE.Color(accent);
-    var triGeo = triangleGeometry(H * 1.15, H * 0.34, up);
+    var triGeo = triangleGeometry(
+      opts.triW != null ? opts.triW : H * 1.15,
+      opts.triH != null ? opts.triH : H * 0.34, up);
     var tri = new THREE.Mesh(triGeo, triMat);
     tri.position.z = 0.014;
     el.setObject3D('arrow', tri);
@@ -212,8 +231,105 @@
     return el;
   }
 
+  // ── makeRail: one vertical column — up pad, position track, down pad ──────
+  //
+  // Sebastian, after the first Vision Pro session: *"in the reading room the up
+  // and down buttons were super laggy, it didn't even work at all. Let's switch
+  // back to the old buttons — the ones on the side that had the tracker on it."*
+  // He picked the RIGHT side, on the reasoning that everyone is used to a
+  // scrollbar living there.
+  //
+  // The bars this replaces in the reader are still the right control for the
+  // WRITING COLUMN, which Sebastian specified as "a long flat arrow button at
+  // the top and bottom of the scroll section" — so both shapes now come out of
+  // this one file, sharing geometry, materials, hover feel and disabled state.
+  // That was the point of having a single builder; it does not require both
+  // callers to use the same SHAPE.
+  //
+  // The reason the rail is one object rather than three: the two pads and the
+  // thumb answer the same question ("where am I, and how do I move?"), and the
+  // old layout had the answer at the right edge of the page while the controls
+  // were above and below the text. Put together, the thumb reads as the thing
+  // the pads move.
+  //
+  //   var rail = VRScrollArrows.makeRail({
+  //     height: 1.24, width: 0.22, padH: 0.26, thumbFrac: 1 / numPages,
+  //     accent: '#c9c0ac', disposables: state.disposables,
+  //     onUp: fn, onDown: fn
+  //   });
+  //   rail.setProgress(0.4);        // 0..1 through the document
+  //   rail.setUpEnabled(false);     // at the top
+  function makeRail(opts) {
+    opts = opts || {};
+    var H = opts.height != null ? opts.height : 1.24;
+    var W = opts.width != null ? opts.width : 0.22;
+    var padH = opts.padH != null ? opts.padH : 0.26;
+    var GAP = opts.gap != null ? opts.gap : 0.035;
+    var accent = opts.accent || '#c9c0ac';
+    var disposables = opts.disposables || [];
+
+    var trackH = Math.max(0.12, H - padH * 2 - GAP * 2);
+    var thumbH = Math.max(0.09, trackH * Math.min(1, opts.thumbFrac || 0.25));
+
+    var root = document.createElement('a-entity');
+
+    // The pads. Triangle sized to the PAD, not to a bar: on a squarish target a
+    // wide flat triangle reads as a stray rule, so this one is nearly as tall as
+    // it is wide. rim:true because the rail hangs off the page against the dark
+    // room — see the note in make().
+    function pad(up, y, onClick) {
+      var el = make({
+        up: up, width: W, height: padH, accent: accent, disposables: disposables,
+        groundColor: '#1c1712', rim: true,
+        triW: W * 0.62, triH: padH * 0.34,
+        onClick: onClick
+      });
+      el.setAttribute('position', { x: 0, y: y, z: 0 });
+      root.appendChild(el);
+      return el;
+    }
+
+    var upPad = pad(true, H / 2 - padH / 2, function () { if (opts.onUp) opts.onUp(); });
+    var downPad = pad(false, -(H / 2 - padH / 2), function () { if (opts.onDown) opts.onDown(); });
+
+    // Track + thumb. Plain THREE.Meshes parented to the entity's object3D, NOT
+    // a-entities: as entities this hits trap §3.4 — the default `position`
+    // component initialises after the synchronous build and overwrites whatever
+    // setProgress() has already written, so the thumb snaps from wherever it
+    // belongs to the centre of the track for the first frames.
+    var trackGeo = roundedRectGeometry(W * 0.42, trackH, W * 0.21);
+    var trackMat = litMaterial('#1a140f', 0.10, 0.6);
+    trackMat.roughness = 0.62;
+    var track = new THREE.Mesh(trackGeo, trackMat);
+    root.object3D.add(track);
+
+    var thumbGeo = roundedRectGeometry(W * 0.42, thumbH, W * 0.21);
+    var thumbMat = litMaterial('#f5f5f0', 0.42, 1);
+    thumbMat.roughness = 0.26;
+    thumbMat.metalness = 0.14;
+    var thumb = new THREE.Mesh(thumbGeo, thumbMat);
+    thumb.position.z = 0.006;
+    root.object3D.add(thumb);
+
+    disposables.push(trackGeo, trackMat, thumbGeo, thumbMat);
+
+    var travel = trackH - thumbH;
+    root.setProgress = function (frac) {
+      frac = Math.max(0, Math.min(1, frac || 0));
+      thumb.position.y = travel / 2 - frac * travel;
+    };
+    root.setProgress(0);
+
+    root.setUpEnabled = function (on) { upPad.setEnabled(on); };
+    root.setDownEnabled = function (on) { downPad.setEnabled(on); };
+    root.upPad = upPad;
+    root.downPad = downPad;
+
+    return root;
+  }
+
   window.VRScrollArrows = {
-    make: make, triangleGeometry: triangleGeometry,
+    make: make, makeRail: makeRail, triangleGeometry: triangleGeometry,
     roundedRectGeometry: roundedRectGeometry, litMaterial: litMaterial
   };
 })();

@@ -491,11 +491,91 @@
   // seated viewer (VR_BUGFIX_NOTES.md item 4's "pixelation" note).
   var ANISOTROPY = 8;
 
+  // ── VR-only texture derivatives ──────────────────────────────────────────
+  // Arrival used to cost 50.9 MB — 50.0 MB of it the 34 site photos, at their
+  // native sizes (chess-hero is 5712×4284, baston-hero 5184×3058). Measured on
+  // the shipped scene: ~284 MB of texture image data held, ~250 megapixels of
+  // JPEG decode on arrival, and 34 main-thread canvas downscales behind that.
+  // None of it shows: a 0.5 m card at 1.5 m cannot resolve past ~1600 px.
+  //
+  // .tools/vr-make-textures.py writes a downscaled copy of each into
+  // vr/assets/tex (49.8 MB → 6.4 MB, 87% smaller) plus manifest.js, which
+  // index.html loads as a plain script before any component — the same idiom
+  // as window.VR_AUDIO, so there is no fetch to sequence and no build step.
+  // The flat site keeps using /images untouched (hard rule 3).
+  //
+  // An explicit map, not extension-guessing: two images legitimately have NO
+  // derivative (their originals were already smaller) and one keeps .png for a
+  // real cut-out, so guessing would 404 on every load of those three.
+  var TEX_DIR = 'assets/tex/';
+
+  function texUrl(url) {
+    if (!url || !window.VR_TEX) return url;
+    // Both forms appear: '../images/x.jpg' from the markup and '/images/x.jpg'
+    // from data-loader.js's rootHref().
+    var m = /(?:^|\/)images\/([^/?#]+)$/.exec(url);
+    var mapped = m && window.VR_TEX[m[1]];
+    return mapped ? TEX_DIR + mapped : url;
+  }
+
+  // Texture loads are queued, not fired all at once. Even at 6.4 MB the decode
+  // of 34 images lands on the main thread, and 34 at once is one long stall on
+  // arrival — exactly the window where a visitor is trying to click something.
+  // Four in flight keeps the pipe full without owning the frame.
+  var MAX_INFLIGHT = 4;
+  var inflight = 0;
+  var texQueue = [];
+  var texLoader = new THREE.TextureLoader();
+
+  function pump() {
+    while (inflight < MAX_INFLIGHT && texQueue.length) {
+      var job = texQueue.shift();
+      inflight++;
+      job();
+    }
+  }
+
+  // Loads the derivative and falls back to the ORIGINAL url on error, so a
+  // stale or half-generated vr/assets/tex can never blank out the scene — it
+  // just costs the old download. Returns the THREE.Texture immediately (empty
+  // until the image lands), which is what every caller already expects.
+  function loadTexture(url, onLoad) {
+    var tex = new THREE.Texture();
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = ANISOTROPY;
+
+    function settle(img) {
+      inflight--;
+      tex.image = img;
+      tex.needsUpdate = true;
+      if (onLoad) onLoad(tex);
+      pump();
+    }
+
+    texQueue.push(function () {
+      var derived = texUrl(url);
+      texLoader.load(derived, function (t) {
+        settle(t.image);
+      }, null, function () {
+        if (derived === url) { inflight--; pump(); return; }
+        console.warn('[vr] texture derivative missing, using original:', derived);
+        texLoader.load(url, function (t) { settle(t.image); },
+          null, function () { inflight--; pump(); });
+      });
+    });
+    pump();
+    return tex;
+  }
+
   // Downscale a loaded image to at most `maxSize` on its long edge via a
   // canvas, so we don't hold dozens of multi-thousand-pixel textures in GPU
   // memory (the Photo Cloud loads ~34 at once; §11 wants VR textures ≤1024).
   // Returns a canvas to use as the texture source, or the original image if
   // it's already small enough.
+  //
+  // Still here, and still worth passing a cap for, even with the derivatives
+  // above: it is the backstop for anything with no derivative, and it is what
+  // holds the Photo Cloud's 34 tiles at 512.
   function downscaled(img, maxSize) {
     var long = Math.max(img.width, img.height);
     if (!maxSize || long <= maxSize) return img;
@@ -529,15 +609,10 @@
   // value for glary/blown-out sources (the pendant hero) so they settle into
   // the dusk theme; 0 (default) leaves well-exposed photos untouched.
   function makeFeatheredImage(url, w, h, featherWorld, maxSize, tone, cornerRadius) {
-    var tex = new THREE.TextureLoader().load(url, function (t) {
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = ANISOTROPY;
+    var tex = loadTexture(url, function (t) {
       if (maxSize && t.image) { t.image = downscaled(t.image, maxSize); t.needsUpdate = true; }
       coverFit(t, w / h);
     });
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = ANISOTROPY;
-
     return new THREE.Mesh(new THREE.PlaneGeometry(w, h), featheredMaterial(tex, w, h, featherWorld, tone, cornerRadius));
   }
 
@@ -677,6 +752,11 @@
     coverFit: coverFit,
     makeFeatheredImage: makeFeatheredImage,
     makePlaceholderImage: makePlaceholderImage,
-    lightTroikaText: lightTroikaText
+    lightTroikaText: lightTroikaText,
+    // For the one other place that loads a photo through its own shader
+    // (mosaic-reveal.js) — so the derivative swap and the load queue are not
+    // things a second call site has to remember.
+    texUrl: texUrl,
+    loadTexture: loadTexture
   };
 })();

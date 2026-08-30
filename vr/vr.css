@@ -349,6 +349,47 @@ a-scene {
 
 .onboard-gate.dismissed { opacity: 0; pointer-events: none; }
 
+/* Held back for the frame or two navigator.xr.isSessionSupported() takes to
+   answer. There are two different gates behind this — a flat-view disclaimer
+   and a one-tap VR entry — and flashing the wrong one first is worse than a
+   beat of nothing. onboarding.js clears this as soon as it knows. */
+.onboard-gate.onboard-deciding { opacity: 0; pointer-events: none; }
+
+/* ─── Headset gate ───
+   In a headset the whole scrim is the tap target (onboarding.js), so the card
+   here is a label for a target that is the entire screen, not a thing you have
+   to hit. Hence: no body copy, centred, and a cursor that says so everywhere. */
+.onboard-gate.onboard-headset { cursor: pointer; }
+
+.onboard-gate.onboard-headset .onboard-card {
+  max-width: 24rem;
+  text-align: center;
+}
+
+.onboard-gate.onboard-headset .onboard-enter {
+  margin-top: 1.1rem;
+  font-size: 1.05rem;
+}
+
+/* The way out for someone in a headset who genuinely wants the flat window —
+   a real escape, but quiet enough not to compete with entering. */
+.onboard-secondary {
+  display: block;
+  margin: 0.9rem auto 0;
+  padding: 0.35rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.onboard-secondary:hover { color: var(--text); }
+
 .onboard-card {
   max-width: 34rem;
   max-height: 100%;

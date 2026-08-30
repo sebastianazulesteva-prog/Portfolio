@@ -163,11 +163,15 @@
       // VR_BUGFIX_NOTES.md item 4. The source photo (682×1024) is itself
       // modest resolution — this narrows the gap but can't manufacture detail
       // that isn't in the file; a higher-res export would still read crisper.
-      var loader = new THREE.TextureLoader();
-      var tGray = loader.load(this.data.gray, function (t) { t.anisotropy = 8; });
-      var tColor = loader.load(this.data.color, function (t) { t.anisotropy = 8; });
-      tGray.colorSpace = THREE.SRGBColorSpace;
-      tColor.colorSpace = THREE.SRGBColorSpace;
+      //
+      // Through VRGlass.loadTexture, not a bare TextureLoader: that is what
+      // maps /images to the downscaled vr/assets/tex derivative and holds these
+      // two behind the shared load queue. This component ran its own loader and
+      // so was the one photo pair still arriving at full weight — and it is on
+      // the home panel, i.e. first in view. It sets colorSpace + anisotropy
+      // itself, so only the mosaic's own 8 needs re-asserting on arrival.
+      var tGray = VRGlass.loadTexture(this.data.gray, function (t) { t.anisotropy = 8; });
+      var tColor = VRGlass.loadTexture(this.data.color, function (t) { t.anisotropy = 8; });
       tGray.anisotropy = 8;
       tColor.anisotropy = 8;
 

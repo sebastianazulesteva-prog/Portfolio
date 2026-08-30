@@ -37,12 +37,13 @@
    This is the same reasoning as the project thumbnails staying ungraded
    (BUILD_NOTES ISSUE-07).
 
-   THE SCROLL CONTROL IS REAL GEOMETRY, AND IT IS LIT. The arrows are
-   THREE.Shape triangles, not '▲'/'▼' troika text — the text version rendered
-   as blank rounded rects (§3.6's missing-glyph trap, same root cause as the
-   '↗' badge). Track and thumb are rounded pills on MeshStandardMaterial with
-   an emissive floor, so the scene's light rack genuinely shades them instead
-   of them reading as flat unlit chips.
+   THE SCROLL CONTROL IS A RAIL ON THE RIGHT, AND IT IS SCROLL-ARROWS' JOB.
+   One vertical column off the page's right edge — up pad, position track, down
+   pad — built by scroll-arrows.js makeRail(). See the long note above
+   buildScrollControl for why it went pads-on-the-left → bars-above-and-below →
+   back to a rail, and why the right side. Nothing about it is built in here.
+   The arrows are still real THREE.Shape geometry rather than '▲'/'▼' troika
+   text (§3.6's missing-glyph trap), and track/thumb are still lit pills.
 
    YOU ARE ACTUALLY MOVED THERE. Sebastian, on the shipped version: "I don't
    think they actually enter / are moved to another room right now?" — correct.
@@ -104,11 +105,6 @@
   // area reads as a room rather than a mat.
   var RUG_RADIUS = 1.75;
 
-  // Scroll-control visuals. The arrow triangles and the position thumb carry a
-  // small emissive floor at rest and brighten on hover — see litMaterial().
-  var TRACK_W = 0.075;
-  var THUMB_EMISSIVE = 0.42;
-
   var state = {
     open: false,
     root: null,
@@ -118,7 +114,7 @@
     maxScroll: 0,
     project: null,
     transTween: null,
-    thumbMesh: null,
+    rail: null,         // the one scroll control: up pad, position track, down pad
     rackOffset: null,   // non-null while the key rack is parked at the alcove
     seatPos: null,      // fallback when walk-controls isn't running (?walk=0 aside)
     // three.js never auto-disposes: removing `root` from the DOM frees the
@@ -259,14 +255,15 @@
   }
 
   // ── Page rendering ───────────────────────────────────────────────────────
-  function renderPage(rec) {
-    if (rec.texture || rec.rendering || !state.doc) return;
+  function renderPage(rec, onSettled) {
+    function settled() { rec.rendering = false; if (onSettled) onSettled(); }
+    if (rec.texture || rec.rendering || !state.doc) { if (onSettled) onSettled(); return; }
     rec.rendering = true;
     state.doc.getPage(rec.index + 1).then(function (page) {
       // Bail if the reader closed, or this page scrolled out of the window,
       // while the async render was in flight — otherwise we'd allocate a
       // texture nobody is going to look at.
-      if (!state.open || !rec.wanted) { rec.rendering = false; return; }
+      if (!state.open || !rec.wanted) { settled(); return; }
       var base = page.getViewport({ scale: 1 });
       var vp = page.getViewport({ scale: RENDER_PX / base.height });
       var canvas = document.createElement('canvas');
@@ -274,7 +271,7 @@
       canvas.height = Math.round(vp.height);
       return page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
         .then(function () {
-          rec.rendering = false;
+          settled();
           if (!state.open || !rec.wanted) return;
           var tex = new THREE.CanvasTexture(canvas);
           tex.colorSpace = THREE.SRGBColorSpace;
@@ -285,7 +282,7 @@
           rec.material.needsUpdate = true;
         });
     }).catch(function (err) {
-      rec.rendering = false;
+      settled();
       console.warn('[vr] pdf-reader: page ' + (rec.index + 1) + ' failed:', err);
     });
   }
@@ -301,14 +298,80 @@
 
   // Keep only the pages near the reading band rendered — see the memory note
   // at the top of this file.
-  function updateRenderWindow() {
+  // ── One page at a time, nearest first ────────────────────────────────────
+  // pdf.js rasterises on the MAIN THREAD. At RENDER_PX a page canvas is about
+  // 1314 × 1700 (2.2 megapixels), and this used to hand pdf.js all three pages
+  // in the window at once — so a scroll tap that crossed a page boundary
+  // interleaved two or three multi-megapixel rasterisations and the frame rate
+  // went with them. That is the other half of "the up and down buttons were
+  // super laggy" (the first half was xr-select.js's dropped pinches).
+  //
+  // Serialised instead, ordered by distance from the page you are on, so the
+  // page you are actually looking at rasterises first and each individual stall
+  // is one page long rather than three.
+  //
+  // RENDER_PX itself is deliberately NOT reduced: the page is 1.95 m tall at
+  // 1.9 m, and the band you can actually see is ~1.2 m of that, so 1700 px
+  // works out at ~30 pixels per degree against a Vision Pro's ~34. Lowering it
+  // would be visible as soft type, which is the whole point of the reader.
+  var renderQueue = [];
+  var renderBusy = false;
+  var renderToken = 0;
+  var renderWatchdog = null;
+  // Long enough that a real page (a few hundred ms) never trips it, short
+  // enough that a stuck one doesn't read as a broken reader.
+  var RENDER_TIMEOUT_MS = 4000;
+
+  // Serialising has one failure mode parallel rendering did not: a single
+  // render that never settles blocks every page behind it, and the reader sits
+  // blank forever. Found in testing, where the preview pane suspends rAF (which
+  // pdf.js's chunked rasteriser needs) and page 1 hung indefinitely. That is a
+  // harness artifact, but "the reader never loaded" is exactly the class of
+  // failure being fixed here, so the queue gets a watchdog rather than trusting
+  // pdf.js to always come back.
+  function releaseRender(token) {
+    if (token !== renderToken) return;   // a newer render already owns the slot
+    if (renderWatchdog) { clearTimeout(renderWatchdog); renderWatchdog = null; }
+    renderBusy = false;
+    pumpRenderQueue();
+  }
+
+  function pumpRenderQueue() {
+    if (renderBusy || !renderQueue.length || !state.open) return;
+    var rec = renderQueue.shift();
+    if (!rec.wanted || rec.texture || !state.open) return pumpRenderQueue();
+    renderBusy = true;
+    var token = ++renderToken;
+    renderWatchdog = setTimeout(function () {
+      console.warn('[vr] pdf-reader: page ' + (rec.index + 1) + ' render exceeded ' +
+        RENDER_TIMEOUT_MS + 'ms — releasing the queue (it may still land later)');
+      releaseRender(token);
+    }, RENDER_TIMEOUT_MS);
+    renderPage(rec, function () { releaseRender(token); });
+  }
+
+  var lastWindowIndex = null;
+  function updateRenderWindow(force) {
     var step = PAGE_HEIGHT + PAGE_GAP;
     var current = Math.floor(state.scroll / step);
+    // applyScroll runs on every frame of the scroll tween; the window only
+    // changes when the page index does.
+    if (!force && current === lastWindowIndex) return;
+    lastWindowIndex = current;
+
+    var wanted = [];
     state.pages.forEach(function (rec) {
       rec.wanted = Math.abs(rec.index - current) <= RENDER_WINDOW;
-      if (rec.wanted) renderPage(rec);
+      if (rec.wanted) wanted.push(rec);
       else disposePage(rec);
     });
+    wanted.sort(function (a, b) {
+      return Math.abs(a.index - current) - Math.abs(b.index - current);
+    });
+    // Rebuilt, not appended to: a queue carrying pages that have since scrolled
+    // out would rasterise them anyway, behind the one you are looking at.
+    renderQueue = wanted.filter(function (rec) { return !rec.texture && !rec.rendering; });
+    pumpRenderQueue();
   }
 
   // ── Scroll ───────────────────────────────────────────────────────────────
@@ -340,16 +403,13 @@
   }
 
   function updateScrollIndicator() {
-    if (!state.thumbMesh || !state.trackH) return;
+    if (!state.rail) return;
     var frac = state.maxScroll > 0 ? state.scroll / state.maxScroll : 0;
-    var travel = state.trackH - state.thumbH;
-    // A bare THREE.Mesh, not an a-entity, specifically so this write can't be
-    // clobbered — see the trap note in buildScrollControl.
-    state.thumbMesh.position.y = travel / 2 - frac * travel;
-    // A bar you can't travel any further with says so, rather than looking live
+    state.rail.setProgress(frac);
+    // A pad you can't travel any further with says so, rather than looking live
     // and doing nothing — the "is it broken or am I at the end?" problem.
-    if (state.upBar && state.upBar.setEnabled) state.upBar.setEnabled(state.scroll > 0.001);
-    if (state.downBar && state.downBar.setEnabled) state.downBar.setEnabled(state.scroll < state.maxScroll - 0.001);
+    state.rail.setUpEnabled(state.scroll > 0.001);
+    state.rail.setDownEnabled(state.scroll < state.maxScroll - 0.001);
     if (state.pageLabelEl) {
       var step = PAGE_HEIGHT + PAGE_GAP;
       var current = Math.min(state.doc.numPages, Math.floor(state.scroll / step) + 1);
@@ -416,165 +476,95 @@
     return root;
   }
 
-  // ── Shape + material helpers for the scroll control ──────────────────────
-  // The arrows are real GEOMETRY, not a font glyph. The first version labelled
-  // two ui-buttons with troika-text '▲' / '▼' and they rendered as empty
-  // rounded rects — exactly the failure documented for '↗' in
-  // VR_AI_BUILD_GUIDE.md §3.7: the Syne latin subset (fonts.js) carries no
-  // Geometric Shapes block, so troika silently substitutes or drops the glyph.
-  // ui-button.js sidesteps that for its arrow badge by drawing into a canvas;
-  // here a THREE.Shape is simpler and resolution-independent, and a triangle
-  // can't be subset away by a webfont.
-  function triangleGeometry(w, h, up) {
-    var shape = new THREE.Shape();
-    var half = h / 2;
-    if (up) {
-      shape.moveTo(-w / 2, -half); shape.lineTo(w / 2, -half); shape.lineTo(0, half);
-    } else {
-      shape.moveTo(-w / 2, half); shape.lineTo(w / 2, half); shape.lineTo(0, -half);
-    }
-    shape.closePath();
-    return new THREE.ShapeGeometry(shape);
-  }
+  // The shape + material helpers that used to live here (triangleGeometry,
+  // roundedRectGeometry, litMaterial) are gone: the reader now builds its
+  // scroll control entirely through scroll-arrows.js makeRail(), which owns
+  // the same three. They were private copies of that file's versions and had
+  // no other caller in here — keeping them would have left two sets of
+  // materials for one control to drift apart.
 
-  // Pill-shaped track/thumb. The previous pair were hard-cornered rectangles,
-  // which read as raw debug quads next to every other rounded surface in the
-  // scene (the glass cards, ui-button, the page corners).
-  function roundedRectGeometry(w, h, r) {
-    r = Math.min(r, w / 2, h / 2);
-    var x = -w / 2, y = -h / 2;
-    var shape = new THREE.Shape();
-    shape.moveTo(x + r, y);
-    shape.lineTo(x + w - r, y);
-    shape.quadraticCurveTo(x + w, y, x + w, y + r);
-    shape.lineTo(x + w, y + h - r);
-    shape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    shape.lineTo(x + r, y + h);
-    shape.quadraticCurveTo(x, y + h, x, y + h - r);
-    shape.lineTo(x, y + r);
-    shape.quadraticCurveTo(x, y, x + r, y);
-    return new THREE.ShapeGeometry(shape, 12);
-  }
+  // ── The scroll control: back to a rail, on the right ──────────────────────
+  //
+  // Third version, and it goes back to the shape of the first. History, because
+  // the reasoning matters more than the geometry:
+  //
+  //   1. Two pads stacked in a tall column off to the LEFT of the page, with
+  //      the position track beside them. Sebastian: the scroll buttons "feel
+  //      off" — the control for moving text vertically sat somewhere the text
+  //      wasn't, and up/down read as "two buttons" rather than a direction.
+  //   2. A long flat arrow bar above the reading band and another below it
+  //      (scroll-arrows.js make()), with the track demoted to a slim indicator
+  //      at the page's right edge.
+  //   3. This: one vertical RAIL — up pad, position track, down pad — off the
+  //      page's right edge.
+  //
+  // Why back: in the first Vision Pro session the bars barely worked. *"In the
+  // reading room the up and down buttons were super laggy, it didn't even work
+  // at all. Let's switch back to the old buttons — the ones on the side that had
+  // the tracker on it."* Most of that was the input bug xr-select.js fixes (a
+  // pinch is a one-frame `transient-pointer` and A-Frame's cursor dropped it),
+  // but the shape is his call and version 1 was closer.
+  //
+  // RIGHT, not the left where version 1 lived — Sebastian's own reasoning, that
+  // everyone is used to a scrollbar being on the right.
+  //
+  // What the rail fixes that version 1 didn't: the pads and the tracker are one
+  // object now, so the thumb reads as the thing the pads move, instead of the
+  // answer to "where am I" sitting at the opposite side of the page from the
+  // controls.
+  //
+  // KNOWN, and accepted: at x ≈ 0.85 the rail is ~24° off the view centre. That
+  // is comfortable in a headset and OFF-SCREEN on a portrait phone, which has
+  // about ±21° of horizontal field — the same trade the exit button already
+  // makes at 26°. Per §9.4 the scene is not recomposed for phones; the arrival
+  // gate says the flat view is the lesser one instead. Do not "fix" this by
+  // pulling the rail onto the page: it would then sit over the type, and a warm
+  // pad on white paper is very nearly invisible (see make()'s note).
+  //
+  // The bars are NOT deleted — they are still what the writing column uses, and
+  // that shape is Sebastian's own spec for it. Both come out of scroll-arrows.js.
 
-  // Everything in the control is genuinely lit, per Sebastian ("add the
-  // lighting effect to it all"). Same approach as VRGlass.lightTroikaText:
-  // MeshStandardMaterial so the scene's light rack really shades it, with
-  // `emissive` as a brightness FLOOR — this scene's rack is dim and warm, so
-  // without the floor a white indicator sinks to a muddy grey (the exact
-  // reasoning recorded in glass-material.js). The rack-lit terms still layer
-  // real highlights on top, so it reads as part of the lit scene rather than
-  // reverting to a flat unlit chip like the MeshBasicMaterial version was.
-  function litMaterial(hex, emissiveIntensity, opts) {
-    opts = opts || {};
-    // Hard rule #4, and lightTroikaText's own precedent: accessible mode gets
-    // flat maximum-contrast fills, never a surface that can dim under a light.
-    if (document.body.classList.contains('accessible')) {
-      return new THREE.MeshBasicMaterial({
-        color: hex, side: THREE.DoubleSide,
-        transparent: !!opts.transparent,
-        opacity: opts.opacity != null ? opts.opacity : 1
-      });
-    }
-    var mat = new THREE.MeshStandardMaterial({
-      color: hex,
-      roughness: opts.roughness != null ? opts.roughness : 0.34,
-      // Low metalness deliberately: there is no environment map in this scene,
-      // and a metallic surface with nothing to reflect renders near-black.
-      metalness: opts.metalness != null ? opts.metalness : 0.08,
-      side: THREE.DoubleSide,
-      transparent: !!opts.transparent,
-      opacity: opts.opacity != null ? opts.opacity : 1
-    });
-    mat.emissive = new THREE.Color(hex);
-    mat.emissiveIntensity = emissiveIntensity;
-    return mat;
-  }
-
-  // The scroll control (redesigned, §9.6). Sebastian on the previous version:
-  // the scroll-down buttons "feel off". They were two pads stacked in a tall
-  // column off to the LEFT of the page, which put the control for moving text
-  // vertically somewhere that isn't where the text is, and made the up/down
-  // relationship read as "two buttons" rather than as a direction.
-  //
-  // Now: a LONG FLAT arrow bar at the top of the reading band and another at
-  // the bottom, built by scroll-arrows.js — the same builder the writing column
-  // uses, so the two scrolling surfaces in the scene are the same control
-  // (Sebastian asked for exactly this shape for the column, and for the reader's
-  // to match). A bar directly above the text that you click to move the text up
-  // says what it does without a label.
-  //
-  // The bars sit at 55% of the page width, not the full width: they float in
-  // front of the page, and at full width they'd mask a whole line of type at
-  // each end of the band. At 55%, centred, the text either side of them stays
-  // readable and they still read as bars rather than buttons.
-  //
-  // The track and thumb survive but are demoted to what they always actually
-  // were — a position INDICATOR, not a control — and move to a slim strip down
-  // the right edge of the page, out of the way of the arrows entirely.
+  // Rail geometry, all derived so nothing collides silently:
+  //   top    EYE + 0.52 = 2.12, clear of the exit button's lower edge at ~2.21
+  //   bottom EYE - 0.72 = 0.88, the old down bar's height
+  var RAIL_TOP_OFFSET = 0.52;
+  var RAIL_BOTTOM_OFFSET = 0.72;
+  var RAIL_W = 0.22;      // 6.6° at READ_DISTANCE — a generous pointing target
+  var RAIL_PAD_H = 0.26;  // 7.8°
+  var RAIL_GAP_X = 0.10;  // clear of the page's right edge
   function buildScrollControl(root, project) {
     var pageW = PAGE_HEIGHT * state.pageAspect;
     var ACCENT = '#c9c0ac';
-    var BAR_W = pageW * 0.55;
-    // Just inside the top and bottom of the comfortable reading band, and
-    // pulled toward the viewer so they're unambiguously in front of the page.
-    var BAR_Z = -READ_DISTANCE + 0.10;
-    var UP_Y = EYE_HEIGHT + 0.62;
-    var DOWN_Y = EYE_HEIGHT - 0.72;
+    // Pulled toward the viewer so the rail is unambiguously in front of the
+    // page rather than fighting it for depth.
+    var RAIL_Z = -READ_DISTANCE + 0.10;
+    var RAIL_TOP = EYE_HEIGHT + RAIL_TOP_OFFSET;
+    var RAIL_BOTTOM = EYE_HEIGHT - RAIL_BOTTOM_OFFSET;
+    var railH = RAIL_TOP - RAIL_BOTTOM;
+    var railX = pageW / 2 + RAIL_GAP_X;
 
-    function mkBar(up, y, dir) {
-      var bar = window.VRScrollArrows.make({
-        up: up, width: BAR_W, height: 0.115, accent: ACCENT,
-        disposables: state.disposables,
-        onClick: function () { scrollBy(dir * PAGE_HEIGHT * 0.45); }
-      });
-      bar.setAttribute('position', { x: 0, y: y, z: BAR_Z });
-      root.appendChild(bar);
-      return bar;
-    }
-
-    // Up moves you back toward page 1, so it scrolls NEGATIVE — the same
-    // mapping the old pads had, kept deliberately: the bar's arrow points the
-    // way the CONTENT travels, which is also the way you travel through it.
-    state.upBar = mkBar(true, UP_Y, -1);
-    state.downBar = mkBar(false, DOWN_Y, 1);
-
-    // ── Position indicator, right edge ──
-    var indicator = document.createElement('a-entity');
-    indicator.setAttribute('position', { x: (pageW / 2) + 0.10, y: EYE_HEIGHT, z: BAR_Z });
-    root.appendChild(indicator);
-
-    state.trackH = 1.30;
-    state.thumbH = Math.max(0.10, state.trackH / Math.max(1, state.doc.numPages));
-
-    // The track sits in the rug's warm dark tone rather than pure black, so it
-    // reads as a recess in the room instead of a hole punched through it.
-    var trackGeo = roundedRectGeometry(TRACK_W, state.trackH, TRACK_W / 2);
-    var trackMat = litMaterial('#1a140f', 0.10, { transparent: true, opacity: 0.6, roughness: 0.62 });
-    indicator.setObject3D('track', new THREE.Mesh(trackGeo, trackMat));
-
-    // A bare THREE.Mesh parented to the entity's object3D, NOT an a-entity.
-    // As an entity this hit trap §3.4: the default `position` component
-    // initialises after the synchronous build and overwrites whatever
-    // updateScrollIndicator() had already written, so the thumb snapped from
-    // the top of the track to its centre for the first frames of every open.
-    // A plain mesh has no component to fight.
-    var thumbGeo = roundedRectGeometry(TRACK_W, state.thumbH, TRACK_W / 2);
-    var thumbMat = litMaterial('#f5f5f0', THUMB_EMISSIVE, { roughness: 0.26, metalness: 0.14 });
-    var thumb = new THREE.Mesh(thumbGeo, thumbMat);
-    thumb.position.z = 0.006;
-    indicator.object3D.add(thumb);
-    state.thumbMesh = thumb;
-
-    state.disposables.push(trackGeo, trackMat, thumbGeo, thumbMat);
+    // Up moves you back toward page 1, so it scrolls NEGATIVE — kept from every
+    // previous version: the arrow points the way the CONTENT travels, which is
+    // also the way you travel through it.
+    var rail = window.VRScrollArrows.makeRail({
+      height: railH, width: RAIL_W, padH: RAIL_PAD_H,
+      thumbFrac: 1 / Math.max(1, state.doc.numPages),
+      accent: ACCENT, disposables: state.disposables,
+      onUp: function () { scrollBy(-PAGE_HEIGHT * 0.45); },
+      onDown: function () { scrollBy(PAGE_HEIGHT * 0.45); }
+    });
+    rail.setAttribute('position', { x: railX, y: (RAIL_TOP + RAIL_BOTTOM) / 2, z: RAIL_Z });
+    root.appendChild(rail);
+    state.rail = rail;
 
     var pageLabel = document.createElement('a-entity');
     pageLabel.setAttribute('troika-text', {
       value: '1 / ' + state.doc.numPages, align: 'center', anchor: 'center', baseline: 'center',
       color: '#f5f5f0', font: VRFonts.bodyBold(), fontSize: VRType.label()
     });
-    // Directly under the down bar, so "where am I" and "go further" sit
-    // together instead of at opposite ends of the reading band.
-    pageLabel.setAttribute('position', { x: 0, y: EYE_HEIGHT - 0.86, z: BAR_Z + 0.01 });
+    // Directly under the rail, with "where am I" now sitting on the same axis as
+    // the controls rather than across the page from them.
+    pageLabel.setAttribute('position', { x: railX, y: RAIL_BOTTOM - 0.10, z: RAIL_Z + 0.01 });
     root.appendChild(pageLabel);
     state.pageLabelEl = pageLabel;
     VRGlass.lightTroikaText(pageLabel, '#f5f5f0', { emissive: true });
@@ -675,7 +665,11 @@
         var root = build(project, state.doc);
         document.querySelector('a-scene').appendChild(root);
         state.root = root;
+        // force: lastWindowIndex is 0 from the previous document, and scroll
+        // starts at 0 too, so an unforced first call would decide the window
+        // hasn't changed and render nothing at all.
         applyScroll();
+        updateRenderWindow(true);
         setTimeout(refreshClickableRaycasters, 0);
       });
     }).catch(function (err) {
@@ -698,13 +692,18 @@
       state.disposables = [];
       state.root = null;
       state.stripEl = null;
-      state.thumbMesh = null;
       state.pageLabelEl = null;
-      // Cleared with everything else the scroll control built: a stale bar
+      // Cleared with everything else the scroll control built: a stale rail
       // reference would have updateScrollIndicator poking a removed entity on
       // the next open.
-      state.upBar = null;
-      state.downBar = null;
+      state.rail = null;
+      // Reset with everything else, or the next document inherits this one's
+      // window index and render queue.
+      renderQueue = [];
+      renderBusy = false;
+      lastWindowIndex = null;
+      renderToken++;                                     // orphan any in-flight settle
+      if (renderWatchdog) { clearTimeout(renderWatchdog); renderWatchdog = null; }
       // No floor to reset — open() never retints it (see the ground note there).
       var sky = document.querySelector('[dusk-sky]');
       if (sky) sky.components['dusk-sky'].clearTheme();

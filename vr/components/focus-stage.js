@@ -225,8 +225,11 @@
       // rolloff + vignette (imagetone) "read as dynamic lighting / a colour
       // filter darkening the thumbnail" in a walkthrough and was dropped
       // (ISSUE-07). Blown-out heroes are accepted as the honest image.
+      // 1536: this one IS read close, so it gets more than a glance card's
+      // 1024 — but it was `null` (uncapped), which meant a 24-megapixel hero
+      // uploaded whole for a panel about a metre wide.
       var imgMesh = VRGlass.makeFeatheredImage(
-        data.image, W - PAD * 2, imgH, 0, null, 0, 0.042);
+        data.image, W - PAD * 2, imgH, 0, 1536, 0, 0.042);
       imgMesh.position.set(0, y - imgH / 2, 0.01);
       el.setObject3D('stage-image', imgMesh);
       y -= imgH + PAD * 0.8;

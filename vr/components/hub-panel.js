@@ -126,7 +126,11 @@
         // material was already unlit — a ShaderMaterial, no scene light or IBL
         // touches it — so this removes the only thing that dimmed the image.)
         this.imgMesh = hasImage
-          ? VRGlass.makeFeatheredImage(this.data.image, imgW, imgH, feather, null, 0, radius)
+          // 1024, not null. This passed NO size cap, so every glance card
+          // uploaded its hero at native resolution — chess-hero at 5712×4284 is
+          // ~130 MB of texture on its own, and there are a dozen of these. A
+          // card this size at command-zone distance resolves nothing past 1024.
+          ? VRGlass.makeFeatheredImage(this.data.image, imgW, imgH, feather, 1024, 0, radius)
           : VRGlass.makePlaceholderImage(imgW, imgH, this.data.accent, this.data.title, feather, radius);
         this.imgMesh.position.set(0, imgY, 0.006);
         this.el.setObject3D('panel-image', this.imgMesh);
@@ -442,6 +446,14 @@
         // would make the biggest target on the card do nothing but nag.
         else if (this.detail.type === 'project' && window.VR_ROOMS === false) window.VRFocusStage.open(this.detail, this.el);
         else if (this.detail.type === 'project') window.VRProjectRoom.enter(this.detail.data);
+        // An EXPERIENCE card turns over instead of opening the focus stage
+        // (card-flip.js): the card is the record and the bullets are its
+        // reverse, so a separate panel appearing next to it was the wrong
+        // gesture. Guarded on both the component being loaded AND the card
+        // having been given a spec, so a card without one still reaches the
+        // focus stage rather than becoming un-openable.
+        else if (this.detail.type === 'experience' && window.VRCardFlip &&
+                 window.VRCardFlip.toggle(this.el)) return;
         else window.VRFocusStage.open(this.detail, this.el);
       }.bind(this);
       this.el.addEventListener('click', this._onClick);
@@ -565,6 +577,21 @@
     // Unmistakable, not subtle (VR_BUGFIX_NOTES.md item 3) — a firmer scale
     // pop (was 1.03, easy to miss) plus the shader's own brighten (uHover).
     wake: function (on) {
+      // A card that is turned over, or mid-turn, is being READ — not hovered
+      // (card-flip.js). This matters because wake() drives an animation on
+      // SCALE and the flip drives scale too, so they fight:
+      //
+      //   In a headset a pinch is one event burst — xr-select.js emits
+      //   mouseenter, click, then mouseleave within a few frames. The click
+      //   starts the flip; the mouseleave that lands immediately after would
+      //   setAttribute a FRESH scale animation to '1 1 1', which A-Frame starts
+      //   un-paused, and it drags the card back to its glance size while the
+      //   flip is still flying it toward the reader.
+      //
+      //   The same thing happens on desktop, just less obviously: the card
+      //   grows and flies at you, so the pointer falls off it and mouseleave
+      //   fires a beat later.
+      if (this.el.__flipped || this.el.__flipTween) return;
       this._hoverTarget = on ? 1 : 0;
       this.el.setAttribute('animation__hover', {
         property: 'scale', dur: 160, easing: 'easeInOutQuad',

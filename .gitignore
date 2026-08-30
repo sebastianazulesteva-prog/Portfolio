@@ -9,10 +9,11 @@ vr/assets/*.ogg
 vr-audio/
 
 # /vr dev-only harnesses — none are referenced by the shipped scene
-# (VR_AI_BUILD_GUIDE.md §"dev-only files"), so they stay out of the public
-# site. Delete these three lines if you decide to version them.
-vr/_dev-*.js
-vr/_dev-preview.html
+# (VR_AI_BUILD_GUIDE.md §5), so they stay out of the public site. One glob
+# rather than a list of names: this was `vr/_dev-*.js` plus `_dev-preview.html`,
+# which meant the next harness anyone added (_dev-reader.html) was NOT covered
+# and would have shipped. Delete these lines if you decide to version them.
+vr/_dev-*
 
 # Local dev tooling: a cloudflared binary and the self-signed cert (private key
 # included) that .tools/vr-phone.sh generates for phone testing. Never publish.

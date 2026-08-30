@@ -60,21 +60,33 @@
       return e;
     });
 
-    var attempts = 0;
-    (function reflow() {
-      var allReady = els.every(function (e) { return blockHeight(e) != null; });
-      if (allReady) {
-        var y = startY;
-        els.forEach(function (e, i) {
-          e.object3D.position.y = y;
-          y -= blockHeight(e) + (specs[i].gapAfter != null ? specs[i].gapAfter : defaultGap);
-        });
-        if (opts.onReflow) opts.onReflow(y); // final y (bottom of the stack), for callers that place something under it
-        return;
-      }
-      if (++attempts > 80) return; // give up quietly rather than spin forever
-      setTimeout(reflow, 40);
-    })();
+    // Polled through VRPoll (xr-frame.js), not a bare setTimeout: a timeout is
+    // clamped to ~1 s in any context the browser considers backgrounded, which
+    // would turn this 40 ms poll into a 40× slower one inside an immersive
+    // session (?xrdiag=1 measures whether visionOS does that). VRPoll is armed
+    // by BOTH the scene tick and a timeout, first one to fire — so it survives
+    // a session AND a preview pane whose render loop has stalled (§3.1).
+    // Falls back to the old bare timeout if xr-frame.js isn't loaded.
+    function reflow() {
+      if (!els.every(function (e) { return blockHeight(e) != null; })) return false;
+      var y = startY;
+      els.forEach(function (e, i) {
+        e.object3D.position.y = y;
+        y -= blockHeight(e) + (specs[i].gapAfter != null ? specs[i].gapAfter : defaultGap);
+      });
+      if (opts.onReflow) opts.onReflow(y); // final y (bottom of the stack), for callers that place something under it
+      return true;
+    }
+    if (window.VRPoll) {
+      VRPoll.every(40, reflow, { attempts: 80 });
+    } else {
+      var attempts = 0;
+      (function loop() {
+        if (reflow()) return;
+        if (++attempts > 80) return;      // give up quietly rather than spin forever
+        setTimeout(loop, 40);
+      })();
+    }
 
     return els;
   }

@@ -561,7 +561,13 @@
   // stale or half-generated vr/assets/tex can never blank out the scene — it
   // just costs the old download. Returns the THREE.Texture immediately (empty
   // until the image lands), which is what every caller already expects.
-  function loadTexture(url, onLoad) {
+  //
+  // `onError` is optional and was added for pdf-reader.js, which needs to know:
+  // it holds a page plane at its placeholder tone until the image lands, and
+  // gates the room transition on page 1 arriving. Every other caller passes two
+  // arguments and is unaffected — but note that WITHOUT this the failure path
+  // was silent, which is the shape of bug this codebase keeps finding.
+  function loadTexture(url, onLoad, onError) {
     var tex = new THREE.Texture();
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = ANISOTROPY;
@@ -574,15 +580,21 @@
       pump();
     }
 
+    function failed(why) {
+      inflight--;
+      if (onError) onError(why || url);
+      pump();
+    }
+
     texQueue.push({ url: url, run: function () {
       var derived = texUrl(url);
       texLoader.load(derived, function (t) {
         settle(t.image);
       }, null, function () {
-        if (derived === url) { inflight--; pump(); return; }
+        if (derived === url) { failed(url); return; }
         console.warn('[vr] texture derivative missing, using original:', derived);
         texLoader.load(url, function (t) { settle(t.image); },
-          null, function () { inflight--; pump(); });
+          null, function () { failed(url); });
       });
     } });
     pump();

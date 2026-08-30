@@ -316,6 +316,17 @@
       var prev = this._selected;
       if (prev === tile) return;
 
+      // Jump this tile's texture to the front of the shared load queue. With 32
+      // tiles loading four at a time, the one you just picked can be twentieth
+      // in line — and until it lands, selecting it pulls an EMPTY frame to your
+      // face and holds it there. This is Sebastian's "pulling an image from the
+      // cloud" note: not broken, just waiting its turn in a queue that didn't
+      // know you were looking at it.
+      if (tile && tile.im && tile.im.src && VRGlass.prioritiseTexture) {
+        var pending = !(tile.mat && tile.mat.uniforms.map.value && tile.mat.uniforms.map.value.image);
+        if (pending) VRGlass.prioritiseTexture(tile.im.src);
+      }
+
       if (prev) {
         prev.selected = false;
         this._teardownAction(prev);

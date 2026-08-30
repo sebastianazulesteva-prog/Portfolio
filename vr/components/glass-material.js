@@ -531,8 +531,30 @@
     while (inflight < MAX_INFLIGHT && texQueue.length) {
       var job = texQueue.shift();
       inflight++;
-      job();
+      job.run();
     }
+  }
+
+  // Move a queued load to the FRONT.
+  //
+  // Sebastian, second Vision Pro session: *"it's the rooms and pulling an image
+  // from the cloud to read."* The Photo Cloud is 32 tiles behind a 4-at-a-time
+  // queue, so the last tiles arrive well after the first — and selecting one
+  // whose texture has not landed pulls an EMPTY frame to your face and holds it
+  // there until its turn comes up. Nothing is broken; it is simply waiting its
+  // place in a queue that has no idea you are looking at it.
+  //
+  // So a selection re-prioritises. Cheap (an array move), and it means the tile
+  // you asked for is next rather than 20th.
+  function prioritise(url) {
+    if (!url) return false;
+    for (var i = 0; i < texQueue.length; i++) {
+      if (texQueue[i].url !== url) continue;
+      if (i === 0) return true;
+      texQueue.unshift(texQueue.splice(i, 1)[0]);
+      return true;
+    }
+    return false;   // already loading, already loaded, or never queued
   }
 
   // Loads the derivative and falls back to the ORIGINAL url on error, so a
@@ -552,7 +574,7 @@
       pump();
     }
 
-    texQueue.push(function () {
+    texQueue.push({ url: url, run: function () {
       var derived = texUrl(url);
       texLoader.load(derived, function (t) {
         settle(t.image);
@@ -562,7 +584,7 @@
         texLoader.load(url, function (t) { settle(t.image); },
           null, function () { inflight--; pump(); });
       });
-    });
+    } });
     pump();
     return tex;
   }
@@ -757,6 +779,8 @@
     // (mosaic-reveal.js) — so the derivative swap and the load queue are not
     // things a second call site has to remember.
     texUrl: texUrl,
-    loadTexture: loadTexture
+    loadTexture: loadTexture,
+    // photo-cloud.js calls this when a tile is selected — see prioritise().
+    prioritiseTexture: prioritise
   };
 })();

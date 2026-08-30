@@ -186,7 +186,7 @@
   <script src="components/fonts.js?v=5"></script>
   <script src="components/themes.js?v=1"></script>
   <script src="components/dome.js?v=4"></script>
-  <script src="components/glass-material.js?v=16"></script>
+  <script src="components/glass-material.js?v=17"></script>
   <script src="components/text-flow.js?v=2"></script>
   <script src="components/ui-button.js?v=15"></script>
   <!-- Shared controls, loaded before every consumer: the one exit button
@@ -199,17 +199,18 @@
   <!-- Transient in-scene message card. Above the three files that call it
        (hub-panel, focus-stage, photo-cloud) and below glass-material, whose
        card shader and lit-text helper it uses. -->
+  <script src="components/busy.js?v=1"></script>
   <script src="components/notice.js?v=3"></script>
   <script src="components/reticle.js?v=4"></script>
   <script src="components/name-scatter-3d.js?v=16"></script>
   <script src="components/hub-panel.js?v=35"></script>
   <script src="components/focus-stage.js?v=22"></script>
   <script src="components/card-flip.js?v=6"></script>
-  <script src="components/photo-cloud.js?v=18"></script>
+  <script src="components/photo-cloud.js?v=19"></script>
   <script src="components/mosaic-reveal.js?v=12"></script>
   <script src="components/bio-card.js?v=35"></script>
   <script src="components/project-room.js?v=22"></script>
-  <script src="components/pdf-reader.js?v=10"></script>
+  <script src="components/pdf-reader.js?v=12"></script>
   <script src="components/sunflower.js?v=2"></script>
   <script src="components/constellation.js?v=9"></script>
   <script src="components/carousel-drag.js?v=1"></script>
@@ -1004,6 +1005,24 @@
       else cloudEl.addEventListener('loaded', applyCloud);
 
       phaseNote.remove();
+
+      // ── Warm pdf.js, off the tap path ──
+      // Measured cause of "entering the reading room takes forever": the first
+      // tap on a writing card had to download pdf.min.js (320 KB) AND
+      // pdf.worker.min.js (1,087 KB) from a CDN origin this page has never
+      // spoken to, before it could even start on the document. 1.41 MB of fixed
+      // cost, with no feedback on screen (VR_AI_BUILD_GUIDE.md §9.17).
+      //
+      // Deliberately LAST, and on idle: the scene's own content comes first, and
+      // requestIdleCallback means this never competes with arrival. A visitor who
+      // never opens a writing piece pays 1.41 MB of cache they didn't need —
+      // acceptable against 6.9 MB of scene, and it is the difference between a
+      // reading room that opens and one that looks broken.
+      var warmReader = function () {
+        if (window.VRPdfReader && VRPdfReader.prefetch) VRPdfReader.prefetch();
+      };
+      if (window.requestIdleCallback) requestIdleCallback(warmReader, { timeout: 8000 });
+      else setTimeout(warmReader, 4000);
     }).catch(function (err) {
       console.error('[vr] data load failed:', err);
       phaseNote.textContent = "couldn't load projects/experience — check console";

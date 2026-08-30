@@ -236,6 +236,17 @@
   }
 
   // ── PDF.js loading ───────────────────────────────────────────────────────
+  //
+  // MEASURED, and this is the single biggest reason "entering the reading room
+  // takes forever": pdf.min.js is 320 KB and pdf.worker.min.js is 1,087 KB, and
+  // both used to be fetched at the moment of the tap, from a CDN origin the page
+  // had never spoken to (so: DNS + TLS + 1.4 MB, before the PDF itself).
+  //
+  // So `prefetch()` now pulls them during idle time after arrival — see the
+  // bottom of this file. By the time anyone taps a writing card they are in
+  // cache, and the tap costs only the document. The tap path is unchanged if
+  // the prefetch has not finished: loadPdfJs() returns the same memoised
+  // promise either way.
   var pdfjsPromise = null;
   function loadPdfJs() {
     if (pdfjsPromise) return pdfjsPromise;
@@ -252,6 +263,22 @@
       document.head.appendChild(s);
     });
     return pdfjsPromise;
+  }
+
+  // The worker is not loaded by the script tag — pdf.js only fetches it on the
+  // first getDocument(), which put 1,087 KB back on the tap path even with the
+  // script warm. A bare fetch() is enough to get it into the HTTP cache.
+  var workerWarmed = false;
+  function warmWorker() {
+    if (workerWarmed) return;
+    workerWarmed = true;
+    fetch(PDFJS_BASE + 'pdf.worker.min.js', { cache: 'force-cache' })
+      .then(function () { console.info('[vr] pdf-reader: worker warmed'); })
+      .catch(function () { workerWarmed = false; });
+  }
+
+  function prefetch() {
+    loadPdfJs().then(warmWorker).catch(function () { /* it will retry on tap */ });
   }
 
   // ── Page rendering ───────────────────────────────────────────────────────
@@ -290,7 +317,10 @@
   function disposePage(rec) {
     if (!rec.texture) return;
     rec.material.map = null;
-    rec.material.color.set('#15120e'); // placeholder tone while unrendered
+    // Lifted from #15120e: against the reader's #040404 sky that was invisible,
+    // so an unrendered strip read as a void rather than as pages waiting — half
+    // of why an empty reader looked broken rather than loading.
+    rec.material.color.set('#2a241c');
     rec.material.needsUpdate = true;
     rec.texture.dispose();
     rec.texture = null;
@@ -420,6 +450,11 @@
   window.VRPdfReader = {
     open: open,
     close: close,
+    // Pulls pdf.min.js (320 KB) + pdf.worker.min.js (1,087 KB) into cache during
+    // idle time after arrival, so the first tap on a writing card pays only for
+    // the document. index.html calls this; nothing else should need to.
+    prefetch: prefetch,
+    isOpening: function () { return !!opening; },
     isOpen: function () { return state.open; },
     scrollBy: scrollBy,
     // Exposed for the dev harness / camera-path rig, so the reader's scroll
@@ -457,7 +492,8 @@
     state.disposables = [];
     for (var i = 0; i < pageCount; i++) {
       var pageW = PAGE_HEIGHT * state.pageAspect;
-      var mat = new THREE.MeshBasicMaterial({ color: '#15120e', side: THREE.FrontSide });
+      // See disposePage() for why this is not #15120e any more.
+      var mat = new THREE.MeshBasicMaterial({ color: '#2a241c', side: THREE.FrontSide });
       var pageGeo = new THREE.PlaneGeometry(pageW, PAGE_HEIGHT);
       var mesh = new THREE.Mesh(pageGeo, mat);
       state.disposables.push(pageGeo, mat);
@@ -621,24 +657,97 @@
     });
   }
 
+  // ── Opening ───────────────────────────────────────────────────────────────
+  //
+  // Rewritten after Sebastian's second Vision Pro session. The old version had
+  // three separate defects stacked on top of each other, and together they read
+  // as "the reading room is broken", which is worse than slow:
+  //
+  //  1. NO FEEDBACK. Every download happened before runTransition(), and the dip
+  //     is the only thing that changes on screen. Many seconds of silence with
+  //     the hub still live and clickable — so you tap again, and the second tap
+  //     lands on whatever your ray is on. VRBusy fixes this half.
+  //
+  //  2. IT COMMITTED TO THE ROOM WITH NOTHING TO SHOW. Measured on the shipped
+  //     build: at the moment the transition completed, all 6 hub clusters were
+  //     hidden, the rig had been teleported to (0, 12), and all 7 page planes
+  //     had NO texture and sat at their #15120e placeholder tone — inside a room
+  //     whose sky had just been themed #040404. A black room containing
+  //     near-black rectangles, with the whole hub gone.
+  //
+  //     That is Sebastian's *"I couldn't even flip the cards to read them after
+  //     I tried opening the reading room"*: the Experience cards are
+  //     `.hub-cluster` children, so the reader had correctly hidden them — he
+  //     was standing IN the reader without it looking like a reader.
+  //
+  //     Now page 1 is RASTERISED before the dip starts. You arrive with
+  //     something to read.
+  //
+  //  3. NO RE-ENTRANCY GUARD. `if (state.open) close()` only catches a reader
+  //     that has already finished opening; during the async window state.open is
+  //     still false, so every extra tap started another full load. One accident
+  //     was hiding it — a second runTransition kills the first one's tween, so
+  //     the first build callback never fired — but that is luck, not design, and
+  //     on other timing it appends a second reader root and leaks the first.
+  var opening = null;    // the in-flight open, if any
+
   function open(project) {
     if (!project || !project.pdf) {
       console.warn('[vr] pdf-reader: no pdf for', project && project.title);
       return;
     }
+    // Already loading: a repeat tap on the SAME piece is a no-op rather than a
+    // second download, and on a different piece it replaces the target.
+    if (opening) {
+      if (opening.pdf === project.pdf) return;
+      opening.cancelled = true;
+    }
     if (state.open) close();
     state.project = project;
 
+    var job = { pdf: project.pdf, cancelled: false };
+    opening = job;
+
+    var busy = window.VRBusy && VRBusy.begin('Opening “' + (project.title || 'the piece') + '”');
+    if (busy) busy.onCancel = function () { job.cancelled = true; opening = null; };
+    function say(stage, loaded, total) {
+      if (busy && window.VRBusy) VRBusy.update(busy, { stage: stage, loaded: loaded, total: total });
+    }
+    function done() {
+      if (busy && window.VRBusy) VRBusy.end(busy);
+      if (opening === job) opening = null;
+    }
+
+    say('fetching the reader');
     loadPdfJs().then(function (lib) {
-      return lib.getDocument(project.pdf).promise;
+      if (job.cancelled) throw new Error('cancelled');
+      say('downloading the document');
+      // pdf.js reports real byte progress here — this is what turns "it just
+      // sits there" into "it is 2.1 MB into 7.3 MB".
+      var task = lib.getDocument(project.pdf);
+      task.onProgress = function (p) {
+        if (!job.cancelled) say('downloading the document', p.loaded, p.total);
+      };
+      return task.promise;
     }).then(function (doc) {
+      if (job.cancelled) { try { doc.destroy(); } catch (e) {} throw new Error('cancelled'); }
       state.doc = doc;
+      say('reading page 1', null, null);
       return doc.getPage(1);
     }).then(function (page) {
+      if (job.cancelled) throw new Error('cancelled');
       var vp = page.getViewport({ scale: 1 });
       state.pageAspect = vp.width / vp.height;
       state.open = true;
       state.scroll = 0;
+      // Rasterise page 1 BEFORE the dip — defect 2 above. Not fatal if it
+      // fails: firstPage resolves either way, and the page planes will fill in
+      // behind the transition as they always did.
+      say('rendering the first page');
+      return rasterisePageOne(page);
+    }).then(function (firstTexture) {
+      if (job.cancelled) throw new Error('cancelled');
+      done();
       runTransition(function () {
         // At the dark peak, so the move itself is never seen. The comfort
         // vignette is parented to the rig (walk-controls._mountVignette), so it
@@ -665,6 +774,10 @@
         var root = build(project, state.doc);
         document.querySelector('a-scene').appendChild(root);
         state.root = root;
+        // Page 1's texture was rendered before the dip; hand it straight to the
+        // plane so the room is readable on arrival instead of a black rectangle
+        // that fills in a second or two later.
+        adoptFirstPage(firstTexture);
         // force: lastWindowIndex is 0 from the previous document, and scroll
         // starts at 0 too, so an unforced first call would decide the window
         // hasn't changed and render nothing at all.
@@ -673,8 +786,82 @@
         setTimeout(refreshClickableRaycasters, 0);
       });
     }).catch(function (err) {
+      done();
+      if (String(err && err.message) === 'cancelled') {
+        console.info('[vr] pdf-reader: open cancelled');
+        // Nothing was torn down or hidden yet — the transition had not run — so
+        // there is nothing to restore. This is exactly why the hub is now hidden
+        // only AFTER everything has loaded.
+        return;
+      }
       console.warn('[vr] pdf-reader: could not open', project.pdf, err);
+      // A failure past the transition would leave the hub hidden and the viewer
+      // in an empty alcove with no reader and no way back. close() restores the
+      // clusters, the light rack, the sky and the seat.
+      if (state.open) close();
+      else if (window.VRNotice && VRNotice.show) {
+        VRNotice.show('That piece could not be opened', 'The document failed to load. It is still available on the flat site.');
+      }
     });
+  }
+
+  // Page 1, rendered before the room transition so the reader is never entered
+  // empty. Resolves with a texture, or with null if anything goes wrong — a
+  // failure here must not block entry, since the strip fills in behind the dip
+  // regardless.
+  //
+  // BOUNDED, and that bound is the point. Waiting for page 1 turns "enters an
+  // empty black room" into "opens with something to read" — but it also puts a
+  // pdf.js rasterisation on the critical path, and if that never settles the
+  // reader would hang on the loading card forever, which is strictly worse than
+  // the bug it fixes. (Not hypothetical: pdf.js's rasteriser needs real rAF, and
+  // testing hit a pane where rAF was throttled to 0.2 fps and it never
+  // returned.) So: 6 s, then go in anyway and let the render queue finish the
+  // job behind the dip, exactly as it used to.
+  var FIRST_PAGE_TIMEOUT_MS = 6000;
+
+  function rasterisePageOne(page) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      function finish(tex) {
+        if (settled) { if (tex) tex.dispose(); return; }
+        settled = true;
+        resolve(tex);
+      }
+      setTimeout(function () {
+        if (settled) return;
+        console.warn('[vr] pdf-reader: page 1 render exceeded ' + FIRST_PAGE_TIMEOUT_MS +
+          'ms — entering anyway, the strip will fill in');
+        finish(null);
+      }, FIRST_PAGE_TIMEOUT_MS);
+      try {
+        var base = page.getViewport({ scale: 1 });
+        var vp = page.getViewport({ scale: RENDER_PX / base.height });
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(vp.width);
+        canvas.height = Math.round(vp.height);
+        page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
+          .then(function () {
+            var tex = new THREE.CanvasTexture(canvas);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            tex.anisotropy = 8;
+            finish(tex);
+          })
+          .catch(function () { finish(null); });
+      } catch (e) { finish(null); }
+    });
+  }
+
+  function adoptFirstPage(tex) {
+    if (!tex) return;
+    var rec = state.pages[0];
+    if (!rec) { tex.dispose(); return; }
+    if (rec.texture) { tex.dispose(); return; }   // the queue beat us to it
+    rec.texture = tex;
+    rec.rendering = false;
+    rec.material.map = tex;
+    rec.material.color.set('#ffffff');
+    rec.material.needsUpdate = true;
   }
 
   function close() {
@@ -702,6 +889,7 @@
       renderQueue = [];
       renderBusy = false;
       lastWindowIndex = null;
+      opening = null;                                    // no in-flight open survives a close
       renderToken++;                                     // orphan any in-flight settle
       if (renderWatchdog) { clearTimeout(renderWatchdog); renderWatchdog = null; }
       // No floor to reset — open() never retints it (see the ground note there).

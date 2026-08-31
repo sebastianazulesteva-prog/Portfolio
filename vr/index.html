@@ -243,7 +243,11 @@
   <script src="components/pdf-reader.js?v=13"></script>
   <script src="components/sunflower.js?v=2"></script>
   <script src="components/constellation.js?v=9"></script>
-  <script src="components/carousel-drag.js?v=1"></script>
+  <!-- carousel-drag.js is attached to nothing since 2026-08-30 (see the
+       #projectsConstellation markup below for why), so it is not loaded rather
+       than registered and unused — arrival weight is a real budget here (§9.16).
+       Same treatment as portrait-layout.js further down. Uncomment to re-attach.
+  <script src="components/carousel-drag.js?v=1"></script> -->
   <script src="components/locomotion.js?v=7"></script>
   <script src="components/walk-controls.js?v=5"></script>
   <script src="components/column-scroll.js?v=2"></script>
@@ -473,14 +477,35 @@
     <a-entity id="focusStage" visible="false"></a-entity>
 
     <!-- Constellation containers — populated with real data once
-         data-loader.js resolves (see script below). The projects arc is a
-         draggable carousel (ISSUE-03): grab a card and sweep horizontally to
-         spin the whole cylinder, with momentum + a gentle snap onto the column
-         detent. snapDeg is NOT authored here on purpose: layoutCluster's
-         onColStep writes the derived column step (currently 33.12°) at build
-         time, and the hand-copied literal that used to sit here had already
-         drifted to 26.58 — a wrong number the markup advertised as truth. -->
-    <a-entity id="projectsConstellation" class="hub-cluster" carousel-drag=""></a-entity>
+         data-loader.js resolves (see script below).
+
+         THE PROJECTS ARC IS NO LONGER A DRAGGABLE CAROUSEL. It carried
+         `carousel-drag` (ISSUE-03) — grab a card, sweep horizontally, spin the
+         cylinder, snap onto the column detent — and that made sense when this
+         was ONE 4-column grid holding all ten items and you had to spin it to
+         reach the far ones.
+
+         §9.1 split that grid in two and it stopped making sense, then started
+         doing damage. Now it is 5 photo cards in 3 columns spanning ~70° of a
+         zone whose whole contract is where it sits: the writing column is 7° off
+         its inner edge, the photo cloud starts 9° off its outer one, and §9.9
+         measured zero overlaps at every camera waypoint. A free spin walks that
+         70° block straight across the writing column, the bio card and the
+         cloud, snaps to a detent 33° from home and stays there — with no way
+         back short of a reload. There is also nothing left to reveal: all five
+         cards are visible at once, which is the same reason §9.2 does not scroll
+         the writing column at five pieces.
+
+         And it ate clicks. The drag threshold is 6 px, so a trackpad press that
+         slid 7 px spun the grid instead of opening the card.
+
+         Sebastian found it on desktop, 2026-08-30. Reachable by mouse, by touch
+         on a phone, and by a Quest trigger; NOT reachable on Vision Pro, which
+         has no controllers and whose hand raycasters xr-select.js mutes. The
+         component is kept, unattached — see its header. If you want the
+         physicality back without the damage, attach it with `snapDeg: 0`, which
+         springs the zone back to home instead of settling wherever it lands. -->
+    <a-entity id="projectsConstellation" class="hub-cluster"></a-entity>
     <!-- Writing column (VR_AI_BUILD_GUIDE.md §9.1/§9.2) — the written pieces
          are their own section now, a vertical stack on the INNER left, with the
          projects grid outboard of it. Deliberately NOT carousel-drag: a single
@@ -676,7 +701,10 @@
         return THREE.MathUtils.radToDeg(2 * Math.asin(Math.min(0.98, (w + colGapM) / (2 * CONSTELLATION_RADIUS))));
       }
       var colStepDeg = stepFor(cardWidth);
-      if (opts.onColStep) opts.onColStep(colStepDeg);
+      // `onColStep` used to publish this so carousel-drag could match its snap
+      // detent to the column step. Gone with the carousel — its one consumer.
+      // The measured values live in VR_AI_BUILD_GUIDE.md §9.9 if anything needs
+      // them again.
       // Wider cards in accessible mode widen the whole angular footprint, which
       // would eat into the home panel's clearance on the inner side. Push the
       // zone outward by half the widening so the inner edge — the one facing
@@ -934,12 +962,6 @@
         // normal side gap so that vertical need isn't charged to yaw — feeding
         // 0.42 into the column chord is what made each column cost 33.1°.
         gapM: 0.42, colGapM: 0.14, topHeight: SECTIONS_TOP,
-        // The carousel's drag-snap angle must match the column step exactly or
-        // the snap settles a fraction off-column. Computed from the same
-        // chord/radius formula colStepDeg itself uses, never hand-copied.
-        onColStep: function (colStepDeg) {
-          document.querySelector('#projectsConstellation').setAttribute('carousel-drag', 'snapDeg', colStepDeg);
-        },
         panelBuilder: projectPanelAttrs,
         onPlaced: openFocusStage
       });

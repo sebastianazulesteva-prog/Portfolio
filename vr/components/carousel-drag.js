@@ -1,4 +1,36 @@
 /* ═══ carousel-drag.js ═══
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │ ATTACHED TO NOTHING, AND NOT LOADED, since 2026-08-30. Read this before   │
+   │ putting it back on anything.                                              │
+   │                                                                           │
+   │ It lived on #projectsConstellation, where it was right for the layout it  │
+   │ was built against: ONE 4-column grid holding all ten items, where reaching │
+   │ the far cards meant spinning the cylinder.                                │
+   │                                                                           │
+   │ §9.1 split that grid in two, and then this became a way to break the      │
+   │ scene. The projects zone is now 5 cards in 3 columns spanning ~70°, and    │
+   │ its position IS its contract: 7° of clear dome to the writing column       │
+   │ inboard, 9° to the photo cloud outboard, zero overlaps measured at every   │
+   │ camera waypoint (§9.9). An unbounded yaw sweeps that 70° block across the  │
+   │ writing column, the bio card and the cloud, snaps to a detent up to 33°    │
+   │ from home, and stays there — no way back short of a reload. Nothing is     │
+   │ revealed by spinning either: all five cards are already visible.           │
+   │                                                                           │
+   │ It also ate clicks. `threshold` is 6 px, so a trackpad press that slid     │
+   │ 7 px spun the grid instead of opening the card. That is how Sebastian      │
+   │ found it, on desktop.                                                     │
+   │                                                                           │
+   │ Kept, not deleted, because the component itself is sound and generic — a   │
+   │ future cluster with more items than fit at once is exactly its job. Two    │
+   │ things to fix first if you re-attach it:                                  │
+   │   • pass `snapDeg: 0`, so a release springs back to home instead of        │
+   │     settling wherever it lands; and/or                                     │
+   │   • give it a travel BOUND with a soft edge, the way walk-controls.js      │
+   │     bounds the rig (§9.5) — a zone that must not overlap its neighbours    │
+   │     cannot have unbounded rotation.                                       │
+   │ Raise `threshold` too, or accept that some clicks become spins.            │
+   └──────────────────────────────────────────────────────────────────────────┘
+
    Turns a constellation container into a draggable cylindrical carousel
    (ISSUE-03). The cards are already placed on a consistent-radius arc, each
    tilted to face the viewer (constellation.js). Because a card's *position
@@ -20,7 +52,8 @@
 
    Respects prefers-reduced-motion: no coasting, snaps immediately on release.
 
-   Usage: <a-entity id="projectsConstellation" carousel-drag="snapDeg: 26.6"></a-entity>
+   Usage (historical — nothing carries it now; see the box above):
+     <a-entity carousel-drag="snapDeg: 0"></a-entity>
 */
 
 (function () {

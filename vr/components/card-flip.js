@@ -250,6 +250,20 @@
     return { pos: o.position.clone(), quat: o.quaternion.clone(), scale: o.scale.clone() };
   }
 
+  // The card's pose with the flip's own yaw TAKEN BACK OUT, so what is left is
+  // the base aim the slerp works in. Since the composed quaternion is
+  // `base * yaw(y)`, the base is `current * yaw(-y)` — exact, and exact even
+  // mid-turn, which is why __flipYaw is tracked rather than assumed to be 0 or
+  // PI. Both turnOut and turnHome start from this, so an interrupted turn
+  // resumes from where the card actually is instead of jumping.
+  var YAW_AXIS = new THREE.Vector3(0, 1, 0);
+  function basePose(cardEl) {
+    var p = pose(cardEl);
+    var y = cardEl.__flipYaw || 0;
+    if (y) p.quat.multiply(new THREE.Quaternion().setFromAxisAngle(YAW_AXIS, -y));
+    return p;
+  }
+
   // The front's meshes and child entities, with their CURRENT visibility
   // recorded. Restoring a snapshot rather than setting everything true matters:
   // hub-panel hides things of its own (a hover caption, the hint badge), and a
@@ -271,9 +285,31 @@
   // The rotation is NOT a plain slerp between two quaternions. From the card's
   // home aim to "facing you, turned over" is close to 180°, where the shortest
   // arc is ambiguous and can come out as a tumble about an arbitrary axis. So
-  // the two halves are driven separately and composed: slerp toward facing you,
-  // times a yaw of PI·t about the card's own Y. That is always a clean flip.
-  function flipTween(cardEl, from, to, extraYaw, ms, onUpdate, onDone) {
+  // two things are driven separately and composed: a slerp of the BASE aim
+  // (home aim → facing you), times a yaw about the card's own Y that carries the
+  // turn-over. That is always a clean flip.
+  //
+  // ── The bug this shape is the fix for (2026-08-30) ──
+  // Sebastian: *"when you exit from reading my experience and the card goes
+  // back, it goes back with the back facing you and VERY very slowly turns back
+  // around."*
+  //
+  // The yaw used to be `extraYaw * t` — ramped from 0 to its full value over the
+  // tween — and turnHome passed `extraYaw = -PI`. So the way home ended at
+  // `home.quat * yaw(-PI)`: the card landed **180° from its own home aim**, back
+  // to the viewer. The visible motion looked right (180° of turn either way),
+  // which is why it read as "it flipped, then something else is wrong". What
+  // happened next is that `sunflower.js` took over and corrected the aim at its
+  // rate limit of ~17.4°/sec — 180° of it, so about **ten seconds** of the card
+  // slowly swivelling. That is the "VERY very slowly turns back around", and it
+  // was a symptom, not the bug.
+  //
+  // Now the yaw is INTERPOLATED between two explicit endpoints, so the way out
+  // runs 0 → PI and the way home runs PI → 0 and lands on exactly the base pose
+  // it started from. `cardEl.__flipYaw` records how much yaw is applied right
+  // now, which is what makes basePose() exact even if a turn is interrupted
+  // half way.
+  function flipTween(cardEl, from, to, yawFrom, yawTo, ms, onUpdate, onDone) {
     var obj = cardEl.object3D;
     var yaw = new THREE.Quaternion();
     var axis = new THREE.Vector3(0, 1, 0);
@@ -282,8 +318,10 @@
       obj.position.lerpVectors(from.pos, to.pos, t);
       obj.scale.lerpVectors(from.scale, to.scale, t);
       obj.quaternion.slerpQuaternions(from.quat, to.quat, t);
-      yaw.setFromAxisAngle(axis, extraYaw * t);
+      var y = yawFrom + (yawTo - yawFrom) * t;
+      yaw.setFromAxisAngle(axis, y);
       obj.quaternion.multiply(yaw);
+      cardEl.__flipYaw = y;
       if (onUpdate) onUpdate(t);
     }
 
@@ -372,8 +410,10 @@
     var back = cardEl.__flipBack || build(cardEl);
     // Home is captured HERE, not at attach time: sunflower.js is still turning
     // the card to face the viewer right up to the moment it is clicked, so the
-    // transform recorded at build time is not the one it is sitting at.
-    cardEl.__flipHome = pose(cardEl);
+    // transform recorded at build time is not the one it is sitting at. And as
+    // the BASE pose, so the way home has something to land on that does not
+    // include a half-turn (see flipTween's note).
+    cardEl.__flipHome = basePose(cardEl);
     cardEl.__flipFront = snapshotFront(cardEl, back.object3D);
     cardEl.__flipped = true;
     openCard = cardEl;
@@ -381,9 +421,9 @@
     setDrift(cardEl, false);
 
     var swapped = false;
-    flipTween(cardEl, cardEl.__flipHome,
+    flipTween(cardEl, basePose(cardEl),
       { pos: to.pos, quat: to.faceQuat, scale: to.scale },
-      Math.PI, FLIP_IN_MS,
+      cardEl.__flipYaw || 0, Math.PI, FLIP_IN_MS,
       function (t) {
         // Swap faces at the halfway point, edge-on, where neither side is
         // readable — the card material is DoubleSide, so without this you watch
@@ -411,7 +451,9 @@
     if (openCard === cardEl) openCard = null;
 
     var swapped = false;
-    flipTween(cardEl, pose(cardEl), home, -Math.PI, FLIP_OUT_MS,
+    // PI → 0, not 0 → -PI: the turn has to END with no extra yaw, or the card
+    // lands facing backwards and sunflower spends ten seconds correcting it.
+    flipTween(cardEl, basePose(cardEl), home, cardEl.__flipYaw || 0, 0, FLIP_OUT_MS,
       function (t) {
         if (!swapped && t >= 0.5) {
           swapped = true;
@@ -422,8 +464,10 @@
       function () {
         back.object3D.visible = false;
         setFront(cardEl.__flipFront, true);
-        // Re-aimed from wherever it landed; sunflower takes it from here, and
-        // the idle drift picks up again from its own stored from/to.
+        cardEl.__flipYaw = 0;                 // settled: no extra yaw is applied
+        // Sunflower takes it from here with nothing to correct — the card is
+        // already at the base aim it was clicked from — and the idle drift picks
+        // up again from its own stored from/to.
         sunflower(cardEl, true);
         setDrift(cardEl, true);
         // And put hover explicitly back to rest. wake() was a no-op for the

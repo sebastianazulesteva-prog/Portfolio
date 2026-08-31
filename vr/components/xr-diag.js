@@ -263,7 +263,13 @@
   });
 
   function destroyCard() {
-    if (cardEl && cardEl.parentNode) cardEl.parentNode.removeChild(cardEl);
+    if (cardEl) {
+      // "Run again" rebuilds this card, so it is a real teardown path and had
+      // the same bug as everything else here: removeChild frees the entities and
+      // leaves the plate geometry, the glass material and its program allocated.
+      VRGlass.disposeSubtree(cardEl.object3D);
+      if (cardEl.parentNode) cardEl.parentNode.removeChild(cardEl);
+    }
     cardEl = null;
   }
 

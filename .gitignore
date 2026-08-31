@@ -1,3 +1,9 @@
+# macOS Finder metadata. These were TRACKED and deployed to the live site —
+# and they are why `git status` showed a modified .DS_Store on every machine
+# that had ever opened the folder in Finder. Untracked 2026-08-30.
+.DS_Store
+**/.DS_Store
+
 Sebastian_Esteva_Resume.pdf
 
 # /vr audio — the ambience + UI cue clips stay local. The scene ships with its

@@ -385,6 +385,11 @@
     // exit or the node being pulled out from under us), so a stray exit never
     // throws and leaves the hub half-restored.
     if (state.roomEl) {
+      // Frees the room's own frames, hero images and buttons. Sealed behind
+      // window.VR_ROOMS today, so this leaked nothing in practice — but the code
+      // is live and each enter() builds a plate plus a 1024 px feathered image
+      // per room photo, so it would have leaked as soon as the flag flipped.
+      VRGlass.disposeSubtree(state.roomEl.object3D);
       if (state.roomEl.parentNode) state.roomEl.parentNode.removeChild(state.roomEl);
       state.roomEl = null;
     }

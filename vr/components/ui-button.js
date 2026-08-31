@@ -333,8 +333,23 @@
     },
 
     remove: function () {
+      // removeObject3D unlinks; it does not free. Buttons are built and thrown
+      // away constantly — every focus stage, notice, loading card, card-flip
+      // back and reader rail carries some — so this is a real teardown path.
+      //
+      // disposeSubtree deliberately will NOT free the badge's texture, because
+      // arrowGlyphTexture() is MEMOISED and shared by every arrow badge in the
+      // scene: freeing it here would blank all the others. That exclusion lives
+      // in disposeSubtree (it only frees textures tagged __vrOwned by
+      // loadTexture) rather than being re-argued here.
+      var mesh = this.el.getObject3D('button-mesh');
       this.el.removeObject3D('button-mesh');
-      if (this._badgeEl) this._badgeEl.removeObject3D('badge-glyph');
+      if (mesh) VRGlass.disposeSubtree(mesh);
+      if (this._badgeEl) {
+        var badge = this._badgeEl.getObject3D('badge-glyph');
+        this._badgeEl.removeObject3D('badge-glyph');
+        if (badge) VRGlass.disposeSubtree(badge);
+      }
       this.el.removeEventListener('mouseenter', this._onEnter);
       this.el.removeEventListener('mouseleave', this._onLeave);
     }

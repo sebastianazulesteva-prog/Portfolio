@@ -42,7 +42,16 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var GROW = 2.0;                 // front card size -> reading size
-  var READ_DISTANCE = 1.02;       // matches bio-card's Skills panel and focus-stage
+  // Matches bio-card's Skills panel exactly (SKILLS_READ_DISTANCE /
+  // SKILLS_READ_HEIGHT). It does NOT match focus-stage, whose FOCUS_DISTANCE is
+  // 1.05 — this comment used to claim all three agreed and they never have. The
+  // 3 cm is imperceptible at reading distance so nothing was ever wrong on
+  // screen, but three copies of the same "yaw-only point D metres ahead of the
+  // head at height H, facing the viewer" construction exist (here,
+  // bio-card._skillsReadingTransform, focus-stage.destinationTransform) and
+  // there is no shared helper, so the next one to be "matched" to another will
+  // pick up whichever number it happened to read.
+  var READ_DISTANCE = 1.02;
   var READ_HEIGHT = 1.55;
   var FLIP_IN_MS = 520, FLIP_OUT_MS = 380;
 

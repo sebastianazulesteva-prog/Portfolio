@@ -199,16 +199,43 @@
     });
   }
 
+  // MEASURED, before this freed anything: 2.00 geometries leaked per open,
+  // steady state, over two matching blocks of ten opens. `removeObject3D` and
+  // `removeChild` unlink an object and leave its GPU allocation behind — see
+  // VRGlass.disposeSubtree's note. The experience path never showed this because
+  // it builds its panel through setPanel(), which has always disposed; the
+  // project path built its own inline and nothing ever freed it.
+  //
+  // The child ENTITIES are a different matter and are left to A-Frame: troika
+  // and ui-button dispose in their own component remove() hooks, which
+  // removeChild triggers.
   function clearStage(el) {
     while (el.firstChild) el.removeChild(el.firstChild);
-    if (el.getObject3D('stage-mesh')) el.removeObject3D('stage-mesh');
-    if (el.getObject3D('stage-image')) el.removeObject3D('stage-image');
+    ['stage-mesh', 'stage-image'].forEach(function (name) {
+      var o = el.getObject3D(name);
+      if (!o) return;
+      el.removeObject3D(name);
+      VRGlass.disposeSubtree(o);
+    });
   }
 
   function buildProject(el, data) {
     var a11y = document.body.classList.contains('accessible');
     var accent = data.accent || '#b8863b';
-    el.setObject3D('stage-mesh', new THREE.Mesh(new THREE.PlaneGeometry(W, H), VRGlass.makeCardMaterial(W, H, 0.055, accent, 0, FOCUS_OPACITY)));
+    // Through setPanel, NOT inline. This used to build its own mesh here and
+    // silently missed two things setPanel does — which is the whole argument for
+    // one builder:
+    //   • `mat.depthWrite = true`, whose own note in setPanel records that
+    //     leaving it false was "the real reason this panel still read as
+    //     see-through": with no depth written, every constellation card behind
+    //     the panel blends through it however high uOpacity goes. Experience
+    //     cards got the fix (they go through setPanel); PROJECT cards — the
+    //     default destination for a photo card's body tap since §9.13 — did not.
+    //   • `mesh.renderOrder = 10`, which is what liftContentAbovePanel's 11 is
+    //     measured against. The inline panel sat at the default 0.
+    // And it disposes the previous panel, which is half the leak clearStage
+    // now closes.
+    setPanel(el, H, accent);
 
     var y = H / 2 - PAD;
 

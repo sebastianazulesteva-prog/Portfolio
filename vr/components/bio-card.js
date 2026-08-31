@@ -604,15 +604,33 @@
         // Content is scraped from the live #about section, so it can grow
         // without anyone touching this file. Say so rather than silently
         // clipping — this is the signal that the card needs to be taller.
-        var overflow = (-h / 2 + padY) - y;
+        // Two different things, and conflating them is why this warned on every
+        // single page load:
+        //   intoPadding — content has eaten into the bottom MARGIN. Measured on
+        //                 the shipped card: 0.009 m of a 0.058 m margin (padY is
+        //                 h * 0.04 on a 1.46 m card), i.e. the last block still
+        //                 ended 49 mm ABOVE the card's edge. Nothing is clipped
+        //                 and nothing is off the card. That is a fitter that
+        //                 converged with a little less slack than it wanted, not
+        //                 a layout failure, and warning about it on every load
+        //                 trained the reader to ignore this channel — which is
+        //                 exactly what the estimate-pass guard below was added
+        //                 to stop, one pass earlier.
+        //   pastEdge    — content actually runs off the card. THIS is the signal
+        //                 the comment above always meant: the content grew (it
+        //                 is scraped from the live #about section) and the card
+        //                 needs to be taller.
+        var intoPadding = (-h / 2 + padY) - y;
+        var pastEdge = (-h / 2) - y;
         // Not during the estimated pass: those heights are character-count
         // guesses laid out only so the card is never displayed as a collapsed
-        // pile, and they reported a 9 mm overflow on every single load — noise
-        // that made the real signal easy to dismiss.
-        if (overflow > 0.001 && !forceEstimate) {
-          console.warn('[vr] bio-card: content overflows the card by',
-            overflow.toFixed(3), 'm at scale', scale.toFixed(3));
+        // pile.
+        if (pastEdge > 0.001 && !forceEstimate) {
+          console.warn('[vr] bio-card: content runs', pastEdge.toFixed(3),
+            'm PAST THE BOTTOM EDGE of the card at scale', scale.toFixed(3),
+            '— the card needs to be taller (it is', h.toFixed(3), 'm).');
         }
+        self._fitOverflow = { intoPadding: intoPadding, pastEdge: pastEdge, scale: scale };
       }
     },
 

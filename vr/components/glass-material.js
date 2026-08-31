@@ -571,6 +571,11 @@
     var tex = new THREE.Texture();
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = ANISOTROPY;
+    // Marks this texture as belonging to ONE caller, so disposeSubtree() below
+    // may free it. There is no cache here: every call makes a new Texture even
+    // for the same url, so each one is exactly one owner's to free. The tag is
+    // what keeps the shared, memoised textures (ui-button's arrow glyph) safe.
+    tex.__vrOwned = true;
 
     function settle(img) {
       inflight--;
@@ -760,8 +765,60 @@
     })();
   }
 
+  // ── Freeing a subtree ─────────────────────────────────────────────────────
+  //
+  // three.js never auto-disposes, and NEITHER `removeObject3D` NOR
+  // `removeChild` does either — they unlink the object and leave the GPU
+  // buffers, textures and programs allocated. Dropping the last JS reference
+  // does not help: three.js holds its WebGL resources in WeakMaps keyed by the
+  // object, so the JS side is collected and the driver-side allocation is
+  // orphaned with nothing left to call dispose() on.
+  //
+  // This is one helper rather than the same six lines in six teardown paths.
+  // Measured before it existed: focus-stage leaked exactly 2.00 geometries per
+  // open, steady state, over two matching blocks of 10 opens.
+  //
+  // ── The exclusion is load-bearing, do not remove it ──
+  // Textures are freed ONLY if `loadTexture` tagged them `__vrOwned`. The
+  // reason is `ui-button.js`'s `arrowGlyphTexture()`, which is MEMOISED — one
+  // canvas texture shared by every arrow badge in the scene. A blanket
+  // "dispose material.map" here would free that shared texture the first time
+  // anything closed, and every other arrow in the scene would silently go
+  // blank. It would not throw and it would not log; it would just look like a
+  // rendering bug on the SECOND thing you looked at. Anything untagged is
+  // treated as shared-or-unknown and left alone.
+  function disposeSubtree(root) {
+    if (!root) return 0;
+    var freed = 0;
+    function freeTex(t) {
+      if (t && t.isTexture && t.__vrOwned && !t.__vrFreed) {
+        t.__vrFreed = true; t.dispose(); freed++;
+      }
+    }
+    root.traverse(function (o) {
+      if (o.geometry && o.geometry.dispose) { o.geometry.dispose(); freed++; }
+      var mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+      mats.forEach(function (m) {
+        if (!m) return;
+        freeTex(m.map);
+        freeTex(m.alphaMap);
+        // The image shader keeps its texture in a uniform, not in `.map`.
+        if (m.uniforms) {
+          Object.keys(m.uniforms).forEach(function (k) {
+            var u = m.uniforms[k];
+            freeTex(u && u.value);
+          });
+        }
+        if (m.dispose) { m.dispose(); freed++; }
+      });
+    });
+    return freed;
+  }
+
   window.VRGlass = {
     makeCardMaterial: makeCardMaterial,
+    // Every teardown path in the scene should go through this — see its note.
+    disposeSubtree: disposeSubtree,
     setLights: setLights,
     // Restore the authored <a-light> rack (colour + intensity per fixture).
     // project-room.js calls this on exit; index.html stays the single source

@@ -31,6 +31,50 @@
     '}'
   ].join('\n');
 
+
+  // ── Relief vertex shader (opt-in, `relief:` set) ──────────────────────────
+  // Same varyings as VERT, but the plane is subdivided and every vertex is
+  // pushed BACK along local -z by the baked relief map, so the portrait is a
+  // displaced surface instead of a flat quad. R = relief (0 nearest, 1 at the
+  // subject's back / the backdrop), G = subject mask, B = silhouette edge.
+  //
+  // The map is a SHARP (Apple, ml-sharp) single-image 3D-gaussian
+  // reconstruction of the contact photo, collapsed to its layer-0 depth. It is
+  // metric and life-size at bake time: uReliefDepth is that measured span in
+  // metres, scaled by the panel's own magnification. See
+  // vr/assets/portrait-bake.json.
+  var RELIEF_VERT = [
+    'uniform sampler2D tRelief;',
+    'uniform float uReliefDepth;',
+    'uniform vec2 uReliefTexel;',   // one texel in uv, for the slope difference
+    'uniform vec2 uSize;',          // panel size in metres (also declared in FRAG)
+    'varying vec2 vUv;',
+    'varying vec3 vWorld;',
+    'varying vec3 vNormal;',
+    'void main() {',
+    '  vUv = uv;',
+    '  vec3 p = position;',
+    '  float r = texture2D(tRelief, uv).r;',
+    '  p.z -= r * uReliefDepth;',
+    // Normals must be re-derived or the light sheen lights a flat plane that
+    // is no longer there. Central difference one texel either side, converted
+    // from uv-space slope to metres: x_world = (u - 0.5) * uSize.x, so
+    // dr/dx = (r(u+du) - r(u-du)) / (2 * du * uSize.x), and the surface height
+    // is h = -r * uReliefDepth, giving n = (dh/dx, dh/dy, 1) negated in z.
+    '  float rx = texture2D(tRelief, uv + vec2(uReliefTexel.x, 0.0)).r',
+    '            - texture2D(tRelief, uv - vec2(uReliefTexel.x, 0.0)).r;',
+    '  float ry = texture2D(tRelief, uv + vec2(0.0, uReliefTexel.y)).r',
+    '            - texture2D(tRelief, uv - vec2(0.0, uReliefTexel.y)).r;',
+    '  vec3 n = normalize(vec3(',
+    '    rx * uReliefDepth / max(2.0 * uReliefTexel.x * uSize.x, 1e-5),',
+    '    ry * uReliefDepth / max(2.0 * uReliefTexel.y * uSize.y, 1e-5),',
+    '    1.0));',
+    '  vNormal = normalize(mat3(modelMatrix) * n);',
+    '  vWorld = (modelMatrix * vec4(p, 1.0)).xyz;',
+    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);',
+    '}'
+  ].join('\n');
+
   var FRAG = [
     'uniform sampler2D tGray;',
     'uniform sampler2D tColor;',
@@ -132,6 +176,24 @@
     '}'
   ].join('\n');
 
+  // With `relief` unset these return the flat shaders unchanged, byte for byte
+  // — the shipped portrait must not move because this option exists.
+  function buildVert(hasRelief) {
+    return hasRelief ? RELIEF_VERT : VERT;
+  }
+
+  function buildFrag(hasRelief) {
+    if (!hasRelief) return FRAG;
+    // Two splices, both anchors unique in FRAG: declare the relief sampler,
+    // and let the silhouette-edge channel fade the stretched skirt where the
+    // displaced surface has to span a depth jump.
+    return FRAG
+      .replace('uniform sampler2D tGray;',
+               'uniform sampler2D tGray;\nuniform sampler2D tRelief;\nuniform float uTearFade;')
+      .replace('gl_FragColor = vec4(col, 1.0);',
+               'gl_FragColor = vec4(col, 1.0 - uTearFade * texture2D(tRelief, vUv).b);');
+  }
+
   AFRAME.registerComponent('mosaic-reveal', {
     schema: {
       gray: { type: 'string' },
@@ -153,7 +215,40 @@
       // At 1.0 (the comparison strength used to check this out) it washes
       // the whole face amber and fights the point of a grayscale reveal —
       // Sebastian's call after seeing it. Kept, at a fraction of that.
-      litAmt: { type: 'number', default: 0.12 }
+      litAmt: { type: 'number', default: 0.12 },
+
+      // ── Relief (opt-in). Unset = the flat panel this component has always
+      // been; the shaders, the geometry and the material flags are all
+      // unchanged in that case.
+      //
+      // `relief` is a baked map from Apple's SHARP single-image 3D-gaussian
+      // reconstruction of the contact photo (vr/assets/portrait-bake.json).
+      relief: { type: 'string' },
+      // Depth of the box in metres — how far back a relief value of 1 pushes.
+      //
+      // The map spends its whole 8-bit range on the SUBJECT (near face = 0, the
+      // back of his shoulders = 1) and clamps the studio backdrop to 1 as well.
+      // The backdrop is really ~0.67 m further back again, but encoding that
+      // honestly would leave the face-to-shoulder relief — the part that
+      // actually sells the effect — living in the bottom third of the range.
+      // The visible cost is that the backdrop sits closer behind him than it
+      // did in the room; the gain is precision where the eye is looking, and a
+      // shorter stretched skirt at the silhouette.
+      //
+      // So: the bake measured the subject's own relief at 0.2059 m life-size,
+      // and the panel draws the photo 1.144x larger than life (1.08 m tall
+      // against the 0.944 m the reconstruction spans). 0.2059 * 1.144 = 0.2355.
+      reliefDepth: { type: 'number', default: 0.2355 },
+      // Plane subdivision. 256x384 quads over 0.72x1.08 m is a ~2.8 mm
+      // triangle, finer than the 512x768 relief map's own texel, so the map is
+      // the limit and not the mesh.
+      reliefSegs: { type: 'number', default: 256 },
+      // How hard to fade the stretched skirt where the surface spans a depth
+      // jump (the silhouette). 0 leaves it: against this photo's flat seamless
+      // backdrop the smear is nearly invisible head-on, and the skirt is
+      // geometrically RIGHT for an opaque subject — it just carries smeared
+      // texture. Raise it to trade the smear for a soft gap.
+      tearFade: { type: 'number', default: 0 }
     },
     init: function () {
       // Anisotropy 8 (three.js clamps to the driver's real max at render
@@ -175,6 +270,32 @@
       tGray.anisotropy = 8;
       tColor.anisotropy = 8;
 
+      // The relief map is DATA, not colour. loadTexture tags everything
+      // SRGBColorSpace, which would gamma-decode these bytes and silently
+      // corrupt every displacement — override it on the returned Texture
+      // (set before the image lands, so nothing samples it in the meantime).
+      // texUrl() only rewrites '/images/<file>' against VR_TEX, so an
+      // 'assets/...' path passes through unmapped, which is what we want:
+      // there is no downscaled derivative of a depth map and resampling one
+      // through the photo pipeline would blur the silhouette.
+      var hasRelief = !!this.data.relief;
+      var self = this;
+      var tRelief = null;
+      if (hasRelief) {
+        tRelief = VRGlass.loadTexture(this.data.relief, function (t) {
+          t.colorSpace = THREE.NoColorSpace;
+          t.anisotropy = 1;
+          if (t.image && t.image.width) {
+            // Real texel size, so the normal's central difference is a true
+            // one-texel step whatever resolution the map was baked at.
+            self.material.uniforms.uReliefTexel.value.set(1 / t.image.width, 1 / t.image.height);
+          }
+          t.needsUpdate = true;
+        });
+        tRelief.colorSpace = THREE.NoColorSpace;
+        tRelief.anisotropy = 1;
+      }
+
       this.material = new THREE.ShaderMaterial({
         uniforms: {
           tGray: { value: tGray },
@@ -190,6 +311,10 @@
               : Math.min(this.data.width, this.data.height) * 0.03
           },
           uLitAmt: { value: this.data.litAmt },
+          tRelief: { value: tRelief },
+          uReliefDepth: { value: hasRelief ? this.data.reliefDepth : 0 },
+          uReliefTexel: { value: new THREE.Vector2(1 / 512, 1 / 768) },
+          uTearFade: { value: this.data.tearFade },
           // Shared by reference with every glass panel — see the top-of-file
           // note. Do NOT clone these.
           uLightPos: SHARED_LIGHT.uLightPos,
@@ -197,13 +322,28 @@
           uLightColor: SHARED_LIGHT.uLightColor,
           uLightTune: SHARED_LIGHT.uLightTune
         },
-        vertexShader: VERT,
-        fragmentShader: FRAG,
+        vertexShader: buildVert(hasRelief),
+        fragmentShader: buildFrag(hasRelief),
         transparent: true,
-        depthWrite: false
+        // Flat: depthWrite stays off, as every other surface here does
+        // (trap 3.6 — this scene draws transparents in scene-graph order).
+        // With relief on it MUST write depth, or the mesh cannot occlude
+        // itself: the triangles arrive in row order, not depth order, so the
+        // far cheek would paint over the near nose. Writing depth only
+        // changes what this one mesh does against itself and against things
+        // drawn after it, and nothing overlaps the portrait head-on.
+        depthWrite: hasRelief
       });
 
-      var geometry = new THREE.PlaneGeometry(this.data.width, this.data.height);
+      // A flat panel needs one quad. A displaced one needs enough vertices to
+      // resolve the relief map — kept proportional so the triangles stay
+      // square on a non-square panel.
+      var geometry = hasRelief
+        ? new THREE.PlaneGeometry(
+            this.data.width, this.data.height,
+            this.data.reliefSegs,
+            Math.max(1, Math.round(this.data.reliefSegs * this.data.height / this.data.width)))
+        : new THREE.PlaneGeometry(this.data.width, this.data.height);
       this.mesh = new THREE.Mesh(geometry, this.material);
       this.el.setObject3D('mosaic-mesh', this.mesh);
       this.el.classList.add('clickable'); // so pointer rays report intersections here (and it's selectable → bio card)

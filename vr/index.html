@@ -237,7 +237,12 @@
   <script src="components/focus-stage.js?v=23"></script>
   <script src="components/card-flip.js?v=8"></script>
   <script src="components/photo-cloud.js?v=19"></script>
-  <script src="components/mosaic-reveal.js?v=15"></script>
+  <script src="components/mosaic-reveal.js?v=16"></script>
+  <!-- Inert unless ?portrait=splat asks for it: the component only builds when
+       the entity carries the attribute, and nothing carries it by default. The
+       665 KB renderer is fetched lazily from inside the component, so an
+       unflagged visit does not pay for this tag. -->
+  <script src="components/splat-portrait.js?v=5"></script>
   <script src="components/bio-card.js?v=36"></script>
   <script src="components/project-room.js?v=24"></script>
   <script src="components/pdf-reader.js?v=13"></script>
@@ -459,6 +464,39 @@
       <a-entity id="homePortrait"
                  mosaic-reveal="gray: ../images/contact-photo-framed-for-mosaic.jpg; color: ../images/contact-photo-mosaic.jpg; width: 0.72; height: 1.08; radius: 0.14"
                  position="-0.5 1.42 0" class="clickable"></a-entity>
+      <!-- ?portrait= — the SHARP experiment, off by default ────────────────
+           Both options are reachable in a real session so they can be judged in
+           a headset rather than on a monitor, which is the only place the
+           question ("does he read as solid?") actually has an answer.
+
+             ?portrait=relief   displace the existing panel by the baked relief
+                                map. Keeps the mosaic gaze-reveal.
+             ?portrait=splat    swap the panel for real 3D gaussians. No reveal.
+             (absent)           the flat panel, exactly as shipped.
+
+           Runs at parse time, while #homePortrait is in the DOM but before
+           A-Frame has attached its components, so this is only editing markup —
+           mosaic-reveal reads `relief` in its own init() and never sees a
+           change. Doing it later would need a rebuild, since the geometry and
+           the shaders are both chosen in init(). -->
+      <script>
+        (function () {
+          var mode = new URLSearchParams(location.search).get('portrait');
+          if (mode !== 'relief' && mode !== 'splat') return;
+          var el = document.getElementById('homePortrait');
+          if (!el) return;
+          if (mode === 'relief') {
+            el.setAttribute('mosaic-reveal',
+              el.getAttribute('mosaic-reveal') + '; relief: assets/portrait-relief.png');
+          } else {
+            // The splat is its own object, so the photo panel goes away
+            // entirely rather than sitting inside him.
+            el.removeAttribute('mosaic-reveal');
+            el.setAttribute('splat-portrait', 'src: assets/portrait-lod.splat');
+          }
+          console.info('[vr] portrait mode:', mode);
+        })();
+      </script>
     </a-entity>
 
     <!-- Bio card — visible by default once content loads (VR_BUGFIX_NOTES.md

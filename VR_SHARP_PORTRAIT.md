@@ -73,7 +73,7 @@ shipped portrait cannot move because this option exists (verified: the live
 scene still builds a 4-vertex quad, `depthWrite:false`, no relief in either
 shader).
 
-With it set, the plane subdivides to 256×384 and every vertex is pushed back by
+With it set, the plane subdivides to 128×192 and every vertex is pushed back by
 a baked relief map.
 
 - `vr/assets/portrait-relief.png` — 240 KB. R = relief, G = subject mask,
@@ -133,6 +133,122 @@ three **>= 0.160**. It works — the APIs it touches are unchanged across that
 gap — but it is an unpinned risk, and it is why the component fails soft.
 
 ---
+
+## In a headset
+
+`?portrait=relief` and `?portrait=splat` on `vr/index.html` make each option
+reachable in a real session; absent the flag the scene is exactly as shipped.
+Getting there turned up three headset-specific problems that a desktop test
+cannot show.
+
+### 1. The splat library cannot tell it is in a headset
+
+Splat screen-space size comes from `renderDimensions`, which in drop-in mode is
+`renderer.getSize()` — the whole canvas. Each eye renders to its own viewport
+with its own projection, so that width is wrong and every gaussian is sized
+against the wrong horizontal scale.
+
+The library ships the correction (`adjustForWebXRStereo`) but gates it on
+`webXRActive`, which is only ever set inside `setupWebXR()` — a path that runs
+only when the library is constructed with its own `webXRMode`, and which also
+builds its own VRButton into a `rootElement`. `DropInViewer` forces
+`rootElement: null`, so `setupWebXR` never runs, the `sessionstart` listener is
+never registered, and the flag is false forever. **The correction is dead code
+in every drop-in scene.**
+
+`splat-portrait.js` now sets it from `renderer.xr`'s own events. Measured with a
+stubbed session: `webXRActive` false → true on `sessionstart`, and the shader's
+viewport width goes **1920 → 1287.09**, a ratio of 0.6704 that matches
+`flatProj₀₀ / xrProj₀₀` exactly. Without it the gaussians are sized against a
+49% too-wide viewport.
+
+### 2. The triangle budget doubles
+
+Everything is drawn once per eye. At the old 256-segment default the relief
+panel alone was **196,608 triangles → 393,216 in stereo**, against ~9,600 for
+the entire rest of the scene. The segment count is now 128 (measured — see the
+error table in `mosaic-reveal.js`), which took a stereo frame from **405,248 to
+110,564 triangles** for the same view.
+
+### 3. Sorting is a per-frame tax when your head is never still
+
+Re-sort thresholds relax while presenting (6 cm / ~3.6° against 2 cm / ~1.8°).
+Seated at ~1.5 m, 6 cm of head travel is ~2.3° of parallax — below where the
+back-to-front order of overlapping gaussians visibly changes.
+
+Nuance worth recording, because it cuts against the desktop bug: three r158
+*does* decompose each XR sub-camera's transform into a real
+`position`/`quaternion` (`WebXRManager.js:757`), so the library's own heuristic
+partially revives in-session. Its thresholds are coarse (1 m, ~8°), so the
+tick-driven sort still governs fine motion; the two overlap harmlessly because
+`runSplatSort` early-returns while a sort is already running. On a flat page the
+library's heuristic remains completely dead — that part is unchanged.
+
+### Verified without a device
+
+Stereo was exercised by rendering through a real `THREE.ArrayCamera` with two
+64 mm-separated sub-cameras owning half the framebuffer each — the same shape
+WebXR hands three.js.
+
+- Both eyes drawn, whole-half statistics: left 21.0% bright / mean 49.61,
+  right 20.2% / mean 48.58. Relief panel stereo RMS difference 72.5 → real
+  per-eye parallax, not a duplicated image.
+- `onBeforeRender` fires **once per sub-camera**, so the library receives each
+  eye's own projection — which is what makes the correction meaningful.
+- Splat sorted and visible in both eyes with the session stubbed active
+  (97,266 instances drawn).
+- `tick()` drives a sort (0 → 1); A-Frame's tick runs on the XR clock (§3.14).
+- The library only touches `requestAnimationFrame` in `selfDrivenMode`, which
+  `DropInViewer` forces off — trap §3.14 does not bite it.
+- `?portrait=splat` on the shipped scene: `mosaic-reveal` removed,
+  `splat-portrait` attached, 97,266 splats loaded.
+
+*A screenshot taken after a stereo render showed one eye black; that is a stale
+composite from the tool forcing a repaint, not a rendering fault. Pixels read
+back inside the same JS task as the render are the reliable measurement.*
+
+### NOT verified — this needs the actual device
+
+I cannot put this on a headset, so the following are open:
+
+1. **Frame rate and thermals.** 97,266 gaussians re-sorted on head motion,
+   drawn twice, plus a 49k-triangle relief panel. Untested on Quest or Vision
+   Pro. This is the most likely thing to disappoint.
+2. **`setTimeout` clamping (§3.15).** The library's load path chains
+   `delayedExecute` at 1–50 ms. If visionOS clamps timeouts in-session, building
+   a 3 MB splat could crawl. Mitigated by the fact that the component starts
+   loading at page load, so it should finish during the arrival gate, before
+   anyone enters VR — but that is reasoning, not a measurement. (The GPU-sort
+   timeout is dead: `gpuAcceleratedSort` is pinned false. Progressive load is
+   off, so there is no per-section timeout chain during a session.)
+3. **visionOS Safari's WebXR with this shader.** Unknown.
+4. **Whether it actually reads as a person.** The point of the whole exercise,
+   and the one thing no measurement settles.
+
+### On-device checklist
+
+Serve the branch and open it on the headset (`.tools/vr-phone.sh` does the
+tunnel). Then, in order:
+
+```
+/vr/index.html?portrait=relief
+/vr/index.html?portrait=splat
+/vr/index.html?portrait=splat&xrdiag=1
+```
+
+`?xrdiag=1` puts numbers on a card in the scene, which is the only instrument
+that works in a Vision Pro (§3.16). `window.VRSplatDiag()` returns
+`{ready, splats, drawn, sorts, lastSortMs, webXRActive, presenting}`.
+
+**Read `drawn` and `webXRActive` first.** `drawn: 0` means the splats loaded and
+never sorted — nothing is on screen. `webXRActive: false` while `presenting` is
+true means the stereo correction is not running and the gaussians are sized
+wrong. Those two numbers separate "broken" from "slow" without a console.
+
+Then just move your head. Lean side to side ~30 cm: relief should show the head
+shifting against its frame with no tearing. Look for stretched gaussians on the
+splat (sizing), and for any judder that tracks head motion rather than being
+constant (sorting).
 
 ## Reproducing the assets
 

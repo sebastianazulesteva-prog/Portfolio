@@ -239,10 +239,19 @@
       // and the panel draws the photo 1.144x larger than life (1.08 m tall
       // against the 0.944 m the reconstruction spans). 0.2059 * 1.144 = 0.2355.
       reliefDepth: { type: 'number', default: 0.2355 },
-      // Plane subdivision. 256x384 quads over 0.72x1.08 m is a ~2.8 mm
-      // triangle, finer than the 512x768 relief map's own texel, so the map is
-      // the limit and not the mesh.
-      reliefSegs: { type: 'number', default: 256 },
+      // Plane subdivision. Chosen by measurement, not by matching the map:
+      // rendered at an oblique -30 deg (where displacement shows most) and
+      // compared against a 384-segment reference, RMS luminance error over the
+      // panel was
+      //     384: 0.00   256: 2.56   160: 4.16   128: 4.45
+      //      96: 5.99    64: 6.22    48: 7.72    32: 8.69
+      // on a 0-255 scale. The curve is flat through 128, so 256 buys 1.9 units
+      // (<1%) for 4x the triangles. That trade only gets worse in a headset,
+      // where the whole panel is drawn once per eye: at 256 this one portrait
+      // is 196,608 triangles against ~9,600 for the entire rest of the scene.
+      // 128 is 49,152 - still the heaviest single object here, which is why it
+      // is a knob and not a constant.
+      reliefSegs: { type: 'number', default: 128 },
       // How hard to fade the stretched skirt where the surface spans a depth
       // jump (the silhouette). 0 leaves it: against this photo's flat seamless
       // backdrop the smear is nearly invisible head-on, and the skirt is
@@ -347,6 +356,19 @@
       this.mesh = new THREE.Mesh(geometry, this.material);
       this.el.setObject3D('mosaic-mesh', this.mesh);
       this.el.classList.add('clickable'); // so pointer rays report intersections here (and it's selectable → bio card)
+
+      // Raycasting hits the FLAT grid, because displacement happens in the
+      // vertex shader and three's raycaster tests the CPU-side position
+      // attribute. So the hit UV is the undisplaced one and drifts from the
+      // visible surface as you view the panel more obliquely — which a headset
+      // does constantly, unlike a desktop.
+      //
+      // Left uncorrected on purpose: the error is proportional to displacement,
+      // and displacement is ~0 exactly where the reveal lives. The relief map
+      // puts the near face at R=0 (no displacement at all) and spends its range
+      // pushing the BACKDROP away, so the face is raycast-accurate and the
+      // drift is confined to the backdrop, where nothing is aimed at. Revisit
+      // if reliefDepth is ever anchored the other way round.
 
       // The reveal FOLLOWS the gaze/pointer across the portrait again
       // (ISSUE-04): pinning it to one eye and only fading its strength read

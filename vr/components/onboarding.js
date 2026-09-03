@@ -62,8 +62,49 @@
 (function () {
   var KEY = 'vrOnboardingSeen';
 
+  // ── Will a motion prompt actually appear, on a device where tilt MEANS
+  //    anything? Two conditions, and it needs both. ──────────────────────────
+  //
+  // This used to be the capability check alone —
+  //   typeof DeviceOrientationEvent.requestPermission === 'function'
+  // — on the assumption that only iOS Safari implements it. That is no longer
+  // true: Sebastian hit this gate on **Chrome on a Mac** (2026-08-30) and got
+  // the full phone treatment — the "your phone is about to ask for motion &
+  // orientation access" paragraph and the "Grant permission to enter the dome"
+  // button, both of which are set only when this flag is on. So some desktop
+  // Chrome builds do expose `requestPermission`, and the capability check on its
+  // own now selects "this browser implements the permission API", which is a
+  // different question from the one being asked.
+  //
+  // It is wrong twice over on a laptop: the copy promises you can "look around
+  // by physically moving your phone" to someone holding neither a phone nor a
+  // sensor, and it fires a permission call for a capability the machine does not
+  // have. §9.7's whole point was that silently firing a permissions dialog is
+  // what gets it declined — asking for one that cannot possibly help is the same
+  // mistake pointing the other way.
+  //
+  // So: the API must exist AND this must be a touch device. maxTouchPoints is
+  // what separates an iPad from a Mac (iPadOS reports platform 'MacIntel' and is
+  // otherwise indistinguishable), and `pointer: coarse` covers anything that
+  // reports touch a different way. Measured on the Mac this was found on:
+  // maxTouchPoints 0, coarse false — correctly excluded.
+  //
+  // It fails SAFE. If this is ever wrong on a real phone, the visitor sees
+  // "Enter the dome" with no motion paragraph and simply does not get tilt —
+  // drag-to-look still works. The old failure mode asked a desktop user to grant
+  // phone permissions, which is worse.
+  var TOUCH_DEVICE = (navigator.maxTouchPoints || 0) > 0 ||
+    !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
   var IOS_MOTION = typeof DeviceOrientationEvent !== 'undefined' &&
-    typeof DeviceOrientationEvent.requestPermission === 'function';
+    typeof DeviceOrientationEvent.requestPermission === 'function' &&
+    TOUCH_DEVICE;
+
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function' && !TOUCH_DEVICE) {
+    console.info('[vr] onboarding: this browser exposes DeviceOrientationEvent.requestPermission ' +
+      'but is not a touch device — skipping the motion copy and the prompt.');
+  }
 
   function ready(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);

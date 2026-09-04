@@ -1,0 +1,21 @@
+{
+  "width": 768,
+  "height": 1152,
+  "ipd": 0.063,
+  "view_distance": 1.5,
+  "relief_depth": 0.2355,
+  "inset": 0.06,
+  "eyeL": {
+    "holes_before_fill": 0.01261,
+    "bytes": 89215
+  },
+  "eyeR": {
+    "holes_before_fill": 0.0128,
+    "bytes": 90327
+  },
+  "disparity_px": {
+    "near": 1.29,
+    "far": 5.53,
+    "relative": 8.48
+  }
+}

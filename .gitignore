@@ -25,10 +25,3 @@ vr/_dev-*
 # included) that .tools/vr-phone.sh generates for phone testing. Never publish.
 .tools/
 .Rhistory
-
-# /vr SHARP portrait — the baked gaussian splats. 15 MB of regenerable binary
-# does not belong in the repo before anyone has decided to ship option B; the
-# 240 KB relief map (option A's whole payload) IS committed. Regenerate with
-# vr/tools/sharp/ — see VR_SHARP_PORTRAIT.md. Drop these two lines if the
-# splat portrait ever ships.
-vr/assets/*.splat

@@ -237,12 +237,16 @@
   <script src="components/focus-stage.js?v=23"></script>
   <script src="components/card-flip.js?v=8"></script>
   <script src="components/photo-cloud.js?v=19"></script>
-  <script src="components/mosaic-reveal.js?v=16"></script>
+  <script src="components/mosaic-reveal.js?v=20"></script>
   <!-- Inert unless ?portrait=splat asks for it: the component only builds when
        the entity carries the attribute, and nothing carries it by default. The
        665 KB renderer is fetched lazily from inside the component, so an
        unflagged visit does not pay for this tag. -->
   <script src="components/splat-portrait.js?v=5"></script>
+  <!-- Both inert until the lab is opened: spatial-photo builds nothing unless
+       an entity carries it, and portrait-lab builds only its button up front. -->
+  <script src="components/spatial-photo.js?v=2"></script>
+  <script src="components/portrait-lab.js?v=3"></script>
   <script src="components/bio-card.js?v=36"></script>
   <script src="components/project-room.js?v=24"></script>
   <script src="components/pdf-reader.js?v=13"></script>
@@ -506,6 +510,12 @@
          reposition (below) also removes the positional overlap that caused
          it in the first place. -->
     <a-entity id="bioCard" class="hub-cluster" bio-card="width: 1.05; height: 1.46" position="0.62 1.35 -1.52"></a-entity>
+
+    <!-- Portrait lab — the three depth treatments side by side, behind a
+         button under the portrait. Costs one button until it is opened; the
+         splat, its 665 KB renderer and the stereo pair are all built on the
+         first press and never before. -->
+    <a-entity id="portraitLab" portrait-lab></a-entity>
 
     <!-- Focus stage — the single reusable "pulled closer" detail view
          (focus-stage.js). Repositioned in front of the viewer's current look

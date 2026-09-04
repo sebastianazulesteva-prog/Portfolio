@@ -46,6 +46,8 @@
   var RELIEF_VERT = [
     'uniform sampler2D tRelief;',
     'uniform float uReliefDepth;',
+    'uniform float uWindowInset;',
+    'uniform vec3 uRefEye;',
     'uniform vec2 uReliefTexel;',   // one texel in uv, for the slope difference
     'uniform vec2 uSize;',          // panel size in metres (also declared in FRAG)
     'varying vec2 vUv;',
@@ -55,7 +57,26 @@
     '  vUv = uv;',
     '  vec3 p = position;',
     '  float r = texture2D(tRelief, uv).r;',
-    '  p.z -= r * uReliefDepth;',
+    // Everything sits BEHIND the opening, including the nearest point. Without
+    // the inset the relief map's own zero — his face — lands exactly on the
+    // panel plane, so the closest thing in frame is flush with the frame and
+    // the panel reads as a printed card that happens to have relief.
+    '  float push = r * uReliefDepth + uWindowInset;',
+    // Push along the ray from a FIXED reference eye, not straight back along
+    // -z. Straight back is what made the aperture impossible: receding a flat
+    // grid shrinks it under perspective, so the backdrop contracted to a small
+    // rectangle while the nearer subject barely moved and hung out over its
+    // edges. There was no opening anywhere, just a shrunken photo with
+    // shoulders overflowing it.
+    //
+    // Along the reference ray instead, every depth lands on the same line of
+    // sight, so from the reference viewpoint the interior fills the opening
+    // exactly at every depth — which is what a spatial photo looks like. It
+    // costs nothing in parallax: the rays only coincide from that one point,
+    // so any real head movement immediately separates the depths, and the
+    // portal planes clip whatever slides out past the frame.
+    '  vec3 dir = normalize(p - uRefEye);',
+    '  p += dir * push;',
     // Normals must be re-derived or the light sheen lights a flat plane that
     // is no longer there. Central difference one texel either side, converted
     // from uv-space slope to metres: x_world = (u - 0.5) * uSize.x, so
@@ -189,9 +210,61 @@
     // displaced surface has to span a depth jump.
     return FRAG
       .replace('uniform sampler2D tGray;',
-               'uniform sampler2D tGray;\nuniform sampler2D tRelief;\nuniform float uTearFade;')
-      .replace('gl_FragColor = vec4(col, 1.0);',
-               'gl_FragColor = vec4(col, 1.0 - uTearFade * texture2D(tRelief, vUv).b);');
+               'uniform sampler2D tGray;\nuniform sampler2D tRelief;\nuniform float uTearFade;'
+               + '\nuniform float uWindowShade;\nuniform float uEdgeFeather;'
+               + '\nuniform vec4 uPortal[4];\nuniform float uPortalOn;')
+      // Two cues, after the Vision Pro spatial-photo presentation:
+      //
+      //   depth    — light falls off going into a recess, so the back of the
+      //              box is dimmer than the near face. This is what stops the
+      //              backdrop reading as a lit wall standing right behind him.
+      //   aperture — the border FEATHERS to nothing instead of ending at an
+      //              edge. This is the cue that does the real work. A hard rim
+      //              reads as a card no matter how much parallax is behind it,
+      //              because a card is exactly what has a rim; dissolving the
+      //              boundary leaves an opening. It also disposes of two
+      //              problems for free — the box has no jamb geometry, so at a
+      //              steep angle you would be looking straight out of its open
+      //              side, and the relief map's edge is where the displaced
+      //              surface is most stretched. Both are gone if the border is
+      //              already transparent by the time you reach them.
+      //
+      // depthShade is scaled by r so the near face is untouched at any setting
+      // and the falloff cannot creep onto the subject.
+      .replace('gl_FragColor = vec4(col, 1.0);', [
+        'float wr = texture2D(tRelief, vUv).r;',
+        'col *= 1.0 - uWindowShade * wr;',
+        // ── The opening ──────────────────────────────────────────────────
+        // Distance INSIDE the four planes that join the eye to the four edges
+        // of the aperture rectangle — i.e. the viewing frustum of the window
+        // itself, rebuilt every frame from wherever the head currently is.
+        // Negative means this fragment is beside the opening rather than
+        // behind it, so it is not visible through the window and is dropped.
+        //
+        // This is what makes it a window and not a receded photo. Displacing a
+        // flat grid backwards shrinks its border under perspective (~16% at
+        // this inset) while the nearer subject shrinks ~5%, so the subject
+        // overflows its own backdrop and there is no aperture anywhere — just
+        // a small grey rectangle with shoulders hanging out of it. Clipping to
+        // a FIXED rectangle at the front plane puts the boundary back where an
+        // opening would be, and because the planes are rebuilt from the live
+        // eye position, moving your head reveals different parts of the
+        // interior through it. That is the whole "look around" effect.
+        'float pd = 1e9;',
+        'for (int i = 0; i < 4; i++) { pd = min(pd, dot(uPortal[i].xyz, vWorld) + uPortal[i].w); }',
+        'pd = mix(1e9, pd, uPortalOn);',
+        'if (pd < 0.0) discard;',
+        // Soften the opening rather than ending it on a hard rim — a crisp
+        // edge reads as a card, because a card is the thing that has one.
+        'float aperture = uPortalOn > 0.5 ? smoothstep(0.0, uEdgeFeather, pd)',
+        '                                 : 1.0 - smoothstep(-uEdgeFeather, 0.0, rd);',
+        'float a = aperture * (1.0 - uTearFade * texture2D(tRelief, vUv).b);',
+        // Below this the pixel contributes nothing visible, but it would still
+        // write depth (depthWrite is on for self-occlusion) and punch a hole in
+        // whatever is behind the feathered rim. Discard instead.
+        'if (a < 0.02) discard;',
+        'gl_FragColor = vec4(col, a);'
+      ].join('\n  '));
   }
 
   AFRAME.registerComponent('mosaic-reveal', {
@@ -257,7 +330,30 @@
       // backdrop the smear is nearly invisible head-on, and the skirt is
       // geometrically RIGHT for an opaque subject — it just carries smeared
       // texture. Raise it to trade the smear for a soft gap.
-      tearFade: { type: 'number', default: 0 }
+      tearFade: { type: 'number', default: 0 },
+
+      // ── Window treatment ────────────────────────────────────────────────
+      // How far behind the aperture the NEAREST point sits, in metres. The
+      // relief map spends its range pushing the backdrop away from a zero that
+      // lands on his face, so without this the closest thing in the scene is
+      // level with the frame. 6 cm is enough to read as "through" rather than
+      // "on", without shrinking him noticeably.
+      windowInset: { type: 'number', default: 0.06 },
+      // Falloff into the recess, 0 = flat lighting (a lit card), 1 = the back
+      // of the box goes black.
+      windowShade: { type: 'number', default: 0.3 },
+      // Width of the aperture feather, in metres. Measured at the opening, so
+      // it no longer scales with how far back the surface has been pushed.
+      edgeFeather: { type: 'number', default: 0.03 },
+      // Clip the interior to the opening. Off falls back to feathering the
+      // panel's own border, which is the pre-window behaviour.
+      portal: { type: 'boolean', default: true },
+      // Distance in metres from the opening to the viewpoint the interior is
+      // built for — the one place the box exactly fills its frame. The home
+      // portrait sits ~1.5 m from a seated visitor. Everywhere else you get
+      // parallax, which is the point; this only sets where the geometry is
+      // "neutral", not where it is allowed to be viewed from.
+      viewDistance: { type: 'number', default: 1.5 }
     },
     init: function () {
       // Anisotropy 8 (three.js clamps to the driver's real max at render
@@ -324,6 +420,15 @@
           uReliefDepth: { value: hasRelief ? this.data.reliefDepth : 0 },
           uReliefTexel: { value: new THREE.Vector2(1 / 512, 1 / 768) },
           uTearFade: { value: this.data.tearFade },
+          uWindowInset: { value: hasRelief ? this.data.windowInset : 0 },
+          uRefEye: { value: new THREE.Vector3(0, 0, this.data.viewDistance) },
+          uWindowShade: { value: hasRelief ? this.data.windowShade : 0 },
+          // Off for the flat panel: it has always ended at a crisp rounded
+          // edge, and feathering it would change the shipped portrait.
+          uEdgeFeather: { value: hasRelief ? this.data.edgeFeather : 0 },
+          uPortalOn: { value: (hasRelief && this.data.portal) ? 1 : 0 },
+          uPortal: { value: [new THREE.Vector4(), new THREE.Vector4(),
+                             new THREE.Vector4(), new THREE.Vector4()] },
           // Shared by reference with every glass panel — see the top-of-file
           // note. Do NOT clone these.
           uLightPos: SHARED_LIGHT.uLightPos,
@@ -354,6 +459,22 @@
             Math.max(1, Math.round(this.data.reliefSegs * this.data.height / this.data.width)))
         : new THREE.PlaneGeometry(this.data.width, this.data.height);
       this.mesh = new THREE.Mesh(geometry, this.material);
+
+      // ── Keeping the opening honest, per eye ──────────────────────────────
+      // The four portal planes depend on where the eye is, so they are rebuilt
+      // from onBeforeRender rather than from tick(). That matters in a headset:
+      // three calls onBeforeRender ONCE PER SUB-CAMERA, so each eye gets planes
+      // built from its own position. Driving this from tick() would build one
+      // set from the head pose and hand it to both eyes, putting the opening
+      // half an interpupillary distance (~32 mm) off for each — the same order
+      // as the feather width, and a stereo mismatch at the exact edge the eye
+      // uses to judge where the window is.
+      if (hasRelief && this.data.portal) {
+        var comp = this;
+        this.mesh.onBeforeRender = function (renderer, scene, camera) {
+          comp._updatePortal(camera);
+        };
+      }
       this.el.setObject3D('mosaic-mesh', this.mesh);
       this.el.classList.add('clickable'); // so pointer rays report intersections here (and it's selectable → bio card)
 
@@ -378,6 +499,49 @@
       // fades in on gaze / out when the gaze leaves.
       this._targetOn = 0;
       this._currentOn = 0;
+    },
+
+    // Rebuild the window's four clipping planes for one eye. Each plane holds
+    // the eye and one edge of the aperture rectangle, with its normal turned
+    // inward, so a fragment is inside the opening when it is on the positive
+    // side of all four.
+    _updatePortal: function (camera) {
+      var u = this.material.uniforms;
+      if (!u.uPortal || !u.uPortalOn.value) return;
+
+      var sc = this._portalScratch;
+      if (!sc) {
+        var w = this.data.width / 2, h = this.data.height / 2;
+        sc = this._portalScratch = {
+          // The aperture is the panel's own outline at local z = 0 — the plane
+          // the surface has been inset behind, not the surface itself.
+          local: [
+            new THREE.Vector3(-w, -h, 0), new THREE.Vector3(w, -h, 0),
+            new THREE.Vector3(w, h, 0), new THREE.Vector3(-w, h, 0)
+          ],
+          world: [new THREE.Vector3(), new THREE.Vector3(),
+                  new THREE.Vector3(), new THREE.Vector3()],
+          eye: new THREE.Vector3(), centre: new THREE.Vector3(),
+          edge: new THREE.Vector3(), toEye: new THREE.Vector3(), n: new THREE.Vector3()
+        };
+      }
+
+      camera.getWorldPosition(sc.eye);
+      this.mesh.updateWorldMatrix(true, false);
+      var m = this.mesh.matrixWorld;
+      sc.centre.set(0, 0, 0).applyMatrix4(m);
+      for (var i = 0; i < 4; i++) sc.world[i].copy(sc.local[i]).applyMatrix4(m);
+
+      for (var j = 0; j < 4; j++) {
+        var a = sc.world[j], b = sc.world[(j + 1) % 4];
+        sc.edge.subVectors(b, a);
+        sc.toEye.subVectors(a, sc.eye);
+        sc.n.crossVectors(sc.edge, sc.toEye).normalize();
+        // Point it at the middle of the opening, so "positive" means inside
+        // whichever way round the corners were wound.
+        if (sc.n.dot(sc.toEye.subVectors(sc.centre, a)) < 0) sc.n.negate();
+        u.uPortal.value[j].set(sc.n.x, sc.n.y, sc.n.z, -sc.n.dot(a));
+      }
     },
 
     // Which pointer ray to follow: whichever raycaster is currently hitting

@@ -250,6 +250,83 @@ shifting against its frame with no tearing. Look for stretched gaussians on the
 splat (sizing), and for any judder that tracks head motion rather than being
 constant (sorting).
 
+## The portrait lab — all three, side by side, live
+
+`portrait-lab.js` adds one ghost button under the home portrait, **Compare
+portrait depth**. Pressing it hides the hub (via the scene's own `.hub-cluster`
+convention, the same one `project-room.js` and `pdf-reader.js` use) and shows
+the three treatments side by side, matched in size, tone and aperture so the
+only variable is depth technique. Matching them was more work than building
+them; without it the spatial photo arrives in full colour beside a grey relief
+panel and wins on tone alone.
+
+Nothing is built until the button is pressed. An unopened lab costs one button:
+no stereo pair, no splat download, no 665 KB renderer.
+
+### The third variant: a real spatial photo
+
+`spatial-photo.js` is a genuine stereo pair, and it is here to be the weakest of
+the three on purpose. **A spatial photo has binocular depth and no motion
+parallax** — each eye gets its own image, so it has volume, but move your head
+and nothing new appears, because there is nothing behind it to appear. That is
+the honest baseline the other two are beating.
+
+Eye separation uses three.js layers 1 and 2, which `WebXRManager` reserves for
+exactly this (`cameraL.layers.enable(1)`, and both enabled on the ArrayCamera so
+tagged objects survive the top-level cull — `WebXRManager.js:50-61`). Left plate
+on layer 1 alone, right on layer 2 alone. Verified: masks 2 and 4, camera mask 3
+so the flat site shows the left eye rather than an empty frame.
+
+The pair is baked by `vr/tools/sharp/export_spatial.py`. **Disparity is computed
+for where the panel hangs, not for the captured depth.** Warping by capture
+depth is only correct with your eye 40 cm from his face and produces ~70 px of
+relative shift, which is painful to fuse; computed for a 0.72 m panel at 1.5 m
+it comes out at 8.5 px. SHARP's layer 1 fills the tears — holes before inpaint
+were 1.26%, and layer 1 is real predicted content rather than smeared neighbours.
+
+## Making it a window
+
+The first relief build read as a card with relief on it, not an opening, and
+there were two separate reasons.
+
+**The frame was at the back.** The relief map puts the backdrop at 1, so the
+panel's outer border was displaced furthest away while his face sat flush with
+the front. Fixed by `windowInset` — everything, including the nearest point,
+sits behind the aperture.
+
+**Pushing straight back shrinks the picture.** Receding a flat grid along -z
+contracts it under perspective: at this inset the border lost ~16% while the
+nearer subject lost ~5%, so his shoulders hung outside their own backdrop and
+there was no aperture anywhere. Fixed by displacing along rays from a fixed
+**reference eye** (`viewDistance`) instead of along -z. Every depth then lands
+on the same line of sight, so the interior fills the opening exactly — and it
+costs nothing in parallax, because the rays only coincide from that one point.
+
+**Then the opening has to actually clip.** Four planes joining the eye to the
+four edges of the aperture, rebuilt every frame, fragments outside discarded.
+Built from `onBeforeRender`, not `tick()`, because three calls it **once per
+sub-camera** — driving it from tick would hand both eyes one set of planes built
+from the head pose, putting the opening ~32 mm off for each. That is the same
+order as the feather width, and a stereo mismatch at exactly the edge your eyes
+use to locate the window.
+
+The border feathers rather than ending on a rim. A crisp edge reads as a card no
+matter how much depth is behind it, because a card is the thing that has one.
+
+## Quest and Vision Pro
+
+There is no second build, and adding one would be a mistake. Both run the same
+WebXR path — Chromium on Quest, WebKit on Vision Pro — and nothing here touches
+an API that differs. What differs is headroom, so the knob is **quality, not
+device**, and the default is already the conservative choice: the decimated
+splat (97k gaussians, 3.1 MB) rather than the full 385k / 12.3 MB.
+`?quality=high` opts into the full one.
+
+Sniffing the user agent for "Quest" was the alternative and is worse: wrong on
+Wolvic, wrong on a tethered PC headset, wrong on every device released after
+this was written, and it silently hands someone the degraded asset with no way
+to say otherwise.
+
 ## Reproducing the assets
 
 `vr/tools/sharp/` is an **offline** pipeline. It is not a build step for the

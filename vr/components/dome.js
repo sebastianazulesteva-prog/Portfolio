@@ -151,8 +151,31 @@
       this.mesh.rotation.x = -Math.PI / 2;
       this.mesh.position.y = 0.002; // avoid z-fighting with the floor beneath
       this.el.setObject3D('dusk-rug', this.mesh);
+      this._baseColor = '#1a140f';
+      this._baseRadius = this._radius = this.data.radius;
     },
+    // Themed per project room (project-room.js). The rug used to be the one
+    // ground surface a room DIDN'T retint, which left the hub's dark brown
+    // disc sitting on a room's own floor colour — invisible on the dark
+    // themes and a stain on the near-white one.
+    setColor: function (hex) { this.mesh.material.color.set(hex); },
+    resetColor: function () { this.mesh.material.color.set(this._baseColor); },
+    // Rooms vary the rug's size to vary how large the space you're standing in
+    // FEELS (a jewellery case vs a vehicle bay). Circles only, on purpose —
+    // this entity does not rotate with the room, so a non-round footprint
+    // would sit at an arbitrary angle to it; see the note in themes.js.
+    // Radius means new geometry, and three.js never auto-disposes (guide
+    // §3.17): drop the old one here or every room visit orphans a buffer.
+    setRadius: function (r) {
+      if (!r || r === this._radius) return;
+      this._radius = r;
+      this.mesh.geometry.dispose();
+      this.mesh.geometry = new THREE.CircleGeometry(r, 48);
+    },
+    resetRadius: function () { this.setRadius(this._baseRadius); },
     remove: function () {
+      this.mesh.geometry.dispose();
+      this.mesh.material.dispose();
       this.el.removeObject3D('dusk-rug');
     }
   });

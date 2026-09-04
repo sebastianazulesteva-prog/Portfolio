@@ -2,7 +2,7 @@
   "$comment": "Fallback + VR enrichment only. Live HTML (index.html) is primary, matched by href. Don't hand-duplicate title/image/tags here — only fields the flat page can't provide. `image` is an override for the rare case the flat card has no <img> to scrape (Slip Door's card is a <video>); `heroTone` (0..1) taps the shader highlight-rolloff for blown-out product shots (the pendant hero is on pure white).",
   "projects": [
     { "href": "pendant.html", "model": null, "theme": "pendant", "accent": "#d8c9a0", "heroTone": 0.6 },
-    { "href": "slipdoor.html", "model": null, "theme": "slipdoor", "accent": "#0091c8", "image": "/images/slipdoor-hero.jpg" },
+    { "href": "slipdoor.html", "model": null, "theme": "slipdoor", "accent": "#0091c8", "image": "/images/slipdoor-hero.jpg", "blurb": "An automatic sliding door that makes cars easier to enter and exit" },
     { "href": "baston.html", "model": null, "theme": "baston", "accent": "#e30887" },
     { "href": "timecollector.html", "model": null, "theme": "timecollector", "accent": "#b8863b" },
     { "href": "chess.html", "model": null, "theme": "chess", "accent": "#8a8a8a" },

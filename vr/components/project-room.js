@@ -51,6 +51,15 @@
     if (l) ambientBase = { color: l.color, intensity: l.intensity };
   }
 
+  // Resolved per call, never cached: the rug is authored in index.html but its
+  // component may not have initialised when this file loads, and a cached null
+  // would silently disable rug theming for the whole session.
+  function rugComponent() {
+    var el = document.querySelector('[dusk-rug]');
+    var c = el && el.components && el.components['dusk-rug'];
+    return (c && c.setColor) ? c : null;
+  }
+
   // Dark halo for any text a room floats over its own themed background. 8% of
   // the glyph size, not a hairline: at 5% the tags still measured 4.3:1 against
   // the pendant theme's near-white floor.
@@ -212,7 +221,15 @@
 
   function buildRoom(project) {
     var a11y = document.body.classList.contains('accessible');
-    var accent = project.accent || '#b8863b';
+    // ONE accent per room, from themes.js. This used to read project.accent
+    // (projects.json) while retintLights() read theme.accent — two sources for
+    // "the accent", and they had diverged in two of the five rooms: Slip Door
+    // was lit pale ice #cdeffa but trimmed saturated #0091c8, and Chess was lit
+    // near-white #f7f5f0 but trimmed mid-grey #8a8a8a. A room now lights and
+    // trims itself the same colour, and themes.js is the only place to change
+    // it. projects.json's accent still styles that project's card out in the
+    // HUB, which is a different surface in different light — left alone.
+    var accent = VRThemes.get(project.theme).accent || project.accent || '#b8863b';
     var room = document.createElement('a-entity');
     room.id = 'projectRoom';
 
@@ -258,27 +275,37 @@
     // the previous ±14°/±42° arc overlapping the centered text. Skipped
     // entirely for the four PDF write-ups, which have no photography.
     var images = (project.roomImages || []).slice(0, 4);
+    // Gallery lives out to the SIDES, fully clear of the forward column where
+    // the text + buttons sit — you turn slightly to browse it, which is the
+    // spec's "its images around you" feel and the only reliable way to avoid
+    // the wide, wrapping blurb text colliding with them (a bounding-box sweep
+    // of an earlier ±26° arc caught the blurb overlapping the inner cards, and
+    // the cards overlapping each other).
+    //
+    // The angles/radius/height live in themes.js now (`room.gallery`) rather
+    // than as constants here — but they are deliberately the SAME for every
+    // room for now: rooms differ by colour only, so this layout gets judged
+    // and refined once instead of five times. No theme overrides it; when one
+    // does, only that room changes.
+    // Read the four limits in themes.js before retuning any of these: the safe
+    // range is narrow, and two of them are previously-fixed bugs (blurb
+    // overlap, and walking into your own photographs).
+    var g = VRThemes.room(project.theme).gallery;
     if (images.length) {
-      // Gallery lives out to the SIDES (from ±55°), fully clear of the
-      // forward column where the text + buttons sit — you turn slightly to
-      // browse it, which is the spec's "its images around you" feel and the
-      // only reliable way to avoid the wide, wrapping blurb text colliding
-      // with them (a bounding-box sweep of the earlier ±26° arc caught the
-      // blurb overlapping the inner cards, and the cards overlapping each
-      // other). Inner pair ±55°, next pair ±80°; slight height stagger.
-      var innerA = 55, stepA = 25;
       images.forEach(function (image, i) {
-        var mag = innerA + Math.floor(i / 2) * stepA;
+        var mag = g.inner + Math.floor(i / 2) * g.step;
         var angle = (i % 2 === 0 ? -1 : 1) * mag;
-        var height = 1.52 + (i % 2 === 0 ? 0.07 : -0.07);
-        placeImageCard(room, image, angle, 1.9, height, accent, a11y);
+        // Stagger alternates ACROSS the pair (left up / right down), so a
+        // stagger of 0 is a strict level row — see chess and timecollector.
+        var height = g.height + (i % 2 === 0 ? g.stagger : -g.stagger);
+        placeImageCard(room, image, angle, g.radius, height, accent, a11y);
       });
     } else {
       // No photography → a symmetric pair of generated accent panels flanking
       // the text, keeping the same out-to-the-sides placement so the forward
       // column (title/blurb/tags + buttons) stays clear.
-      placePlaceholderCard(room, project.title, -55, 1.9, 1.55, accent);
-      placePlaceholderCard(room, project.title, 55, 1.9, 1.55, accent);
+      placePlaceholderCard(room, project.title, -g.inner, g.radius, g.height, accent);
+      placePlaceholderCard(room, project.title, g.inner, g.radius, g.height, accent);
     }
 
     // Only a Return control — the experience stays fully in VR (no link out
@@ -359,6 +386,18 @@
     var floor = document.querySelector('[dusk-floor]');
     if (sky) sky.components['dusk-sky'].setTheme(theme.sky, theme.horizon);
     if (floor) floor.components['dusk-floor'].setColor(theme.panel);
+    // The rug was the one ground surface a room didn't retint, so the hub's
+    // dark brown pad stayed put on top of the room's own floor colour: a
+    // stain on the near-white Pendant floor, invisible on the dark ones. Its
+    // colour is derived from the theme (VRThemes.rug). Its radius is set too,
+    // but every room currently asks for the hub's own 1.3 — setRadius
+    // early-returns on an unchanged value, so today this is a colour-only
+    // change and the size hook is simply ready for later.
+    var rug = rugComponent();
+    if (rug) {
+      rug.setColor(VRThemes.rug(project.theme));
+      rug.setRadius(VRThemes.room(project.theme).rugRadius);
+    }
     retintLights(theme.accent, 0.22);
 
     var room = buildRoom(project);
@@ -380,6 +419,8 @@
     var floor = document.querySelector('[dusk-floor]');
     if (sky) sky.components['dusk-sky'].clearTheme();
     if (floor) floor.components['dusk-floor'].resetColor();
+    var rug = rugComponent();
+    if (rug) { rug.resetColor(); rug.resetRadius(); }
     resetLights();
     // Null-safe: only detach if it's still parented (guards against a double
     // exit or the node being pulled out from under us), so a stray exit never

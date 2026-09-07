@@ -1,9 +1,11 @@
 /* ═══ photo-cloud.js ═══
    The VR-only Photo Catalog (§9 / build directive item 9): every image on the
    site drifts as a loose 3D constellation in its own zone BEHIND the viewer —
-   turn around from the hub to find it. Reach/gaze one and it floats forward,
-   enlarges, and shows its caption (the image's alt text + the project it
-   belongs to); look away and it eases back into the cloud.
+   turn around from the hub to find it. Hold your gaze (or the pointer) on one
+   for ~0.9 s — a small ring fills on the tile while you do, see dwell.js — and
+   it floats forward, enlarges, and shows its caption (the image's alt text +
+   the project it belongs to); look away and it eases back into the cloud.
+   Clicking one SELECTS it, which is immediate and skips the ring.
 
    Data-driven (data-loader.js's `images` catalog), so new photos on the real
    site appear here automatically. Textures are downscaled to 512px on load
@@ -232,7 +234,8 @@
           el: tileEl, cap: cap, home: home.clone(), size: size, depthDim: depthDim, mat: mesh.material,
           im: im,
           driftPhase: s1 * Math.PI * 2, driftAmp: 0.02 + s2 * 0.03, hovered: false, tween: null,
-          selected: false, actionEl: null
+          selected: false, actionEl: null,
+          dwell: null   // VRDwell token while this tile's reach is being held for
         };
         self._tiles.push(tile);
 
@@ -240,21 +243,71 @@
         // has receded and dimmed on purpose, and letting a tile back there float
         // forward on hover would put it right back in front of the thing the
         // visitor is actually looking at.
+        //
+        // ── The reach is GATED BY A DWELL (dwell.js) ──
+        // Sebastian: *"whenever you look at an image it should just fly towards
+        // you … just so when someone's looking through it's not pulling images
+        // towards them like crazy. So there's a little more intention."* Hover
+        // used to call _focus() on the frame the ray arrived, which meant
+        // sweeping a gaze (or a mouse) across the cloud fired every tile it
+        // crossed — up to a dozen 0.5 s flights in flight at once, all of them
+        // reversing behind you. Now hover only ARMS: VRDwell fills a small ring
+        // on the tile over ~0.9 s and the reach runs when it completes.
+        //
+        // This is not a fuse (hard rule 7): the reach is a reversible preview,
+        // and SELECTING a photo is still an explicit click — see the long note
+        // at the top of dwell.js.
         tileEl.addEventListener('mouseenter', function () {
           if (self._selected && self._selected !== tile) return;
           if (tile.selected) return;
-          self._focus(tile, true);
+          self._armReach(tile);
         });
         tileEl.addEventListener('mouseleave', function () {
           if (self._selected && self._selected !== tile) return;
           if (tile.selected) return;
-          self._focus(tile, false);
+          self._disarmReach(tile);
+          // Only unwind a reach that actually happened. A dwell abandoned
+          // half-way never moved the tile, so calling _focus(tile, false) here
+          // would start a 0.6 s return tween from home to home — harmless in
+          // isolation, but it also flips tile.hovered and re-writes renderOrder
+          // on a tile that was never lifted, and it would kill the idle bob's
+          // ownership of y for the duration.
+          if (tile.hovered) self._focus(tile, false);
         });
         tileEl.addEventListener('click', function (e) {
           if (e && e.stopPropagation) e.stopPropagation();
+          // A click outranks the gate it was waiting on. Committing to a photo
+          // is the explicit act the dwell exists to hold back FROM, so a visitor
+          // who has already decided must never be made to sit out the ring —
+          // and on a Vision Pro the whole hover cycle (mouseenter → click →
+          // mouseleave, trap §3.13) arrives inside a few frames, so a pinch
+          // would otherwise always cancel a dwell that had barely started.
+          self._disarmReach(tile);
           self.select(tile.selected ? null : tile);
         });
       });
+    },
+
+    // ── The dwell gate in front of the reach ──────────────────────────────
+    // Arming is idempotent per tile and there is only ever one dwell in the
+    // scene (dwell.js keeps one ring), so arming a second tile releases the
+    // first for free — which is the right behaviour: you are looking at the new
+    // one now. The token is kept per tile only so a LATE mouseleave (the
+    // ordering is not guaranteed when the ray crosses two tiles in one frame)
+    // cancels its own dwell rather than whichever one happens to be current.
+    _armReach: function (tile) {
+      if (!window.VRDwell) { this._focus(tile, true); return; }  // gate absent, don't lose the feature
+      var self = this;
+      this._disarmReach(tile);
+      tile.dwell = VRDwell.start(tile.el, {
+        onComplete: function () { tile.dwell = null; self._focus(tile, true); }
+      });
+    },
+
+    _disarmReach: function (tile) {
+      if (tile.dwell == null) return;
+      if (window.VRDwell) VRDwell.cancel(tile.dwell);
+      tile.dwell = null;
     },
 
     // Float a tile forward + enlarge (reach), or ease it back into the cloud.
@@ -315,6 +368,13 @@
     select: function (tile) {
       var prev = this._selected;
       if (prev === tile) return;
+
+      // Any dwell in flight is moot the moment something is selected: the rest
+      // of the cloud is about to recede and dim, so a ring left filling on a
+      // tile back there would complete into a reach that _recedeOthers has
+      // already overruled. (select(null) too — a deselect returns the cloud to
+      // where hover can act again, and it should start from a clean gate.)
+      this._tiles.forEach(this._disarmReach, this);
 
       // Jump this tile's texture to the front of the shared load queue. With 32
       // tiles loading four at a time, the one you just picked can be twentieth

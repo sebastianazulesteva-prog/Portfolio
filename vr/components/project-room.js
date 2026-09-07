@@ -219,6 +219,90 @@
     container.appendChild(outer);
   }
 
+  // ── The hero panel ──────────────────────────────────────────────────────
+  // Centred, at eye height, on arrival, and sized to match the home portrait —
+  // the bio image of Sebastian, 0.72 x 1.08 in index.html's mosaic-reveal.
+  //
+  // Matched by AREA, not by a bounding box. Fitting inside a box was the first
+  // attempt and it made the portrait-aspect heroes far weaker than the
+  // landscape ones: Pendant came out 18° wide against Bastón's 36°, because a
+  // 3:4 image hits the box's height limit while a 16:9 one hits its width.
+  // Equal area gives every hero the same visual weight whatever its shape,
+  // which is what "the same size as the portrait" has to mean across aspects
+  // ranging from 0.75 to 1.778.
+  //
+  // HERO_AREA is the portrait's own area. The hero sits at 2.0 m against the
+  // portrait's 1.5 m, so it subtends a little less — ~22° wide for Pendant
+  // against the portrait's 27° — which is why this is "roughly", not exact.
+  // Bringing it to 1.5 m to match angularly too would put it in front of the
+  // text plane and inside the walk bound's 1.15 m forward cap.
+  var HERO_AREA = 0.72 * 1.08;
+  // Guard only: keeps a hypothetical ultra-wide hero clear of the gallery's
+  // inner edge at 45.7°. The widest real one (Slip Door, 16:9) is 1.18.
+  var HERO_MAX_W = 1.45;
+  // 1.7 m, i.e. 15% nearer than the 2.0 m this first shipped at, which puts
+  // the tallest hero at 25° wide against the home portrait's 27° — very close
+  // to matching it as SEEN, not just in metres. It stays clear of the walk
+  // bound's 1.15 m forward cap by 0.55 m.
+  var HERO_Y = 1.62, HERO_Z = 1.7;
+
+  // The text sits FARTHER than the hero (2.0 m vs 1.7 m), so the two are no
+  // longer on one plane and nothing about their layout can be reasoned about
+  // in Y any more — only in ANGLE. Moving the hero 15% nearer grew it ~18%
+  // angularly, and at the fixed Y values this had before, Pendant's title
+  // overlapped its own hero by 1.4°: text is appended after the hero, so it
+  // would have painted straight over the photograph (guide §3.6).
+  var TEXT_Z = 2.0;
+  var EYE_Y = 1.6;
+  // Half-height of the dome's ember band, from dome.js's 0.42/0.58 gradient
+  // stops. Text has to clear this as well as the hero — a 16:9 hero is only
+  // 0.66 m tall and does NOT cover the band's full extent, so in the wide
+  // rooms it is the BAND, not the hero, that sets where text can go.
+  var BAND_DEG = 14.4;
+  // Budget for the title's own block (one line plus slack) and the breathing
+  // gap either side, both measured at the text plane.
+  var TITLE_BLOCK = 0.14, TEXT_GAP = 0.06;
+
+  // A y at the hero's distance -> the y at the TEXT distance that sits at the
+  // same angle from the eye. This is the conversion that makes the clearances
+  // below honest across the two planes.
+  function heroYToTextY(y) {
+    return EYE_Y + TEXT_Z * (y - EYE_Y) / HERO_Z;
+  }
+
+  function placeHero(container, project, accent) {
+    if (!project.image) return null;
+
+    // Fall back to 4:3 if a card ever ships without width/height rather than
+    // guessing square, which is the one aspect none of the heroes are.
+    var aspect = (project.imageW && project.imageH)
+      ? (project.imageW / project.imageH)
+      : (4 / 3);
+    // Equal area, preserving aspect: w*h = HERO_AREA and w/h = aspect.
+    var w = Math.sqrt(HERO_AREA * aspect), h = Math.sqrt(HERO_AREA / aspect);
+    if (w > HERO_MAX_W) { w = HERO_MAX_W; h = HERO_MAX_W / aspect; }
+
+    var wrap = document.createElement('a-entity');
+    wrap.setAttribute('position', { x: 0, y: HERO_Y, z: -HERO_Z });
+
+    // Same plate + inset feathered image as the gallery cards, so the hero is
+    // recognisably the same kind of object — just bigger and dead ahead.
+    // heroTone taps the shader's highlight rolloff for a hero shot on pure
+    // white (the pendant, projects.json's heroTone 0.6); it was already
+    // scraped and, until now, only the hub's card used it.
+    var plate = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, h),
+      VRGlass.makeCardMaterial(w, h, 0.045, accent, 0, 0.5)
+    );
+    var img = VRGlass.makeFeatheredImage(project.image, w - 0.06, h - 0.06, 0.08, 1024, project.heroTone || 0);
+    img.position.z = 0.008;
+
+    wrap.object3D.add(plate);
+    wrap.object3D.add(img);
+    container.appendChild(wrap);
+    return { el: wrap, w: w, h: h, top: HERO_Y + h / 2, bottom: HERO_Y - h / 2 };
+  }
+
   function buildRoom(project) {
     var a11y = document.body.classList.contains('accessible');
     // ONE accent per room, from themes.js. This used to read project.accent
@@ -249,24 +333,69 @@
       Object.keys(ROOM_HALO).forEach(function (k) { spec[k] = ROOM_HALO[k]; });
       return spec;
     }
-    var roomSpecs = [withHalo({
+    var titleSpec = withHalo({
       value: project.title, align: 'center', font: VRFonts.title(),
       fontSize: VRType.title(), maxWidth: 2.2, lineHeight: 1.15, gapAfter: 0.05
-    })];
+    });
+    var belowSpecs = [];
     if (project.blurb) {
       // The summary, front and centre — prominence via full opacity + centred
-      // position directly under the title, not a bespoke size (§5: hierarchy
-      // through weight/colour/position, not a fourth text size).
-      roomSpecs.push(withHalo({ value: project.blurb, align: 'center', font: VRFonts.body(),
+      // position, not a bespoke size (§5: hierarchy through weight/colour/
+      // position, not a fourth text size).
+      belowSpecs.push(withHalo({ value: project.blurb, align: 'center', font: VRFonts.body(),
         fillOpacity: 0.95, fontSize: VRType.body(), maxWidth: 1.9, lineHeight: 1.35, gapAfter: 0.05 }));
     }
     if (project.tags && project.tags.length) {
       // Full opacity, not 0.9: the tags were the worst-measured line in a room
       // and dimming accent-coloured text was costing contrast it didn't have.
-      roomSpecs.push(withHalo({ value: project.tags.join('  ·  '), align: 'center', font: VRFonts.body(),
+      belowSpecs.push(withHalo({ value: project.tags.join('  ·  '), align: 'center', font: VRFonts.body(),
         color: accent, fillOpacity: 1, fontSize: VRType.label(), maxWidth: 1.9 }));
     }
-    VRTextFlow.stack(room, roomSpecs, { startY: 2.02, z: -1.7 });
+
+    // ── The hero, dead ahead on arrival ──────────────────────────────────
+    // A room used to open on its TEXT, with the project's own photographs out
+    // at ±53–80° where you had to go looking for them, and the card hero —
+    // the one image that says what this is — shown nowhere at all
+    // (data-loader drops it from roomImages precisely because it is the card's).
+    // Now the hero hangs centred at eye height, so the first thing in front of
+    // you when the room resolves is the project itself.
+    //
+    // It is APPENDED FIRST, before any text, which is load-bearing: room
+    // content is all renderOrder 0 and the scene sorts transparent objects by
+    // scene-graph order, not depth (guide §3.6), so anything appended after
+    // the hero paints over it. Text sits clear of it in Y anyway; this is
+    // belt-and-braces for whatever gets added next.
+    //
+    // Sized to the hero's OWN aspect (project.imageW/H, off the flat card)
+    // rather than to a fixed box, because the shader cover-fits: a fixed
+    // landscape frame crops 44% of the height off a 3:4 hero and takes the
+    // chain off the pendant. Fitted inside HERO_MAX so a 16:9 hero and a 3:4
+    // hero read as the same weight of object rather than the same width.
+    var hero = placeHero(room, project, accent);
+
+    // Title ABOVE the hero, blurb + tags BELOW it, rather than one column.
+    // Splitting it is what keeps both blocks out of the horizon band: the band
+    // spans ±14.4° of elevation (dome.js's gradient stops), which at the text
+    // plane is y 1.163–2.037 — exactly where a single top-anchored column used
+    // to sit, and why Bastón's blurb and tags washed out on its magenta. The
+    // hero now occupies that zone and masks it; the text brackets it.
+    // Both stacks are top-anchored and flow DOWN, so these are tops, not
+    // centres, and the gaps allow a title wrapping to two lines.
+    if (hero) {
+      // Derived per hero rather than fixed, so a tall 3:4 hero pushes its
+      // title up only as far as it actually needs and a wide 16:9 one doesn't
+      // pay for it. Whichever is more restrictive wins: the hero's own edge,
+      // or the band's — see BAND_DEG.
+      var bandHalf = TEXT_Z * Math.tan(BAND_DEG * Math.PI / 180);
+      var titleTop = Math.max(heroYToTextY(hero.top), EYE_Y + bandHalf) + TEXT_GAP + TITLE_BLOCK;
+      var belowTop = Math.min(heroYToTextY(hero.bottom), EYE_Y - bandHalf) - TEXT_GAP;
+      VRTextFlow.stack(room, [titleSpec], { startY: titleTop, z: -TEXT_Z });
+      if (belowSpecs.length) VRTextFlow.stack(room, belowSpecs, { startY: belowTop, z: -TEXT_Z });
+    } else {
+      // No hero (the PDF write-ups, which have no card image): the original
+      // single top-anchored column, unchanged.
+      VRTextFlow.stack(room, [titleSpec].concat(belowSpecs), { startY: 2.02, z: -1.7 });
+    }
 
     // The room's real gallery — up to 4 of the project's own images (§7:
     // "holds the project's images ... around you"). Wrapped to the SIDES

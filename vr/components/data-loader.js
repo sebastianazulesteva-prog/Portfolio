@@ -70,6 +70,18 @@
       // level below the image paths (which are relative to /index.html).
       image: img ? rootHref(img.getAttribute('src')) : null,
       alt: img ? (img.getAttribute('alt') || '') : (video ? (video.getAttribute('aria-label') || '') : ''),
+      // The hero's own aspect, read off the card's width/height attributes —
+      // present on every card, and on Slip Door's <video> too (1280x720, the
+      // same 16:9 as the projects.json image override it falls back to). The
+      // project room sizes its hero to this, and it has to come from here:
+      // VRGlass.loadTexture deliberately does not cache, so probing the file
+      // for its natural size would download and decode it twice and leave a
+      // second Texture with no owner to dispose it. Heroes range from 3:4
+      // (pendant) to 16:9 (slipdoor), and the room's shader COVER-fits — so
+      // without a real aspect a portrait hero loses ~44% of its height, which
+      // on the pendant means cropping the chain off it.
+      imageW: Number((img || video || {}).getAttribute && (img || video).getAttribute('width')) || null,
+      imageH: Number((img || video || {}).getAttribute && (img || video).getAttribute('height')) || null,
       tags: textOf(tagEl).split('·').map(function (s) { return s.trim(); }).filter(Boolean),
       featured: featured
     };

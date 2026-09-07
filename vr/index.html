@@ -231,12 +231,19 @@
        card shader and lit-text helper it uses. -->
   <script src="components/busy.js?v=2"></script>
   <script src="components/notice.js?v=3"></script>
+  <!-- The intention gate: a small ring that fills up on whatever you are
+       pointing at, and only then does the cheap reversible thing happen. Used
+       by the photo cloud to hold back the reach so a sweeping gaze stops
+       pulling every photo it crosses. Above its callers; depends on nothing
+       but THREE, and deliberately NOT on reticle.js — see the note in the file
+       about why the ring is anchored in the world rather than on the cursor. -->
+  <script src="components/dwell.js?v=3"></script>
   <script src="components/reticle.js?v=4"></script>
   <script src="components/name-scatter-3d.js?v=16"></script>
   <script src="components/hub-panel.js?v=35"></script>
   <script src="components/focus-stage.js?v=23"></script>
   <script src="components/card-flip.js?v=8"></script>
-  <script src="components/photo-cloud.js?v=19"></script>
+  <script src="components/photo-cloud.js?v=20"></script>
   <script src="components/mosaic-reveal.js?v=23"></script>
   <!-- Inert unless ?portrait=splat asks for it: the component only builds when
        the entity carries the attribute, and nothing carries it by default. The
@@ -248,8 +255,12 @@
   <script src="components/spatial-photo.js?v=5"></script>
   <script src="components/portrait-lab.js?v=5"></script>
   <script src="components/bio-card.js?v=36"></script>
-  <script src="components/project-room.js?v=27"></script>
-  <script src="components/pdf-reader.js?v=13"></script>
+  <script src="components/project-room.js?v=30"></script>
+  <!-- The reading ruler inside pdf-reader: finds the text lines in each
+       pre-rendered page IMAGE and highlights the one you are looking at.
+       Above pdf-reader, which begins and ends it. -->
+  <script src="components/reading-line.js?v=3"></script>
+  <script src="components/pdf-reader.js?v=15"></script>
   <script src="components/sunflower.js?v=2"></script>
   <script src="components/constellation.js?v=9"></script>
   <!-- carousel-drag.js is attached to nothing since 2026-08-30 (see the
@@ -261,7 +272,7 @@
   <script src="components/walk-controls.js?v=5"></script>
   <script src="components/column-scroll.js?v=2"></script>
   <script src="components/onboarding.js?v=6"></script>
-  <script src="components/data-loader.js?v=8"></script>
+  <script src="components/data-loader.js?v=9"></script>
   <script src="components/xr-select.js?v=1"></script>
   <!-- ?xrdiag=1 only. There is no console in a Vision Pro, so this samples the
        clocks in-session and prints the answer on a card in the scene. Inert

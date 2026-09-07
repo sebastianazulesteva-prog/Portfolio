@@ -242,11 +242,11 @@
        the entity carries the attribute, and nothing carries it by default. The
        665 KB renderer is fetched lazily from inside the component, so an
        unflagged visit does not pay for this tag. -->
-  <script src="components/splat-portrait.js?v=5"></script>
+  <script src="components/splat-portrait.js?v=6"></script>
   <!-- Both inert until the lab is opened: spatial-photo builds nothing unless
        an entity carries it, and portrait-lab builds only its button up front. -->
   <script src="components/spatial-photo.js?v=5"></script>
-  <script src="components/portrait-lab.js?v=4"></script>
+  <script src="components/portrait-lab.js?v=5"></script>
   <script src="components/bio-card.js?v=36"></script>
   <script src="components/project-room.js?v=27"></script>
   <script src="components/pdf-reader.js?v=13"></script>
@@ -508,8 +508,21 @@
           } else {
             // The splat is its own object, so the photo panel goes away
             // entirely rather than sitting inside him.
+            var restore = el.getAttribute('spatial-photo');
             el.removeAttribute('spatial-photo');
             el.setAttribute('splat-portrait', 'src: assets/portrait-lod.splat');
+            // If it cannot load, put the photograph back. Without this the
+            // hero is simply MISSING — which is exactly the report this mode
+            // produced from hardware ("I couldn't see it at all"), and an
+            // empty space cannot tell you whether it is still loading, broken,
+            // or was never there. splat-portrait narrates the reason through
+            // VRBusy; this makes sure there is still a portrait behind it.
+            el.addEventListener('splat-portrait-failed', function () {
+              if (el.getAttribute('spatial-photo')) return;
+              el.removeAttribute('splat-portrait');
+              el.setAttribute('spatial-photo', restore || 'width: 0.72; height: 1.08');
+              console.info('[vr] splat unavailable — restored the spatial photo');
+            });
           }
           console.info('[vr] portrait mode:', mode);
         })();

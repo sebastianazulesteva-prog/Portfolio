@@ -502,6 +502,49 @@ dim, 6% corner radius. Barely more than the panel had before any of this.
 
 Frame rate on real hardware is still unmeasured.
 
+## "I couldn't see it at all" — the splat was working (2026-09-04)
+
+Nothing was broken. Measured against the photo panel it replaces, the splat
+drew in a **239 x 277 px** box where the panel occupies **309 x 463** — 60% of
+the height and **26.5% of the area**. A small, dim bust with no bright backdrop,
+in a near-black dome, where a large portrait used to be.
+
+The cause is that SHARP is metric and the f30 bake landed **life-size**, so
+scale 1.0 draws him at actual size — and the photo panel does not. A head is
+~0.23 m; in a 1.08 m panel his head spans about half the frame, roughly twice
+life size. Default is now **1.5**, which measures 343 x 415 and reads as the
+same presence. Brightness was checked and exonerated: mean luminance 154 for
+the splat against 187 for the panel's lit backdrop, which is just what a person
+looks like next to a studio wall.
+
+Everything else in the chain was verified sound rather than assumed:
+
+* unpkg serves the library as `text/javascript`, 200, no redirect, CORS open.
+* `sharedMemoryForWorkers: false` is set, so no SharedArrayBuffer and no
+  COOP/COEP requirement — which GitHub Pages could not satisfy anyway.
+* The sort is driven from A-Frame's `tick()`, which DOES run in an immersive
+  session, unlike `window.requestAnimationFrame` (§3.14).
+* The stereo correction is genuinely armed. `adjustForWebXRStereo` is gated on
+  `webXRActive` AND on `this.camera`/`this.renderer` — and DropInViewer's
+  constructor explicitly clears the latter two (`options.camera = undefined`).
+  They come back via `updateForDropInMode(renderer, camera)`, which runs on
+  every render, so setting the flag off `renderer.xr` events is sufficient.
+* Verified drawing: 97,266 instances. Note the sort is ASYNC — one tick plus
+  one render requests it, and `instanceCount` stays 0 until the worker's result
+  is applied. Polling too early reads 0 and looks exactly like a dead splat.
+
+### It now says why, in the scene
+
+Every way this component can fail was silent: `_fail()` wrote to `console.warn`
+and **there is no console in a Vision Pro** (§3.16). A 3 MB splat plus a 665 KB
+library over a headset's network is also several seconds in which a working load
+and a dead one are indistinguishable — both are empty space.
+
+It reports through `VRBusy` now, the same card the reader and the project rooms
+use: stage and percentage while loading, and the reason held on screen for five
+seconds if it fails. And `?portrait=splat` **restores the spatial photo** if the
+splat cannot load, so the hero is never simply missing.
+
 ## Reproducing the assets
 
 `vr/tools/sharp/` is an **offline** pipeline. It is not a build step for the

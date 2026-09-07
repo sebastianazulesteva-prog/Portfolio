@@ -140,7 +140,7 @@
           // it has no backdrop to frame, because the bake prunes it away. Sized
           // to the panels so the comparison is about depth and not about scale.
           var src = this.quality === 'high' ? 'assets/portrait.splat' : this.data.splat;
-          art.setAttribute('splat-portrait', 'src: ' + src + '; splatScale: 1.144');
+          art.setAttribute('splat-portrait', 'src: ' + src);
         }
         slot.appendChild(art);
 

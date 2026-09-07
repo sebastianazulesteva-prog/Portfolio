@@ -96,7 +96,18 @@
       // is what keeps the pruned silhouette's soft hair fringe from turning
       // into a cloud of faint specks seen edge-on.
       alphaThreshold: { type: 'number', default: 8 },
-      splatScale: { type: 'number', default: 1 },
+      // ── Why this is not 1.0 ─────────────────────────────────────────────
+      // SHARP is metric and the f30 bake landed life-size, so scale 1.0 draws
+      // him at ACTUAL SIZE — and that is the wrong answer here, because the
+      // photo panel it replaces does not. A head is ~0.23 m; in a 1.08 m panel
+      // his head spans about half the frame, i.e. roughly twice life size.
+      //
+      // At 1.0 the bust measured 239x277 px against the panel's 309x463 — 60%
+      // of the height and 26.5% of the area. That is the whole of Sebastian's
+      // "I couldn't see it at all": a small, dim bust with no bright backdrop,
+      // in a dark dome, where a large portrait used to be. Nothing was broken.
+      // 1.5 measures 343x415, which reads as the same presence as the panel.
+      splatScale: { type: 'number', default: 1.5 },
       // Progressive reveal looks like a glitch on a face — it assembles from
       // the middle out. Off by default: show nothing, then show him whole.
       progressive: { type: 'boolean', default: false }
@@ -106,6 +117,26 @@
       var self = this;
       this.viewer = null;
       this.ready = false;
+      // ── Why this reports itself ─────────────────────────────────────────
+      // "I couldn't see it at all" is the only report this component has ever
+      // produced from real hardware, and it was unactionable, because every
+      // way it can fail is silent: _fail() wrote to console.warn and there is
+      // NO CONSOLE IN A VISION PRO (§3.16). A 3 MB splat plus a 665 KB library
+      // over a headset's network is also several seconds during which a
+      // working load and a dead one look identical — both are an empty space
+      // where the portrait was.
+      //
+      // So it narrates into the scene through VRBusy, the same card the reader
+      // and the project rooms use. If it is slow you see it loading; if it
+      // breaks you see why, in the headset, without a cable.
+      this._job = (window.VRBusy && VRBusy.begin) ? VRBusy.begin('Loading the gaussian portrait') : null;
+      this._say = function (stage, loaded, total) {
+        if (self._job && VRBusy.update) VRBusy.update(self._job, { stage: stage, loaded: loaded, total: total });
+      };
+      this._done = function () {
+        if (self._job && VRBusy.end) { VRBusy.end(self._job); self._job = null; }
+      };
+      this._say('fetching the renderer');
       // Scratch for the re-sort check in tick() — allocated once, never per frame.
       this._camPos = new THREE.Vector3();
       this._camQuat = new THREE.Quaternion();
@@ -115,6 +146,7 @@
       load(function (err) {
         if (err) { self._fail(err); return; }
         if (!self.el.parentNode) return; // removed while the library was in flight
+        self._say('reading the splat');
         self._build();
       });
     },
@@ -123,6 +155,12 @@
       // Never throw from here. A missing splat portrait should be an absent
       // portrait, not a broken home scene.
       console.warn('[vr] splat-portrait unavailable:', why);
+      // Say it where it can actually be read. Held for a few seconds rather
+      // than ended immediately — the whole point is that someone wearing a
+      // headset gets to see the reason.
+      var self = this;
+      this._say('unavailable — ' + String(why).slice(0, 90));
+      setTimeout(function () { self._done(); }, 5200);
       this.el.emit('splat-portrait-failed', { reason: why }, false);
     },
 
@@ -153,10 +191,17 @@
         useBuiltInControls: false
       });
 
+      var total = null;
       this.viewer.addSplatScene(this.data.src, {
         splatAlphaRemovalThreshold: this.data.alphaThreshold,
         showLoadingUI: false,           // it injects its own DOM spinner otherwise
         progressiveLoad: this.data.progressive,
+        // onProgress(percent, label, status) — status is the library's
+        // LoaderStatus enum, whose string form is good enough to show.
+        onProgress: function (percent, label, status) {
+          var stage = String(status || 'downloading').toLowerCase();
+          self._say(stage === 'done' ? 'placing him' : stage, percent, 100);
+        },
         position: [0, 0, 0],
         rotation: [0, 0, 0, 1],
         scale: [this.data.splatScale, this.data.splatScale, this.data.splatScale]
@@ -164,6 +209,7 @@
         self.ready = true;
         self.el.setObject3D('splat', self.viewer);
         self._armStereo();
+        self._done();
         self.el.emit('splat-portrait-ready', {
           count: self.viewer.splatMesh ? self.viewer.splatMesh.getSplatCount() : 0
         }, false);
@@ -294,6 +340,9 @@
     },
 
     remove: function () {
+      // A component torn down mid-load would otherwise leave its progress card
+      // in the scene with nothing left to finish it.
+      this._done();
       // §3.17: removeObject3D frees nothing on its own. The viewer owns web
       // workers, a wasm sort module and GPU buffers, all of which leak if we
       // only detach the Group.

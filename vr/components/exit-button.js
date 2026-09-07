@@ -158,6 +158,36 @@
     width: 0.60,
     height: 0.165,
 
+    // Sebastian, 2026-09-06: *"the text in the back to the dome should be
+    // clearer/bigger."* This rides `ui-button`'s own `fontScale` rather than
+    // introducing a fourth type size (hard rule 4 / §5's 3-size scale) — the
+    // multiplier exists for exactly this case, a short label with a lot of
+    // empty plate around it reading as undersized text rather than as generous
+    // padding. The label is the one part of this control that is never dimmed
+    // by the gaze attention, so its size is doing the whole job of legibility.
+    //
+    // 1.27 is a measured ceiling, not a taste call, and the binding case is
+    // ACCESSIBLE MODE — which is easy to miss, because in normal mode there is
+    // room to go well past this. ui-button centres the label while this file
+    // insets the back mark by `height * 0.42` from the left edge, so the two
+    // close on each other as the type grows. Measured with troika's own
+    // blockBounds, gap from the mark's right edge to the label's left edge at
+    // a11y's ×1.25 (the plate stays 0.60 × 0.165 throughout):
+    //
+    //   labelScale   a11y gap    label size
+    //   1.32          10.9 mm     0.0370     too tight — reads as crowding
+    //   1.30          13.8 mm     0.0364
+    //   1.28          16.7 mm     0.0358
+    //   1.27          18.2 mm     0.0356     shipped
+    //   1.25          21.1 mm     0.0350
+    //
+    // 0.0356 against the old 0.028 is +27%, and the label still measures
+    // 0.356 m inside a 0.528 m maxWidth, so it is one line in both modes. The
+    // plate was deliberately NOT widened to buy more room: 0.60 is a number
+    // Sebastian tuned by eye after calling the 0.82 version "far too annoying
+    // and big", and widening it also grows the console's 30.5° subtend.
+    labelScale: 1.27,
+
     fill: '#1d5c46',        // signal green; the only cool hue in the scene
 
     // ── What actually paints the plate ──
@@ -341,7 +371,8 @@
       // inherit ui-button's near-black solid label, which collapses to 2.1:1
       // in a room that has dimmed the key rack to 0.22.
       labelColor: CFG.labelColor,
-      arrow: false
+      arrow: false,
+      fontScale: CFG.labelScale
     });
 
     // ── The opaque plate ──

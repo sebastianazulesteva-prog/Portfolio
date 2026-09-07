@@ -235,11 +235,34 @@
     return (scene && scene.systems && scene.systems['vr-reading-line']) || null;
   }
 
-  // Labels state the action, not the state — see the toggle's note in
-  // buildScrollControl. Kept next to each other so they cannot drift in length
-  // and start wrapping differently from one another.
-  var GUIDE_LABEL_ON = 'Hide guide';
-  var GUIDE_LABEL_OFF = 'Show guide';
+  // ── The reading guide's name and its state ────────────────────────────────
+  // Sebastian, 2026-09-06: *"the thing should be called a 'VR reading guide'
+  // and give it a clear on/off state, like the accessibility button on the
+  // main website."*
+  //
+  // So the label carries the NAME on line one and the STATE on line two, which
+  // is a deliberate reversal of what shipped a day earlier. That version said
+  // "Hide guide" — the ACTION, matching the flat site's More Projects button
+  // ("Show Fewer") — and the reasoning was that state is legible anyway because
+  // the thing it controls is right there on the page. That reasoning was wrong
+  // in the one case that matters: with the guide OFF there is nothing on the
+  // page to look at, so "Show guide" was the only evidence of the feature's
+  // existence and it read as a thing you had not yet turned on rather than a
+  // thing you had turned off.
+  //
+  // The model is `index.html`'s `.a11y-toggle`, which Sebastian named: it says
+  // "Turn on/off Accessibility" AND carries a dot that is a hollow ring when
+  // off and a filled disc when on. Two redundant channels for one bit. The
+  // lamp below is that dot; this is that word. Kept next to each other so they
+  // cannot drift in length and start wrapping differently from one another.
+  var GUIDE_NAME = 'VR reading guide';
+  var GUIDE_LABEL_ON = GUIDE_NAME + '\nON';
+  var GUIDE_LABEL_OFF = GUIDE_NAME + '\nOFF';
+  // Set through the object/3-arg forms of setAttribute only, never a
+  // style-parser string: the newline would not survive
+  // AFRAME.utils.styleParser, and a multi-prop string also MERGES rather than
+  // replaces (see VR_SHARP_PORTRAIT.md), so a partial update would silently
+  // keep the old label.
 
   // ON BY DEFAULT, per Sebastian, and NOT remembered between pieces: this is a
   // per-visit reading preference, and persisting it would mean a visitor who
@@ -252,6 +275,30 @@
     if (state.guideBtn) {
       state.guideBtn.setAttribute('ui-button', 'label',
         state.guideOn ? GUIDE_LABEL_ON : GUIDE_LABEL_OFF);
+    }
+    setGuideLamp(state.guideOn);
+  }
+
+  // The second channel, and the reason this is a *lamp* rather than a colour
+  // change on the plate: `ui-button`'s `accent` cannot recolour a solid plate —
+  // the glass shader hardcodes its fill as `mix(#1d1c1a, #2f2d29, y)` and the
+  // accent contributes 5% — so a "green when on" plate is not available here
+  // however it is asked for. A separate small mesh is, and it is also the
+  // closer match to the flat site, whose dot is a 6 px ring that fills in.
+  //
+  // Ring always drawn, core only when on: that is exactly `.a11y-dot`'s CSS
+  // (a permanent 1px border, a background that goes from transparent to
+  // `--text`), so the off state still shows you WHERE the state is displayed
+  // rather than leaving an empty patch of plate.
+  function setGuideLamp(on) {
+    if (state.guideLampCore) state.guideLampCore.visible = !!on;
+    if (state.guideLampRingMat) {
+      // The ring dims rather than disappears when off — same move as the
+      // scroll pads' disabled state, so an off control reads as off rather
+      // than as unfinished.
+      state.guideLampRingMat.opacity = on ? 1 : 0.45;
+      state.guideLampRingMat.emissiveIntensity = on ? 0.55 : 0.14;
+      state.guideLampRingMat.needsUpdate = true;
     }
   }
 
@@ -775,27 +822,63 @@
     // used of the two (you mostly travel down), so a mis-aim next to it costs
     // less than one next to the down pad.
     //
-    // It overhangs the page's right edge by ~0.03 m at 0.26 wide, which is
-    // inside the page's own ~0.23 m right margin and covers no type — and the
-    // rail itself already overhangs by 0.01, so this is not a new kind of
-    // encroachment. Both are pulled 0.10 m toward the viewer (RAIL_Z), so they
-    // are unambiguously in front of the paper rather than fighting it for depth.
+    // It overhangs the page's right edge, which is inside the page's own
+    // ~0.23 m right margin and covers no type — and the rail itself already
+    // overhangs by 0.01, so this is not a new kind of encroachment. Both are
+    // pulled 0.10 m toward the viewer (RAIL_Z), so they are unambiguously in
+    // front of the paper rather than fighting it for depth.
     //
-    // The label states the ACTION, not the state ("Hide guide" while it is on),
-    // matching the flat site's own toggle vocabulary — index.html's More
-    // Projects button reads "Show Fewer" when the extra cards are out. State is
-    // legible anyway, because the thing it controls is right there on the page.
-    // It cannot be carried by COLOUR: ui-button's `accent` does not recolour a
-    // solid plate, the glass shader hardcodes that fill.
+    // ── Naming and state: see GUIDE_NAME above ──
+    // Two lines now — the name, then ON/OFF — plus the lamp built below. The
+    // plate grew to carry them, and the growth is deliberately VERTICAL:
+    // the width sets how far off-axis the outer edge lands, and §9.4's phone
+    // crop is the one budget here that is already overdrawn, while the space
+    // ABOVE is empty dome up to the title at topY1 + 0.12.
+    //
+    // Measured after the change, at 0.30 × 0.135 centred on railX:
+    //   outer edge   27.8° off axis (was 27.4° at 0.26 — the rail's own edge)
+    //   top edge     y 2.328, clear of the page top (2.45) and the title (2.57)
+    //   page overlap x 0.703..0.754, and the page's own type stops at x 0.515,
+    //                so it covers 0.051 m of blank right margin and no words
+    //   label        both lines inside maxWidth at a11y's ×1.25 (see below)
+    //
+    // 0.135 tall, not the 0.165 first tried: the two-line block measures
+    // 0.0605, and in a 0.165 plate that left 52 mm of empty plate above and
+    // below it, which read as an undersized label on an oversized card rather
+    // than as a control. 0.135 brings the padding to 37 mm and still clears
+    // ui-button's 0.10 m minimum target height in both type modes.
     //
     // Geometry scaled by VRType.cardMult() (hard rule 4): in a11y mode the type
-    // goes up 25% and a fixed 0.26 m plate would wrap "Hide guide" onto two
-    // lines inside a button 0.10 m tall.
+    // goes up 25%, and the plate has to grow with it or the name wraps to three
+    // lines inside a two-line box.
     var gMult = VRType.cardMult();
-    var gw = 0.26 * gMult, gh = 0.10 * gMult;
+    var gw = 0.30 * gMult, gh = 0.135 * gMult;
     var guideBtn = document.createElement('a-entity');
     guideBtn.setAttribute('ui-button', {
-      label: GUIDE_LABEL_ON, width: gw, height: gh, variant: 'ghost', accent: ACCENT
+      label: GUIDE_LABEL_ON, width: gw, height: gh, variant: 'ghost', accent: ACCENT,
+      // 0.95, and it is a measured value in two directions at once.
+      //
+      // UPWARD it is bounded by wrapping: "VR reading guide" has to stay ONE
+      // line inside maxWidth (gw × 0.88) in accessible mode too, and troika's
+      // own blockBounds put the name at 9.32 × the font size, so
+      //   0.90  →  29.2 mm of slack normal, 36.5 mm at a11y
+      //   0.95  →  16.2 mm            "     20.2 mm
+      //   1.00  →   3.1 mm            "      3.9 mm   too tight to trust
+      // 3 mm is inside the range that font-metric or subset differences move
+      // a string, and a wrap here means three lines in a two-line box.
+      //
+      // DOWNWARD it is bounded by legibility, and the reference is not a taste
+      // call either — it is the page. At 0.95 the name subtends 0.80° from the
+      // reading position, which is exactly the angular size of the page's own
+      // ~11 pt body text at 150 DPI on a 1.95 m page at 1.9 m, and larger than
+      // the page counter's 0.66°. So this control's type is the same size as
+      // the text the visitor is there to read. It looks small in a wide-FOV
+      // screenshot for the same reason the page's body text does.
+      //
+      // The exit label's 1.85° is not a fair comparison: its console sits at
+      // 1.10 m, so the same metres buy 1.7× the angle. This is a scale of the
+      // existing size rather than a fourth one (§5's 3-size scale).
+      fontScale: 0.95
     });
     guideBtn.setAttribute('position', { x: railX, y: RAIL_TOP + 0.06 + gh / 2, z: RAIL_Z });
     root.appendChild(guideBtn);
@@ -804,6 +887,52 @@
       if (e && e.stopPropagation) e.stopPropagation();
       setGuideEnabled(!state.guideOn);
     });
+
+    // ── The state lamp ──
+    // The flat site's `.a11y-dot`, in geometry. It has to BE geometry: a '●' or
+    // '○' would be the §3.7 trap again — the Syne latin subset carries no
+    // Geometric Shapes block, and troika substitutes or drops the glyph
+    // silently (the same failure that made '▲' render as an empty rounded rect,
+    // which is why scroll-arrows.js draws its triangles as shapes).
+    //
+    // It sits on the SECOND line, just left of the ON/OFF word, rather than in
+    // the plate's left margin. The margin is where it would go on the flat
+    // site's single-line pill, but here line one is the long one: at a11y scale
+    // the name reaches x ±0.127 and would run straight into a dot parked there.
+    // Line two is short whatever the state, so the space beside it is free at
+    // every type size — the collision cannot come back.
+    //
+    // y: ui-button centres a two-line block, so line two's centre is
+    // 0.575 × fontSize below the plate's centre (half the 1.15 line height).
+    // Derived rather than measured off troika, deliberately — troika's metrics
+    // are asynchronous and go stale silently (§3.2), and this is a static
+    // offset that does not need to wait for a measurement to be right.
+    var gFont = VRType.body() * 0.95;
+    var lampR = gFont * 0.42;
+    var lampY = -gFont * 0.575;
+    var lampX = -gw * 0.24;
+    var lampZ = 0.010;                        // clear of the plate, under the label's 0.008
+    var lamp = document.createElement('a-entity');
+    lamp.setAttribute('position', { x: lampX, y: lampY, z: lampZ });
+
+    var ringGeo = new THREE.RingGeometry(lampR * 0.62, lampR, 24);
+    var ringMat = window.VRScrollArrows.litMaterial(ACCENT, 0.55, 1);
+    lamp.setObject3D('lamp-ring', new THREE.Mesh(ringGeo, ringMat));
+
+    var coreGeo = new THREE.CircleGeometry(lampR * 0.62, 24);
+    var coreMat = window.VRScrollArrows.litMaterial(ACCENT, 0.75, 1);
+    var core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.z = 0.001;
+    lamp.setObject3D('lamp-core', core);
+
+    // Into the reader's own teardown list, which is what every other geometry
+    // in this file does. §9.24 is the cost of the alternative: five meshes that
+    // nothing freed, because the file that built them assumed its caller would.
+    state.disposables.push(ringGeo, ringMat, coreGeo, coreMat);
+    guideBtn.appendChild(lamp);
+    state.guideLampCore = core;
+    state.guideLampRingMat = ringMat;
+    setGuideLamp(state.guideOn);
 
     // Title of the piece, clear of the page's towering top edge so it can't
     // collide with page 1 (whose top is state.topY1).
@@ -1118,6 +1247,12 @@
       // the next open.
       state.rail = null;
       state.guideBtn = null;
+      // Cleared with the button that carried them. The meshes themselves are
+      // freed through state.disposables above; these are just the handles
+      // setGuideLamp() pokes, and a stale one would have it writing to a
+      // disposed material on the next toggle.
+      state.guideLampCore = null;
+      state.guideLampRingMat = null;
       state.guideOn = true;
       // Reset with everything else, or the next document inherits this one's
       // window index and page geometry.

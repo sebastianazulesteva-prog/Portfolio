@@ -1,0 +1,37 @@
+{
+  "width": 768,
+  "height": 1152,
+  "ipd": 0.063,
+  "view_distance": 1.5,
+  "relief_depth": 0.1951,
+  "inset": 0.06,
+  "aligned_window": {
+    "u0": 0.09828629032258064,
+    "u1": 0.8762862903225808,
+    "v0": 0.024193548387096774,
+    "v1": 0.8029540566959923
+  },
+  "z_near_m": 0.3979220390319824,
+  "z_far_m": 0.5928906202316284,
+  "layer1": "gaussian",
+  "colour_source": "contact-photo-framed-for-mosaic.jpg",
+  "eyeL": {
+    "bytes": 88362,
+    "shift_px_range": [
+      -4.88,
+      -1.29
+    ]
+  },
+  "eyeR": {
+    "bytes": 88186,
+    "shift_px_range": [
+      1.29,
+      4.88
+    ]
+  },
+  "disparity_px": {
+    "near": 1.29,
+    "far": 4.88,
+    "relative": 7.18
+  }
+}

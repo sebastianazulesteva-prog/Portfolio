@@ -416,6 +416,92 @@ a horizontal offset should do.
 
 Frame rate on real hardware is still unmeasured.
 
+## The hero is the SPATIAL PHOTO (2026-09-04, final)
+
+Sebastian picked the far-left tile in the lab — the true stereo pair — not the
+relief panel. I had read "the depth image" as the depth-MAP panel and shipped
+that instead. His reason for the stereo pair holds up: it is the only one of
+the three that shows an actual photograph. The relief displaces real geometry,
+so it answers head movement, but one continuous surface has to span the depth
+jump at his hair and it melts there. `?portrait=relief` still reaches it.
+
+**What the choice costs, stated plainly:** a spatial photo has binocular depth
+and NO motion parallax. Leaning does nothing, because there is nothing behind
+it to reveal, and on a flat screen it is an ordinary photograph because a flat
+screen has one eye. All of its depth lives in a headset. Inherent to the
+format, not a defect to fix later.
+
+### Four images, not two
+
+The reveal needs the mosaic warped by the SAME disparity field as the photo.
+Warp only the photo and the revealed mosaic sits at zero disparity — at the
+opening, in front of him — reading as artwork on glass rather than as his face
+becoming a mosaic. 576 KB for four, against 397 KB for the two flat textures.
+
+### The hair was torn, and measuring said so
+
+The first bake forward-warped every source pixel to `x + shift` with a
+z-buffer, then filled the gaps by carrying neighbours sideways. Fine on the
+face and the shirt. On his HAIR, depth changes per strand, so the splat
+scattered, left one- and two-pixel holes, and the filler smeared them into a
+fringe of streaks along the hairline. Measured: **+48.6% excess gradient energy
+in the hair band** versus the source photograph.
+
+Replaced with a backward warp over a blurred DISPARITY field (never blurred
+colour). Every output pixel is written exactly once, so it cannot tear. The
+usual objection — backward warps break at sharp depth discontinuities — is
+answered by the same blur, and the blur is free here because the total
+disparity is ~5 px: nothing is hiding behind anything by 5 px, so per-strand
+depth detail buys nothing and costs the artefact. Now **-2.8%** against the
+source, i.e. indistinguishable, and the files are smaller for having less noise
+to encode.
+
+### The plates cannot be raycast, so a proxy carries the hit test
+
+Both plates leave layer 0 for the stereo split. A-Frame's raycaster runs a
+THREE.Raycaster with default layers — layer 0 only — and three tests
+`object.layers.test(raycaster.layers)` BEFORE calling `raycast`. So neither
+plate can ever be hit: no click to toggle the bio card, no pointer-driven wash.
+The lab's comparison tile had exactly this defect and nobody noticed, because
+nobody clicks a comparison tile.
+
+One invisible quad on layer 0 now carries the hit test, with an analytic plane
+intersection. three's raycaster does not test `visible`, so an invisible mesh
+is a valid target and costs no draw call. Verified: aiming 0.14 m left and
+0.22 m up returns uv (0.306, 0.704) against a predicted (0.306, 0.704), a point
+outside the panel returns nothing, and the plates return 0 hits through
+`intersectObject` but 2 when the layer check is bypassed — so layers are
+provably what excludes them.
+
+### The border: I made it worse, then measured, then looked
+
+I pushed the edge to a 55 mm dissolve on the theory that a feathered border is
+what makes an opening. It looked bad. The ramp was *correct* — measured clean
+and monotonic, dome 11 to photo 187, no overshoot — and still wrong, because a
+wide ramp from a light studio backdrop into a near-black dome is a haze with no
+edge to it. The panel read as a glowing smudge.
+
+The premise was the error. A relief panel pretends to be an opening you look
+THROUGH and wants its boundary dissolved. A spatial photo is a photograph that
+has depth and wants a frame — which is how Apple presents them. Settled by
+rendering four treatments side by side and looking: 12 mm feather, 0.45 edge
+dim, 6% corner radius. Barely more than the panel had before any of this.
+
+### Verified
+
+* Layer masks 2 / 4 / 1 (left / right / proxy); scene camera mask 3, so the
+  flat site shows the left eye rather than an empty frame.
+* Both eyes render **different** images. With the cameras held at one position
+  and only the layer changed, the correlation minimum is at **+2 px** with a
+  clean unimodal curve — against a predicted 1.8 px for the near plane, which
+  is what dominates the correlation because it carries the contrast.
+* Baked shifts L -4.88..-1.29 px, R +1.29..+4.88 px. Signs and range as designed.
+* Reveal uniforms shared by reference between the plates, so the eyes cannot
+  disagree about where the wash is.
+* Gaze drive fires at yaw 18.4 deg = `atan2(0.5, 1.5)`; `revealOn` reaches 1.
+
+Frame rate on real hardware is still unmeasured.
+
 ## Reproducing the assets
 
 `vr/tools/sharp/` is an **offline** pipeline. It is not a build step for the

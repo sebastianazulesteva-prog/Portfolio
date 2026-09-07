@@ -245,7 +245,7 @@
   <script src="components/splat-portrait.js?v=5"></script>
   <!-- Both inert until the lab is opened: spatial-photo builds nothing unless
        an entity carries it, and portrait-lab builds only its button up front. -->
-  <script src="components/spatial-photo.js?v=2"></script>
+  <script src="components/spatial-photo.js?v=5"></script>
   <script src="components/portrait-lab.js?v=4"></script>
   <script src="components/bio-card.js?v=36"></script>
   <script src="components/project-room.js?v=27"></script>
@@ -466,20 +466,24 @@
       <!-- Shifted left, bio card to its right (VR_BUGFIX_NOTES.md item 8) —
            both sit in front of the viewer on load, no turning required. -->
       <a-entity id="homePortrait"
-                 mosaic-reveal="gray: ../images/contact-photo-framed-for-mosaic.jpg; color: ../images/contact-photo-mosaic.jpg; width: 0.72; height: 1.08; relief: assets/portrait-relief.png"
+                 spatial-photo="width: 0.72; height: 1.08"
                  position="-0.5 1.42 0" class="clickable"></a-entity>
       <!-- ?portrait= — overrides for the hero portrait ─────────────────────
            The relief window is now the DEFAULT (it is in the markup above), on
            Sebastian's call after comparing all three in a headset. These are
            the two ways off it.
 
-             (absent)          the relief window. What visitors get.
-             ?portrait=flat    the old flat panel. The escape hatch — if the
-                               relief ever misbehaves on a device nobody has
-                               tested yet, this is the one-parameter answer
-                               that does not need a deploy.
-             ?portrait=splat   real 3D gaussians instead. No mosaic reveal:
-                               a splat cloud has no uv to reveal across.
+             (absent)          the spatial photo. What visitors get.
+             ?portrait=flat    the old single-image panel, mosaic reveal and
+                               all. The escape hatch: if the stereo pair
+                               misbehaves on a device nobody has tested, this
+                               is the one-parameter answer with no deploy.
+             ?portrait=relief  the depth-displaced version. Kept reachable
+                               because it is the only one that responds to
+                               head MOVEMENT, and because the comparison is
+                               cheap to keep and expensive to rebuild.
+             ?portrait=splat   real 3D gaussians. No mosaic reveal: a splat
+                               cloud has no uv to reveal across.
 
            Runs at parse time, while #homePortrait is in the DOM but before
            A-Frame has attached its components, so this is only editing markup —
@@ -489,20 +493,22 @@
       <script>
         (function () {
           var mode = new URLSearchParams(location.search).get('portrait');
-          if (mode !== 'flat' && mode !== 'splat') return;
+          if (mode !== 'flat' && mode !== 'relief' && mode !== 'splat') return;
           var el = document.getElementById('homePortrait');
           if (!el) return;
-          if (mode === 'flat') {
-            // The single-property form, NOT a rewritten attribute string.
-            // A-Frame merges a partial multi-prop string into the existing
-            // values, so removing `relief:` from the string does not unset it —
-            // the markup's value simply survives and the flag silently does
-            // nothing. (Measured: mode logged 'flat', relief stayed on.)
-            el.setAttribute('mosaic-reveal', 'relief', '');
+          var PHOTO = 'gray: ../images/contact-photo-framed-for-mosaic.jpg;'
+                    + ' color: ../images/contact-photo-mosaic.jpg;'
+                    + ' width: 0.72; height: 1.08';
+          if (mode === 'flat' || mode === 'relief') {
+            // The stereo pair and the single-image panel are different
+            // components, so this is a swap, not a property edit.
+            el.removeAttribute('spatial-photo');
+            el.setAttribute('mosaic-reveal',
+              mode === 'relief' ? PHOTO + '; relief: assets/portrait-relief.png' : PHOTO);
           } else {
             // The splat is its own object, so the photo panel goes away
             // entirely rather than sitting inside him.
-            el.removeAttribute('mosaic-reveal');
+            el.removeAttribute('spatial-photo');
             el.setAttribute('splat-portrait', 'src: assets/portrait-lod.splat');
           }
           console.info('[vr] portrait mode:', mode);

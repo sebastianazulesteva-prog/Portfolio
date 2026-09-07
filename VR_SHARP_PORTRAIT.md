@@ -327,6 +327,95 @@ Wolvic, wrong on a tethered PC headset, wrong on every device released after
 this was written, and it silently hands someone the degraded asset with no way
 to say otherwise.
 
+## Shipped as the hero portrait — and the five things that were wrong
+
+Sebastian picked the relief window in a headset, and reported that the mosaic
+reveal "doesn't seem to work". It did work — on a monitor. Chasing that turned
+up four more defects, three of which I had introduced and none of which a
+desktop check could see.
+
+### 1. The reveal was dead in a headset (the reported bug)
+
+It followed `raycaster.intersections`. Vision Pro Safari has no controllers and
+**no hover** — a pinch materialises a `transient-pointer` for one frame and
+removes it (§3.13). So `intersections` is empty essentially always, `revealOn`
+never left 0, and the effect existed only for mouse users.
+
+Fixed by falling back to the **head pose**, the one continuous "where are you
+attending" signal every runtime provides. Solved against the panel's *plane* in
+local space, not by raycasting the mesh — see defect 4. Not a gaze-fuse
+violation (hard rule 7): it selects nothing, it moves a colour wash.
+
+Verified: gaze centre-hits the panel at yaw **18.4°**, which is `atan2(0.5, 1.5)`
+for a panel 0.5 m left and 1.5 m out. `revealOn` climbs 0.07 → 0.85.
+
+### 2. The depth map was misaligned with the photograph
+
+SHARP ran on `contact-photo-professional.jpg`. The panel displays
+`contact-photo-framed-for-mosaic.jpg`, which the flat site crops to match the
+mosaic artwork. **Different framing.** By NCC scale/offset search the framed
+photo is the professional one cropped to 1543.6 × 2317.6 at (195, 72) — 77.8% of
+the width — at **NCC 0.99990**.
+
+So the relief was displacing him by a depth field offset ~10% of the width and
+scaled to 78%. Overlaying the depth silhouette on the photo shows it cutting
+straight through his cheek and chin. It survived review because a face-shaped
+depth blob over a face reads as odd lighting, not as a misalignment.
+
+`tools/sharp/export_relief.py` now crops the gaussian grid to that measured
+window before unsquashing, and renormalises over the crop: span **0.1951 m**,
+not 0.2355 m, because the old range was partly spent on backdrop the panel
+never shows.
+
+### 3. The reveal was less than half its approved size, and an ellipse
+
+`distance(vUv, revealUv)` is anisotropic on a 0.72 × 1.08 panel, so a constant
+uv radius draws 1.5× wider than tall. And 0.14 uv is 0.10 m across, where the
+flat site's approved hero is `circle 130px` over a 408 px-wide photo = 31.9% of
+the width = **0.23 m** here. Now measured in metres, so it is a true circle, at
+the flat site's own size and its own 55% solid stop.
+
+Also: the spliced `windowShade` line was multiplying the *revealed mosaic* by up
+to 30%, breaking FRAG's documented promise that at full reveal the output is
+exactly `color.rgb`. It is now faded by `(1 - mixAmount)`, the same guard the
+sheen uses.
+
+### 4. Hit-testing the relief blew the entire frame budget
+
+Tessellating took the panel from 2 triangles to 49,152, and A-Frame raycasts
+every `.clickable` on tick per raycaster. Measured: **4.52 ms** for the relief
+mesh vs **0.0045 ms** for a flat quad — 1005×. Three raycasters live = **15.4 ms
+per frame against 11.1 ms at 90 Hz**, from one panel.
+
+That is not a frame-rate problem, it is the frame — and it would have presented
+as the §3.13 symptoms (buttons needing several tries, "laggy"), which this
+project has already misdiagnosed as frame rate once.
+
+`mesh.raycast` is now an analytic plane intersection. **0.025 ms**, a 178×
+improvement, per-frame sweep 15.4 → 6.0 ms, and the returned hit distance is
+1.591 m — identical to the tessellated result. The quad is also the correct hit
+surface: the reveal wants the flat plane's uv and the click just toggles the bio
+card.
+
+### 5. The escape hatch silently did nothing
+
+`?portrait=flat` rewrote the component's attribute string with `relief:`
+removed. A-Frame **merges** a partial multi-prop string into existing values, so
+the markup's value simply survived — the flag logged `mode: flat` and changed
+nothing. Now uses the single-property form, `setAttribute(name, 'relief', '')`.
+
+Verified off: 4 verts, `depthWrite:false`, no relief symbols in the shader.
+
+### Where it stands
+
+Relief is the **default** in the markup. `?portrait=flat` is the one-parameter
+rollback if it misbehaves on a device nobody has tested; `?portrait=splat` still
+swaps in the gaussians. Per-eye portal planes verified to differ across a 63 mm
+baseline on the left/right planes only, top and bottom identical — exactly what
+a horizontal offset should do.
+
+Frame rate on real hardware is still unmeasured.
+
 ## Reproducing the assets
 
 `vr/tools/sharp/` is an **offline** pipeline. It is not a build step for the

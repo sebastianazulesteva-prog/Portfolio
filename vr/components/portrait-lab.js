@@ -132,7 +132,7 @@
           art.setAttribute('mosaic-reveal',
             'gray: ../images/contact-photo-framed-for-mosaic.jpg;'
             + ' color: ../images/contact-photo-mosaic.jpg;'
-            + ' width: ' + PANEL_W + '; height: ' + PANEL_H + '; radius: 0.14;'
+            + ' width: ' + PANEL_W + '; height: ' + PANEL_H + ';'
             + ' relief: assets/portrait-relief.png;'
             + ' viewDistance: ' + ROOM_VIEW_DIST);
         } else {

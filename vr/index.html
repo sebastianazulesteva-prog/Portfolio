@@ -237,7 +237,7 @@
   <script src="components/focus-stage.js?v=23"></script>
   <script src="components/card-flip.js?v=8"></script>
   <script src="components/photo-cloud.js?v=19"></script>
-  <script src="components/mosaic-reveal.js?v=20"></script>
+  <script src="components/mosaic-reveal.js?v=23"></script>
   <!-- Inert unless ?portrait=splat asks for it: the component only builds when
        the entity carries the attribute, and nothing carries it by default. The
        665 KB renderer is fetched lazily from inside the component, so an
@@ -246,7 +246,7 @@
   <!-- Both inert until the lab is opened: spatial-photo builds nothing unless
        an entity carries it, and portrait-lab builds only its button up front. -->
   <script src="components/spatial-photo.js?v=2"></script>
-  <script src="components/portrait-lab.js?v=3"></script>
+  <script src="components/portrait-lab.js?v=4"></script>
   <script src="components/bio-card.js?v=36"></script>
   <script src="components/project-room.js?v=27"></script>
   <script src="components/pdf-reader.js?v=13"></script>
@@ -466,17 +466,20 @@
       <!-- Shifted left, bio card to its right (VR_BUGFIX_NOTES.md item 8) —
            both sit in front of the viewer on load, no turning required. -->
       <a-entity id="homePortrait"
-                 mosaic-reveal="gray: ../images/contact-photo-framed-for-mosaic.jpg; color: ../images/contact-photo-mosaic.jpg; width: 0.72; height: 1.08; radius: 0.14"
+                 mosaic-reveal="gray: ../images/contact-photo-framed-for-mosaic.jpg; color: ../images/contact-photo-mosaic.jpg; width: 0.72; height: 1.08; relief: assets/portrait-relief.png"
                  position="-0.5 1.42 0" class="clickable"></a-entity>
-      <!-- ?portrait= — the SHARP experiment, off by default ────────────────
-           Both options are reachable in a real session so they can be judged in
-           a headset rather than on a monitor, which is the only place the
-           question ("does he read as solid?") actually has an answer.
+      <!-- ?portrait= — overrides for the hero portrait ─────────────────────
+           The relief window is now the DEFAULT (it is in the markup above), on
+           Sebastian's call after comparing all three in a headset. These are
+           the two ways off it.
 
-             ?portrait=relief   displace the existing panel by the baked relief
-                                map. Keeps the mosaic gaze-reveal.
-             ?portrait=splat    swap the panel for real 3D gaussians. No reveal.
-             (absent)           the flat panel, exactly as shipped.
+             (absent)          the relief window. What visitors get.
+             ?portrait=flat    the old flat panel. The escape hatch — if the
+                               relief ever misbehaves on a device nobody has
+                               tested yet, this is the one-parameter answer
+                               that does not need a deploy.
+             ?portrait=splat   real 3D gaussians instead. No mosaic reveal:
+                               a splat cloud has no uv to reveal across.
 
            Runs at parse time, while #homePortrait is in the DOM but before
            A-Frame has attached its components, so this is only editing markup —
@@ -486,12 +489,16 @@
       <script>
         (function () {
           var mode = new URLSearchParams(location.search).get('portrait');
-          if (mode !== 'relief' && mode !== 'splat') return;
+          if (mode !== 'flat' && mode !== 'splat') return;
           var el = document.getElementById('homePortrait');
           if (!el) return;
-          if (mode === 'relief') {
-            el.setAttribute('mosaic-reveal',
-              el.getAttribute('mosaic-reveal') + '; relief: assets/portrait-relief.png');
+          if (mode === 'flat') {
+            // The single-property form, NOT a rewritten attribute string.
+            // A-Frame merges a partial multi-prop string into the existing
+            // values, so removing `relief:` from the string does not unset it —
+            // the markup's value simply survives and the flag silently does
+            // nothing. (Measured: mode logged 'flat', relief stayed on.)
+            el.setAttribute('mosaic-reveal', 'relief', '');
           } else {
             // The splat is its own object, so the photo panel goes away
             // entirely rather than sitting inside him.

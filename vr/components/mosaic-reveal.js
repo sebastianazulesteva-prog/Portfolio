@@ -100,7 +100,8 @@
     'uniform sampler2D tGray;',
     'uniform sampler2D tColor;',
     'uniform vec2 revealUv;',
-    'uniform float revealRadius;',
+    'uniform float revealRadius;',   // metres on the panel
+    'uniform float uRevealCore;',    // fraction of the radius held at full colour
     'uniform float revealOn;',
     'uniform vec2 uSize;',        // panel size in metres, for the rounded-corner mask
     'uniform float uCornerRadius;',
@@ -138,8 +139,13 @@
     // `imagetone` grading (BUILD_NOTES ISSUE-07 territory): the point of the
     // reveal is the true piece underneath, not a re-lit version of it.
     '  vec4 color = texture2D(tColor, vUv);',
-    '  float dist = distance(vUv, revealUv);',
-    '  float t = smoothstep(revealRadius * 0.55, revealRadius, dist);', // 0 near center, 1 past the radius
+    // In METRES on the panel, not in uv. uv distance is anisotropic on
+    // anything that is not square — this panel is 0.72 x 1.08, so a "circle"
+    // of constant uv radius was drawn 1.5x wider than it was tall. Nobody
+    // reported it because an ellipse on a face still reads as a soft blob, but
+    // it is why the reveal never looked like a lens.
+    '  float dist = length((vUv - revealUv) * uSize);',
+    '  float t = smoothstep(revealRadius * uRevealCore, revealRadius, dist);', // 0 near center, 1 past the radius
     '  float mixAmount = revealOn * (1.0 - t);', // how much color shows through
 
     // Pure, unlit blend FIRST: at mixAmount = 1 this is mathematically exactly
@@ -233,7 +239,14 @@
       // and the falloff cannot creep onto the subject.
       .replace('gl_FragColor = vec4(col, 1.0);', [
         'float wr = texture2D(tRelief, vUv).r;',
-        'col *= 1.0 - uWindowShade * wr;',
+        // Faded by (1 - mixAmount), the same guard the sheen above uses and for
+        // the same reason. FRAG promises that at mixAmount = 1 the output is
+        // mathematically exactly color.rgb with nothing added anywhere below —
+        // and this line, spliced in after it, was quietly breaking that promise
+        // by up to 30%. The revealed mosaic was coming through pre-dimmed by
+        // however deep that part of him sits, which is why it read as muddy
+        // rather than as the artwork.
+        'col *= 1.0 - uWindowShade * wr * (1.0 - mixAmount);',
         // ── The opening ──────────────────────────────────────────────────
         // Distance INSIDE the four planes that join the eye to the four edges
         // of the aperture rectangle — i.e. the viewing frustum of the window
@@ -273,7 +286,29 @@
       color: { type: 'string' },
       width: { type: 'number', default: 1 },
       height: { type: 'number', default: 1 },
-      radius: { type: 'number', default: 0.14 }, // reveal radius in UV units (0-1) — sized to one eye
+      // Reveal radius in METRES on the panel, taken from the flat site's
+      // approved hero rather than guessed. That mask is
+      //   radial-gradient(circle 130px at x y, ...0%, ...55%, black 100%)
+      // over a hero measured 408 px wide, so the radius is 130/408 = 31.9% of
+      // the photo's width. On this 0.72 m panel that is 0.23 m.
+      //
+      // It was 0.14 in UV units — 0.10 m across but 0.15 m tall, so less than
+      // half the intended width AND an ellipse. That is most of why the effect
+      // read as a smudge on his cheek rather than the lens the flat site shows.
+      radius: { type: 'number', default: 0.23 },
+      // Drive the reveal from the head pose when no pointer is on the panel.
+      // This is what makes the effect exist at all in a headset; see the long
+      // note in _findHitUv. Off restores the pointer-only behaviour.
+      gaze: { type: 'boolean', default: true },
+      // How far outside the panel the gaze still counts, in uv. Gives the wash
+      // somewhere to ease off rather than snapping out at the border.
+      gazeMargin: { type: 'number', default: 0.12 },
+      // Fraction of the radius held at FULL colour before the feather begins.
+      // 0.55 is the flat site's own stop, not a taste call — its gradient runs
+      // solid to 55% and ramps out by 100%. Kept as a smoothstep rather than
+      // the CSS gradient's linear ramp: same two stops, but zero derivative at
+      // both ends, so the boundary has no detectable edge anywhere.
+      revealCore: { type: 'number', default: 0.55 },
       // Anchor of the reveal, in the plane's UV space (0,0 = bottom-left).
       // Pinned to the subject's viewer-left eye (contact photo is 682×1024,
       // pupil ≈ 0.37 across, 0.61 up) so the mosaic blooms over ONE eye like
@@ -311,7 +346,11 @@
       // So: the bake measured the subject's own relief at 0.2059 m life-size,
       // and the panel draws the photo 1.144x larger than life (1.08 m tall
       // against the 0.944 m the reconstruction spans). 0.2059 * 1.144 = 0.2355.
-      reliefDepth: { type: 'number', default: 0.2355 },
+      // Measured span of the ALIGNED relief map (vr/assets/portrait-relief.json).
+      // Was 0.2355, which was the span across the whole professional frame —
+      // including backdrop this panel never shows. 0.1951 is the span of what
+      // is actually in the picture.
+      reliefDepth: { type: 'number', default: 0.1951 },
       // Plane subdivision. Chosen by measurement, not by matching the map:
       // rendered at an oblique -30 deg (where displacement shows most) and
       // compared against a 384-segment reference, RMS luminance error over the
@@ -408,6 +447,7 @@
           // Pinned to the eye — never follows the pointer across the face now.
           revealUv: { value: new THREE.Vector2(this.data.eyeu, this.data.eyev) },
           revealRadius: { value: this.data.radius },
+          uRevealCore: { value: this.data.revealCore },
           revealOn: { value: 0 },
           uSize: { value: new THREE.Vector2(this.data.width, this.data.height) },
           uCornerRadius: {
@@ -459,6 +499,7 @@
             Math.max(1, Math.round(this.data.reliefSegs * this.data.height / this.data.width)))
         : new THREE.PlaneGeometry(this.data.width, this.data.height);
       this.mesh = new THREE.Mesh(geometry, this.material);
+      if (hasRelief) this._installFlatRaycast();
 
       // ── Keeping the opening honest, per eye ──────────────────────────────
       // The four portal planes depend on where the eye is, so they are rebuilt
@@ -505,6 +546,54 @@
     // the eye and one edge of the aperture rectangle, with its normal turned
     // inward, so a fragment is inside the opening when it is on the positive
     // side of all four.
+    // ── Hit-test the OPENING, not the relief ────────────────────────────────
+    // Tessellating for the relief took this panel from 2 triangles to 49,152,
+    // and A-Frame raycasts every `.clickable` on tick, for every raycaster.
+    // Measured in this scene: 4.52 ms to raycast the relief mesh against
+    // 0.0045 ms for a flat quad of the same size — 1005x. With three
+    // raycasters live that is 15.4 ms of hit-testing per frame against an
+    // 11.1 ms budget at 90 Hz, from ONE panel.
+    //
+    // That is not a frame-rate problem, it is the frame. And it would have
+    // presented as the §3.13 symptom set — buttons needing several tries,
+    // things "feeling laggy" — which has already been misdiagnosed as frame
+    // rate on this project once.
+    //
+    // A quad is also the RIGHT surface to hit. The reveal wants the flat
+    // plane's uv (that is what _gazeUv solves for, and why), and the click
+    // just toggles the bio card. Nothing wants per-triangle relief precision.
+    // So: intersect the plane analytically and report the same fields three
+    // would. O(1), exact, and it kills the whole cost.
+    _installFlatRaycast: function () {
+      var d = this.data, mesh = this.mesh;
+      var inv = new THREE.Matrix4(), o = new THREE.Vector3(),
+          dir = new THREE.Vector3(), hit = new THREE.Vector3();
+      var hw = d.width / 2, hh = d.height / 2;
+      mesh.raycast = function (raycaster, intersects) {
+        inv.copy(mesh.matrixWorld).invert();
+        o.copy(raycaster.ray.origin).applyMatrix4(inv);
+        dir.copy(raycaster.ray.direction).transformDirection(inv);
+        if (Math.abs(dir.z) < 1e-8) return;          // parallel, never meets
+        var t = -o.z / dir.z;                        // the quad is local z = 0
+        if (t <= 0) return;                          // behind the ray
+        var x = o.x + dir.x * t, y = o.y + dir.y * t;
+        if (Math.abs(x) > hw || Math.abs(y) > hh) return;
+        hit.set(x, y, 0).applyMatrix4(mesh.matrixWorld);
+        var dist = raycaster.ray.origin.distanceTo(hit);
+        if (dist < raycaster.near || dist > raycaster.far) return;
+        intersects.push({
+          distance: dist,
+          point: hit.clone(),
+          object: mesh,
+          uv: new THREE.Vector2(x / d.width + 0.5, y / d.height + 0.5),
+          // Local-space normal, three's own convention for face.normal, so
+          // anything reading it gets what a PlaneGeometry would have given.
+          face: { a: 0, b: 0, c: 0, normal: new THREE.Vector3(0, 0, 1), materialIndex: 0 },
+          faceIndex: 0
+        });
+      };
+    },
+
     _updatePortal: function (camera) {
       var u = this.material.uniforms;
       if (!u.uPortal || !u.uPortalOn.value) return;
@@ -554,7 +643,12 @@
     // also gives a *continuously* updating hit point so the reveal follows
     // the gaze across the face, which a one-shot enter/exit event can't.
     _findHitUv: function () {
-      if (!this._raycasters) {
+      // Re-query while the list is EMPTY, not just while it is unset. `[]` is
+      // truthy, so the old `if (!this._raycasters)` cached an empty result
+      // permanently — and the hand raycasters are added when a controller
+      // connects, i.e. after this component's first tick. Any panel that ticked
+      // before they existed could never see them again.
+      if (!this._raycasters || !this._raycasters.length) {
         this._raycasters = Array.prototype.slice.call(document.querySelectorAll('[raycaster]'));
       }
       for (var r = 0; r < this._raycasters.length; r++) {
@@ -565,7 +659,63 @@
           if (it.object && it.object.el === this.el && it.uv) return it.uv;
         }
       }
-      return null;
+      // No pointer is on the panel. On a desktop that means the mouse is
+      // elsewhere and the reveal should fade — but in a HEADSET it means
+      // nothing of the sort, and this is what made the whole effect dead on
+      // hardware.
+      //
+      // Vision Pro Safari has no controllers and no hover (§3.13): a pinch
+      // materialises a `transient-pointer` for ONE FRAME and removes it. There
+      // is no continuous ray to follow between pinches, so `intersections` is
+      // empty essentially always and revealOn never left 0. The effect worked
+      // perfectly on a monitor, which is exactly why it survived to hardware.
+      //
+      // The one continuous "where are you attending" signal every runtime does
+      // provide is the head pose. So fall back to it.
+      //
+      // NOT a violation of the no-gaze-fuse rule (hard rule 7): that forbids
+      // gaze SELECTING things. This selects nothing and arms nothing — it moves
+      // a colour wash. Looking at a photograph is not a click.
+      return this.data.gaze ? this._gazeUv() : null;
+    },
+
+    // Where the head is looking, as a uv on this panel. Solved against the
+    // panel's PLANE in its own local space rather than by raycasting the mesh:
+    // the relief geometry is 49k triangles and this runs every tick for every
+    // eye, so a real raycast here would cost more than the entire rest of the
+    // scene draws in. Intersecting a plane is a divide.
+    //
+    // The flat plane is also the correct surface to solve against even though
+    // the displaced one is what you see, because the displacement pushes each
+    // vertex along the ray from the reference eye — so a point's uv and its
+    // line of sight still coincide near that viewpoint, which is where a
+    // seated visitor is.
+    _gazeUv: function () {
+      var cam = this.el.sceneEl && this.el.sceneEl.camera;
+      if (!cam) return null;
+      var obj = this.el.object3D;
+      if (!this._g) {
+        this._g = { o: new THREE.Vector3(), d: new THREE.Vector3(), q: new THREE.Quaternion(),
+                    inv: new THREE.Matrix4(), uv: new THREE.Vector2() };
+      }
+      var g = this._g;
+      cam.getWorldPosition(g.o);
+      g.d.set(0, 0, -1).applyQuaternion(cam.getWorldQuaternion(g.q)).normalize();
+
+      g.inv.copy(obj.matrixWorld).invert();
+      g.o.applyMatrix4(g.inv);              // ray origin in panel space
+      g.d.transformDirection(g.inv);        // rotation+scale only, then normalised
+
+      if (Math.abs(g.d.z) < 1e-6) return null;   // looking along the panel, never meets it
+      var t = -g.o.z / g.d.z;                    // the panel's plane is local z = 0
+      if (t <= 0) return null;                   // it is behind the viewer
+      var u = (g.o.x + g.d.x * t) / this.data.width + 0.5;
+      var v = (g.o.y + g.d.y * t) / this.data.height + 0.5;
+      // A small margin outside the panel still counts, so the wash eases off the
+      // edge instead of vanishing the instant your gaze crosses the border.
+      var m = this.data.gazeMargin;
+      if (u < -m || u > 1 + m || v < -m || v > 1 + m) return null;
+      return g.uv.set(u, v);
     },
 
     tick: function (time, delta) {

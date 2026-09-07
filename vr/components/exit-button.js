@@ -249,6 +249,77 @@
     easePerSec: 3.2         // state change per second, frame-rate independent
   };
 
+  // ── Freeing what this file builds ────────────────────────────────────────
+  // three.js never auto-disposes, and NEITHER `removeObject3D` NOR
+  // `removeChild` frees anything (trap §3.17) — so each of the five meshes
+  // below needs a real teardown path. It did not have one.
+  //
+  // Measured, because a code read cannot tell a leak from a one-off: this
+  // control is rebuilt on EVERY reader open and every project-room entry, and
+  // it was leaking five geometries and five materials each time — the plate,
+  // the ember rule, the back mark, the console deck and the deck's rim. Two
+  // equal blocks of two open/close cycles of the reader (§3.17's method,
+  // rendering rather than just ticking): +10 and +10 geometries, i.e. 5.00 per
+  // open, steady state, with block A ≈ block B ruling out warmup. Every other
+  // geometry in that measurement balanced exactly — the reader's page planes
+  // 32/32, its ground 4/4, the rail's eight shapes 32/32, ui-button's own
+  // plates 8/8.
+  //
+  // It hid for as long as it did because ONE of the two call sites happens to
+  // be safe by accident: project-room.js frees its whole room with a blanket
+  // `VRGlass.disposeSubtree(state.roomEl.object3D)`, which sweeps up the
+  // console with everything else. pdf-reader.js frees from an explicit
+  // `state.disposables` list instead — correct for everything the reader
+  // itself builds, and it cannot know about five meshes another file attached.
+  // That is §9.21's lesson for the third time: not a missing idea, an idea
+  // that had not been applied in the second place it belonged.
+  //
+  // ── Why a component `remove()`, not an `opts.disposables` array ──
+  // The array is what scroll-arrows.js takes, and it is why the reader's rail
+  // has always been clean. But `mount()` has three call sites and nothing
+  // forces a fourth to pass an array or to remember to drain it. A-Frame calls
+  // `remove()` on every component in a detached subtree — verified in the
+  // 1.5.0 build, whose a-entity `disconnectedCallback` does
+  // `for (name in this.components) this.removeComponent(name, false)` — so
+  // this fires whether the caller removes the button, the deck, or the whole
+  // reader/room root above them. That is the same mechanism ui-button.js
+  // already relies on for its own plate, and it is what makes this control
+  // safe to mount anywhere without a teardown contract.
+  //
+  // ── Why by NAME, and not `disposeSubtree(el.object3D)` ──
+  // The button entity also carries ui-button, which owns its glass card and
+  // its MEMOISED arrow-glyph texture and frees them in its own `remove()`
+  // (see disposeSubtree's exclusion note for why that texture must not be
+  // freed by a subtree sweep). Freeing only what THIS file attached leaves
+  // that ownership where it belongs. A blanket sweep would also double up with
+  // project-room's, which is harmless — three.js drops its own dispose
+  // listener on the first call, so the counters cannot go negative — but
+  // "harmless" is not a reason to do it twice.
+  AFRAME.registerComponent('exit-owned', {
+    remove: function () {
+      var names = this.el.__exitOwned;
+      if (!names) return;
+      for (var i = 0; i < names.length; i++) {
+        var o = this.el.getObject3D(names[i]);
+        if (!o) continue;
+        this.el.removeObject3D(names[i]);
+        VRGlass.disposeSubtree(o);
+      }
+      this.el.__exitOwned = null;
+    }
+  });
+
+  // setObject3D, plus the bookkeeping that lets the component above free it.
+  // EVERY setObject3D in this file goes through here; a bare one is a leak.
+  function own(el, name, obj) {
+    el.setObject3D(name, obj);
+    if (!el.__exitOwned) {
+      el.__exitOwned = [];
+      el.setAttribute('exit-owned', '');
+    }
+    el.__exitOwned.push(name);
+  }
+
   function make(opts) {
     opts = opts || {};
     var el = document.createElement('a-entity');
@@ -284,7 +355,7 @@
         CFG.width, CFG.height, CFG.height * 0.5);
       var plate = new THREE.Mesh(plateGeo, VRScrollArrows.litMaterial(CFG.fill, CFG.fillGlow, 1));
       plate.position.z = 0.002;
-      el.setObject3D('exit-plate', plate);
+      own(el, 'exit-plate', plate);
       el.addEventListener('loaded', function () {
         var ub = el.components['ui-button'];
         if (ub && ub.mesh) ub.mesh.visible = false;
@@ -301,7 +372,7 @@
       var ringMat = VRScrollArrows.litMaterial(CFG.ring, CFG.restRing, 1);
       var ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.z = -0.003;
-      el.setObject3D('exit-ring', ring);
+      own(el, 'exit-ring', ring);
     }
 
     // ── The back mark ──
@@ -317,7 +388,7 @@
       // roughly 0.28 m wide at this size, so it spans about ±0.14 — this sits
       // clear of it at -0.23.
       tri.position.set(-(CFG.width / 2) + CFG.height * 0.42, 0, 0.02);
-      el.setObject3D('exit-arrow', tri);
+      own(el, 'exit-arrow', tri);
     }
 
     el.setAttribute('exit-attention', '');
@@ -404,7 +475,7 @@
 
     var deckGeo = VRScrollArrows.roundedRectGeometry(CFG.consoleW, CFG.consoleH, CFG.consoleH * 0.22);
     var deckMesh = new THREE.Mesh(deckGeo, VRScrollArrows.litMaterial(CFG.consoleFill, 0.10, 1));
-    deck.setObject3D('console-deck', deckMesh);
+    own(deck, 'console-deck', deckMesh);
 
     if (CFG.consoleRule > 0) {
       var rimGeo = VRScrollArrows.roundedRectGeometry(
@@ -413,7 +484,7 @@
       var rimColor = CFG.consoleRuleColor != null ? CFG.consoleRuleColor : CFG.ring;
       var rim = new THREE.Mesh(rimGeo, VRScrollArrows.litMaterial(rimColor, 0.10, 1));
       rim.position.z = -0.004;
-      deck.setObject3D('console-rim', rim);
+      own(deck, 'console-rim', rim);
     }
 
     root.appendChild(deck);

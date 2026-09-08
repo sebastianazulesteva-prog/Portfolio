@@ -639,6 +639,7 @@
   window.VRPdfReader = {
     open: open,
     close: close,
+    evict: evict,
     // prefetch() is GONE with pdf.js. There is nothing left to warm: opening a
     // piece costs one ~146 KB page image, so pre-pulling five of them for a
     // visitor who may open none would be the worse trade. index.html's idle
@@ -956,11 +957,16 @@
   }
 
   // ── Transition (mirrors project-room.js's dip-to-dark) ───────────────────
-  function runTransition(applyChanges) {
+  // `instant` skips the dip entirely and applies the change in this call. Used
+  // by evict() (see the bottom of this file): when place.js swaps the reader
+  // out for a room, the ROOM is already running a dip, and this file's own
+  // hard-won lesson is that teardown must never sit behind a tween that may
+  // not tick — so eviction takes the same synchronous path reduced-motion does.
+  function runTransition(applyChanges, instant) {
     if (state.transTween) { state.transTween.kill(); state.transTween = null; }
     var v = document.querySelector('#comfortVignette');
     var mesh = v && v.getObject3D('mesh');
-    if (reducedMotion || !mesh || typeof gsap === 'undefined') { applyChanges(); return; }
+    if (instant || reducedMotion || !mesh || typeof gsap === 'undefined') { applyChanges(); return; }
     var mat = mesh.material;
     var half = 0.7;
     var flash = v.components && v.components['vignette-flash'];
@@ -1067,6 +1073,11 @@
       opening.cancelled = true;
     }
     if (state.open) close();
+    // Evict a project room or the portrait lab if either is live. Placed here,
+    // AFTER the "no pdf" / "no pages" guards above, so a piece that cannot open
+    // never tears down the place the visitor is actually standing in — it shows
+    // a notice and leaves them where they were.
+    if (window.VRPlace) VRPlace.enter('reader');
     state.project = project;
 
     var job = { pdf: project.pdf, cancelled: false };
@@ -1207,7 +1218,7 @@
     rec.material.needsUpdate = true;
   }
 
-  function close() {
+  function close(instant) {
     if (!state.open) return;
     state.open = false;
     if (state.scrollTween) { state.scrollTween.kill(); state.scrollTween = null; }
@@ -1266,6 +1277,13 @@
       returnToDome();
       setHubVisible(true);
       refreshClickableRaycasters();
-    });
+      if (window.VRPlace) VRPlace.leave('reader');
+    }, instant);
   }
+
+  // Instant teardown for place.js. Same work as close(), no dip: whoever is
+  // evicting the reader is already running their own.
+  function evict() { close(true); }
+
+  if (window.VRPlace) VRPlace.register('reader', { isOpen: function () { return state.open; }, evict: evict });
 })();

@@ -82,6 +82,16 @@
       // on the pendant means cropping the chain off it.
       imageW: Number((img || video || {}).getAttribute && (img || video).getAttribute('width')) || null,
       imageH: Number((img || video || {}).getAttribute && (img || video).getAttribute('height')) || null,
+      // A card whose hero is a <video> rather than an <img> — Slip Door's is
+      // the door actually sliding open, which is the entire point of the
+      // project and the one thing a still cannot show. Every source is kept so
+      // the room can hand the browser the same list the flat page does (webm
+      // first, mp4 fallback) instead of guessing a codec.
+      video: video ? {
+        sources: Array.prototype.slice.call(video.querySelectorAll('source')).map(function (s) {
+          return { src: rootHref(s.getAttribute('src')), type: s.getAttribute('type') || '' };
+        })
+      } : null,
       tags: textOf(tagEl).split('·').map(function (s) { return s.trim(); }).filter(Boolean),
       featured: featured
     };
@@ -148,6 +158,98 @@
   // page's own one-off class names (hero-img-wrap, process-grid, img-slot,
   // collage-grid... — checked all five image-heavy project pages, no single
   // class name is shared by all of them, but the <a>-wrapping rule is).
+  // ── Story stations ────────────────────────────────────────────────────────
+  // The project room walks you round a circle, one station per phase of the
+  // build. The GROUPING is derived from the page, never authored here: each
+  // page already says which photos belong together, by putting them in one
+  // container, and already names the phase, in the nearest section heading.
+  // Measured across the five image-bearing pages:
+  //
+  //   pendant   4 x .img-slot, separately headed "Wax 3D Print",
+  //             "Lost-Wax Casting", "Hand-Finishing" — a ready-made sequence
+  //   slipdoor  .idea-imgs (2) under "Idea + Building", .result-gif-wrap (1)
+  //             under "Result"
+  //   baston    .hero-img-wrap (1), .process-grid (4), one loose
+  //   timecoll. .frame (2), .process-grid (4)
+  //   chess     .img-slot (2), "Ideation" (1), "Prototyping" .collage-grid (4)
+  //
+  // Hand-listing "these three go together" per project would be exactly the
+  // content duplication the build guide's rule 5 forbids — and it would go
+  // stale the first time a page is re-edited. This reads the page's own answer.
+  // `.process-card` is listed alongside the grids on purpose, and closest()
+  // resolves to the NEAREST ancestor, so a card beats the grid containing it.
+  // That matters: on Bastón and Time Collector each image sits in its own
+  // .process-card carrying its own .process-tag ("Rapid prototype & sketches",
+  // "Sketching & Ideation"), so the card — not the grid — is the labelled unit.
+  // Grouping by the grid instead produced one anonymous 4-image blob and threw
+  // those captions away, which is the opposite of a narrative walk.
+  var GROUP_SEL = '.process-card,.idea-imgs,.process-grid,.collage-grid,.img-grid,' +
+                  '.photo-grid,.frame,.hero-img-wrap,.result-gif-wrap,.img-slot,figure';
+  var SECTION_SEL = '.block,.step,.journey-step,section';
+  // Checked INSIDE the group box first, then the enclosing section. The pages
+  // label at both levels and the inner one is more specific: chess names a
+  // phase per section ("Ideation", "Prototyping") while Bastón names a step per
+  // card, and only looking at sections finds the first but not the second.
+  var BOX_LABEL_SEL = '.process-tag,figcaption,h4,h3';
+  var HEADING_SEL = '.block-label,.step-body h3,.journey-heading,h3,h2';
+
+  // A run short of target SPLITS its largest mosaic, in document order, so the
+  // page's grouping is the starting point without being the ceiling. Adjacent
+  // halves keep the same heading, which reads as one phase spanning two
+  // positions rather than as a mislabel.
+  //
+  // TARGET 4 and MIN_SPLIT 4 are both measured choices, not guesses. At target
+  // 5 the splitter ate every mosaic: the usable image counts are 3/2/5/5/7 (all
+  // the photography these pages have, once the hero and the "more like this"
+  // cross-links are excluded — verified that every <a>-wrapped image on all
+  // five pages points at another project), so chasing 5 stations drove Bastón
+  // and Time Collector to five stations of one image each, which is precisely
+  // the mosaic idea deleted. Refusing to split anything under 4 keeps pairs
+  // together, and 4 is reachable without doing so in most rooms.
+  var STATION_TARGET = 4;
+  var MIN_SPLIT = 4;
+
+  function stationsFrom(imgEls) {
+    if (!imgEls.length) return [];
+
+    // 1. group by the nearest deliberate image container, in document order
+    var groups = [];
+    var byNode = [];   // parallel array of container nodes, for identity
+    imgEls.forEach(function (img) {
+      var box = img.closest(GROUP_SEL) || img.parentElement;
+      var own = box.querySelector(BOX_LABEL_SEL);
+      var sec = img.closest(SECTION_SEL);
+      var head = sec && sec.querySelector(HEADING_SEL);
+      var label = textOf(own) || (head ? textOf(head) : '');
+      var i = byNode.indexOf(box);
+      if (i === -1) {
+        byNode.push(box);
+        groups.push({ label: label, images: [] });
+        i = groups.length - 1;
+      }
+      // First non-empty heading wins — a container spanning two sections keeps
+      // the phase it starts in rather than flipping to the later one.
+      if (!groups[i].label && label) groups[i].label = label;
+      groups[i].images.push({
+        src: rootHref(img.getAttribute('src')),
+        alt: (img.getAttribute('alt') || '').trim()
+      });
+    });
+
+    // 2. split the largest mosaic until there are enough stations, or until
+    //    everything is a single image and there is nothing left to split
+    while (groups.length < STATION_TARGET) {
+      var big = -1, bigN = MIN_SPLIT - 1;
+      groups.forEach(function (g, i) { if (g.images.length > bigN) { bigN = g.images.length; big = i; } });
+      if (big === -1) break;   // nothing large enough left to split without eating a mosaic
+      var half = Math.ceil(groups[big].images.length / 2);
+      var tail = groups[big].images.splice(half);
+      groups.splice(big + 1, 0, { label: groups[big].label, images: tail });
+    }
+
+    return groups;
+  }
+
   function fetchRoomContent(project) {
     return fetch(project.href, { cache: 'no-store' })
       .then(function (r) { return r.text(); })
@@ -161,15 +263,20 @@
         project.blurb = sub ? textOf(sub) : null;
 
         var seenSrc = {};
-        var ownImages = Array.prototype.slice.call(doc.querySelectorAll('img'))
+        var ownEls = Array.prototype.slice.call(doc.querySelectorAll('img'))
           .filter(function (img) { return !img.closest('a'); })
-          .map(function (img) { return { src: rootHref(img.getAttribute('src')), alt: (img.getAttribute('alt') || '').trim() }; })
-          .filter(function (im) {
-            if (!im.src || im.src === project.image || seenSrc[im.src]) return false;
-            seenSrc[im.src] = true; return true;
+          .filter(function (img) {
+            var src = rootHref(img.getAttribute('src'));
+            if (!src || src === project.image || seenSrc[src]) return false;
+            seenSrc[src] = true; return true;
           });
-        // { src, alt } now — the room shows a short caption under each image.
-        project.roomImages = ownImages.slice(0, 4);
+        var ownImages = ownEls.map(function (img) {
+          return { src: rootHref(img.getAttribute('src')), alt: (img.getAttribute('alt') || '').trim() };
+        });
+        // No longer capped at 4 — the room walks you through ALL of a project's
+        // photography now, grouped into stations (below).
+        project.roomImages = ownImages;
+        project.roomStations = stationsFrom(ownEls);
         project.pageImgs = imgsFromDoc(doc); // all images on this page, for the global catalog
 
         // The write-up projects (HP's Reckoning, Algorithmic Modeling,
@@ -187,6 +294,17 @@
           pdfHref = pdfLink && pdfLink.getAttribute('href');
         }
         project.pdf = pdfHref ? rootHref(pdfHref) : null;
+        // The document's own name, for the station heading in the room — taken
+        // from the page's link text rather than typed into a VR file (rule 5),
+        // and stripped of the decorative ↗ the same way .exp-company is.
+        // "Also See FEA Analysis" -> "FEA Analysis": the leading call-to-action
+        // is addressed to a reader who is already ON the flat page, and in the
+        // room it would read as an instruction rather than as a title.
+        var pdfA = doc.querySelector('a[href$=".pdf"]');
+        var pdfLabel = pdfA ? textWithout(pdfA, '.process-link-arrow, [aria-hidden="true"]') : '';
+        project.pdfLabel = pdfLabel
+          ? pdfLabel.replace(/^\s*(also\s+see|see|read|view|download)\s+/i, '').replace(/\s+↗\s*$/, '').trim()
+          : null;
         return project;
       })
       .catch(function () { project.blurb = null; project.roomImages = []; project.pageImgs = []; project.pdf = null; return project; });
@@ -242,6 +360,10 @@
         // Image override for cards the flat page can't supply an <img> for
         // (Slip Door's hero is a <video>, so parseCard returns image:null).
         image: m.image || p.image,
+        // Preserved through the merge: the manifest's `image` override exists
+        // precisely BECAUSE this card is a video (Slip Door), so dropping the
+        // video here would delete the thing the override was working around.
+        video: p.video || null,
         // Highlight-rolloff strength for a glary hero (pendant on pure white).
         heroTone: m.heroTone || 0,
         manifestBlurb: m.blurb || null // manifest override, applied after the per-page blurb fetch resolves

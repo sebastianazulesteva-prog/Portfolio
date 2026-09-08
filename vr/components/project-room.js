@@ -65,7 +65,34 @@
   // the pendant theme's near-white floor.
   var ROOM_HALO = { outlineWidth: '8%', outlineColor: '#0b0a08', outlineOpacity: 1, outlineBlur: '10%' };
 
-  var state = { open: false, roomEl: null, transTween: null };
+  var state = { open: false, roomEl: null, transTween: null, video: null };
+
+  // A <video> is the one thing a room builds that keeps working after its
+  // object3D is gone: removeChild unlinks the mesh, but the element carries on
+  // decoding and the VideoTexture carries on uploading a frame per frame, for
+  // the rest of the session. disposeSubtree cannot help — it frees textures it
+  // tagged, and a VideoTexture wraps a DOM element rather than a decoded
+  // image. So it is stopped and emptied explicitly.
+  function releaseVideo() {
+    var v = state.video;
+    if (!v) return;
+    state.video = null;
+    try {
+      v.video.pause();
+      // Emptying the source list and reloading is what actually makes the
+      // browser drop the decoder and the buffered data; pause() alone leaves
+      // both resident.
+      while (v.video.firstChild) v.video.removeChild(v.video.firstChild);
+      v.video.removeAttribute('src');
+      v.video.load();
+      if (v.video.parentNode) v.video.parentNode.removeChild(v.video);
+    } catch (e) { /* a torn-down element is fine to fail on */ }
+    if (v.texture) v.texture.dispose();
+    if (v.mesh) {
+      if (v.mesh.geometry) v.mesh.geometry.dispose();
+      if (v.mesh.material) v.mesh.material.dispose();
+    }
+  }
 
 
   // Every selection ray in the scene (the camera cursor + both hand
@@ -167,28 +194,442 @@
     wrap.object3D.add(img);
     inner.appendChild(wrap);
 
-    // Short description under each image (from its alt text) — visible on
-    // entry, no interaction needed. Sits just below the frame.
+    // Short description for each image (from its alt text) — visible on entry,
+    // no interaction needed. Floats ABOVE the frame.
     if (image.alt) {
       var cap = document.createElement('a-entity');
-      // Same dark halo as the centre column (see ROOM_HALO): these captions hang
-      // BELOW their image card, i.e. directly over the themed floor, which is
-      // near-white in some themes — they measured 3.9:1 without it. Full
-      // opacity for the same reason the tags are: dimming text that is already
-      // short of contrast only costs more of it.
+      // Above, not below, for two reasons. It is what the hub already does
+      // ("Caption, floating ABOVE the card" — hub-panel.js, same 0.026 gap and
+      // the same baseline:'bottom' so the block grows upward away from the
+      // card); these room captions were the only ones in the scene hanging the
+      // other way. And below the card is where the horizon band is: a caption
+      // at ~16° under the eye landed in it, which is what made Bastón's read
+      // as text on magenta. Above the card clears the band in every room.
+      //
+      // Keeps the ROOM_HALO either way — a caption still crosses a themed sky
+      // whose colour this function cannot know, and full opacity for the same
+      // reason the tags are: dimming text short of contrast costs more of it.
       cap.setAttribute('troika-text', {
-        value: shortCaption(image.alt), align: 'center', anchor: 'center', baseline: 'top',
+        value: shortCaption(image.alt), align: 'center', anchor: 'center', baseline: 'bottom',
         color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
         fontSize: VRType.label(), maxWidth: w + 0.14, lineHeight: 1.2,
         outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
         outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
       });
-      cap.setAttribute('position', { x: 0, y: -h / 2 - 0.035, z: 0.01 });
+      cap.setAttribute('position', { x: 0, y: h / 2 + 0.026, z: 0.01 });
       inner.appendChild(cap);
     }
 
     outer.appendChild(inner);
     container.appendChild(outer);
+  }
+
+  // ── Which way round, and what is awake ───────────────────────────────────
+  // Two jobs, one piece of maths, so they share a component rather than each
+  // computing "where is the viewer looking" separately.
+  //
+  // 1. THE DIRECTION CUE, shown not told. A travelling brightness runs through
+  //    the stations in order — station 1 wakes, then 2, then 3 — so the room
+  //    itself keeps sweeping clockwise and your eye follows it. It rides
+  //    `uHover`, the card shader's existing "wake amount" (glass-material.js),
+  //    which already lifts the accent, the border, the glow and the alpha
+  //    together. So this is the same visual language as hovering a card, used
+  //    as a hint instead of as feedback — no arrows to read, no copy to
+  //    translate, nothing that says "turn right".
+  //
+  // 2. IDLE, for the one thing where it is genuinely expensive. A playing video texture
+  //    re-uploads a frame to the GPU every frame regardless of whether it is
+  //    on screen, so Slip Door's hero pauses when you are looking away from it
+  //    and resumes before you come back. The thresholds are asymmetric on
+  //    purpose (resume at 120°, pause at 150°): a single threshold flaps
+  //    on/off when you sit right at the boundary, and restarting a decoder
+  //    repeatedly is worse than letting it run.
+  //
+  //    Generous, per Sebastian: resuming at 120° means it is already playing
+  //    well before it enters view, so it is never caught starting up.
+  var WAVE_PERIOD_MS = 5200;   // one full lap of the wave
+  var WAVE_SPREAD = 0.55;      // how much of the lap separates neighbours
+  var WAVE_AMP = 0.42;         // peak uHover; a hover is 1.0, so this stays a hint
+  var VIDEO_RESUME_DEG = 120, VIDEO_PAUSE_DEG = 150;
+
+  AFRAME.registerComponent('room-walk', {
+    init: function () {
+      this.stations = [];
+      this.video = null;
+      this.head = document.querySelector('#head');
+      this._fwd = new THREE.Vector3();
+      this._to = new THREE.Vector3();
+      this._hp = new THREE.Vector3();
+      this._sp = new THREE.Vector3();
+      this._q = new THREE.Quaternion();
+    },
+
+    addStation: function (entry, index) {
+      this.stations.push({
+        el: entry.el, at: entry.at || entry.el, index: index,
+        mat: entry.material, focus: entry.focus
+      });
+    },
+    setVideo: function (rec) { this.video = rec; },
+
+    // Off-axis angle between where the viewer faces and where `obj` is, both
+    // flattened to the horizontal plane. Deliberately computed from vectors
+    // rather than from yaw arithmetic: the room is itself rotated to the entry
+    // heading, and every previous attempt in this file to reason about angles
+    // through that rotation got a sign wrong (see currentHeadYawDeg's note).
+    offAxisDeg: function (obj) {
+      if (!this.head) return 0;
+      this.head.object3D.getWorldPosition(this._hp);
+      this.head.object3D.getWorldQuaternion(this._q);
+      this._fwd.set(0, 0, -1).applyQuaternion(this._q);
+      this._fwd.y = 0;
+      if (this._fwd.lengthSq() < 1e-8) return 0;   // looking straight up or down
+      this._fwd.normalize();
+      obj.getWorldPosition(this._sp);
+      this._to.subVectors(this._sp, this._hp);
+      this._to.y = 0;
+      if (this._to.lengthSq() < 1e-8) return 0;
+      this._to.normalize();
+      return THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(this._fwd.dot(this._to), -1, 1)));
+    },
+
+    tick: function (time, dt) {
+      // Guarded because tick is not guaranteed to run after init here: the room
+      // is built inside the transition's callback, mid-frame, and both the dev
+      // harnesses and _dev-camera-path pump sceneEl.tick() by hand. Without
+      // this, a hand-pumped tick on a freshly attached room throws on
+      // `stations.length` and takes the whole frame with it.
+      if (!this.stations) return;
+      // The wave is motion, so reduced motion gets none of it — but it must
+      // still leave the stations in a legible resting state rather than dark,
+      // hence a flat low wake instead of zero.
+      var n = this.stations.length;
+      for (var i = 0; i < n; i++) {
+        var st = this.stations[i];
+        // The document station grows/shrinks by how far off-axis it is. Driven
+        // from here so there is one place that answers "where is the viewer
+        // looking", and so the easing runs on the scene's own clock.
+        if (st.focus && st.at) st.focus(this.offAxisDeg(st.at.object3D), dt);
+        if (!st.mat || !st.mat.uniforms || !st.mat.uniforms.uHover) continue;
+        if (reducedMotion) { st.mat.uniforms.uHover.value = 0.12; continue; }
+        var phase = (time % WAVE_PERIOD_MS) / WAVE_PERIOD_MS - (st.index / Math.max(1, n)) * WAVE_SPREAD;
+        // Only the crest shows: a full sine would light everything half the
+        // time and read as a throb rather than as a direction.
+        var pulse = Math.sin(phase * Math.PI * 2);
+        st.mat.uniforms.uHover.value = pulse > 0 ? WAVE_AMP * pulse * pulse : 0;
+      }
+
+      if (this.video && this.video.video) {
+        var deg = this.offAxisDeg(this.video.mesh);
+        var v = this.video.video;
+        if (deg < VIDEO_RESUME_DEG && v.paused) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+        else if (deg > VIDEO_PAUSE_DEG && !v.paused) { v.pause(); }
+      }
+    }
+  });
+
+  // ── One station on the walk round ───────────────────────────────────────
+  // A station is ONE footprint whatever it holds — a single photo or a mosaic
+  // of four. That is deliberate: the stations are beads on a circle, and a
+  // 4-image station drawn four times the area of a 1-image one would read as
+  // four separate things rather than one phase of the build. So the box is
+  // fixed and the images TILE inside it.
+  //
+  // 0.86 x 0.62 at radius 1.85 subtends 26.4°. With the widest real station
+  // count (5 -> 60° spacing) that leaves a 33.6° gap between neighbours, so no
+  // two stations overlap on screen — which matters more here than anywhere
+  // else in the scene, because everything in a room is renderOrder 0 and
+  // overlapping quads paint in scene-graph order rather than by depth (§3.6).
+  var ST_W = 0.86, ST_H = 0.62;
+  var ST_GAP = 0.014;          // between mosaic cells
+  var ST_Y = 1.56;             // station centre height
+
+  // How many texels a surface of `metres` at `dist` actually deserves. 30 px
+  // per degree is chosen with headroom: a Quest 3 is ~20 and a Vision Pro
+  // higher, and the images are cover-fitted so some of the texture is cropped
+  // away unseen. Snapped UP to a familiar size so the GPU gets round numbers,
+  // and clamped — 128 is the floor below which a thumbnail turns to mush, 1024
+  // the ceiling nothing in a room needs.
+  var PX_PER_DEG = 30;
+  function texelsFor(metres, dist) {
+    var deg = 2 * THREE.MathUtils.radToDeg(Math.atan((metres / 2) / dist));
+    var want = deg * PX_PER_DEG;
+    var steps = [128, 256, 384, 512, 768, 1024];
+    for (var i = 0; i < steps.length; i++) if (steps[i] >= want) return steps[i];
+    return 1024;
+  }
+
+  // Rows/cols per image count. 3 deliberately goes 2-over-1 rather than 3 in a
+  // row: three cells across an 0.86 m box are 0.27 m wide, which at 1.85 m is
+  // too small to read as anything.
+  function mosaicGrid(n) {
+    if (n <= 1) return [[1]];
+    if (n === 2) return [[1, 1]];
+    if (n === 3) return [[1, 1], [1]];
+    return [[1, 1], [1, 1]];   // 4+ -> 2x2, extras are dropped by the caller
+  }
+
+  // ── The document station ────────────────────────────────────────────────
+  // Some projects end in a written analysis rather than a photograph — Time
+  // Collector's FEA study is the only one today (4 pages, already pre-rendered
+  // in vr/assets/pages by .tools/vr-make-pages.py). It becomes the last
+  // station on the walk, because that is where it comes in the story.
+  //
+  // It GROWS IN PLACE instead of opening the reading room. Sebastian's call,
+  // and the reason matters: a page at station size (0.62 m tall at 2 m) has
+  // body text about 0.2° high, which is illegible on any headset made — but
+  // opening the real reader would evict the room (place.js) and take you out
+  // of Time Collector to read Time Collector's own document. So the station
+  // eases up to 1.7 m when you look at it and eases back down when you look
+  // away. The growing IS the affordance: no button, nothing to read first.
+  //
+  // ONE page texture is resident at a time, which is the reader's own
+  // discipline (it keeps a ±1 window and never more than 3 pages). Four pages
+  // at 1024 would be ~13 MB standing in a room the whole time it is open, to
+  // show one of them.
+  var PDF_COVER_H = 0.62;      // matches a photo station's height
+  var PDF_GROWN_H = 1.70;      // readable; the reading room itself uses ~1.95
+  var PDF_FOCUS_DEG = 26;      // start growing inside this
+  var PDF_BLUR_DEG = 40;       // start shrinking outside this (hysteresis)
+  var PDF_EASE_MS = 260;
+
+  function pageManifest(pdfPath) {
+    if (!pdfPath || !window.VR_PAGES) return null;
+    // Keyed by bare filename — data-loader roots the href, the manifest does not.
+    var file = String(pdfPath).split('/').pop();
+    return window.VR_PAGES[file] || null;
+  }
+
+  // A real triangle, not a glyph. The Syne subset has no Geometric Shapes
+  // block and would silently drop an arrow character — the same trap that
+  // makes the reader's own scroll arrows geometry (see §3.7).
+  function triangle(size, up, color) {
+    var g = new THREE.BufferGeometry();
+    var s = size, y = up ? 1 : -1;
+    g.setAttribute('position', new THREE.Float32BufferAttribute(
+      [-s, -s * 0.6 * y, 0, s, -s * 0.6 * y, 0, 0, s * 0.8 * y, 0], 3));
+    g.computeVertexNormals();
+    return new THREE.Mesh(g, new THREE.MeshBasicMaterial({
+      color: color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false
+    }));
+  }
+
+  function placePdfStation(container, project, index, total, angleDeg, radius, accent) {
+    var man = pageManifest(project.pdf);
+    if (!man || !man.files || !man.files.length) return null;
+
+    var aspect = man.aspect || (man.w && man.h ? man.w / man.h : 0.7727);
+    var outer = document.createElement('a-entity');
+    outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
+    var inner = document.createElement('a-entity');
+    inner.setAttribute('position', { x: 0, y: ST_Y, z: -radius });
+    inner.setAttribute('rotation', {
+      x: THREE.MathUtils.radToDeg(Math.atan2(ST_Y - EYE_Y, radius)), y: 0, z: 0
+    });
+
+    // Authored at COVER size; the whole group is scaled up to grow, so the
+    // plate's corner radius grows with it rather than staying a hairline.
+    var w = PDF_COVER_H * aspect, h = PDF_COVER_H;
+    var wrap = document.createElement('a-entity');
+    var plate = new THREE.Mesh(
+      new THREE.PlaneGeometry(w + 0.05, h + 0.05),
+      VRGlass.makeCardMaterial(w + 0.05, h + 0.05, 0.03, accent, 0, 0.5)
+    );
+    wrap.object3D.add(plate);
+
+    // The page itself. A plain textured plane, not the feathered image shader:
+    // a document should have a hard edge like paper, and feathering the margin
+    // eats the first line of text.
+    var pageMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, toneMapped: false });
+    var pageMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), pageMat);
+    pageMesh.position.z = 0.006;
+    wrap.object3D.add(pageMesh);
+
+    var st = {
+      page: 0, tex: null, loading: false,
+      grown: 0,           // 0..1, eased in room-walk's tick
+      focused: false
+    };
+
+    function showPage(i) {
+      if (i < 0 || i >= man.files.length || st.loading) return;
+      st.loading = true;
+      var url = '/vr/assets/pages/' + man.dir + '/' + man.files[i];
+      // 1024 because it has to survive being 1.7 m tall; the cover is the same
+      // texture shown small, which costs nothing extra.
+      var tex = VRGlass.loadTexture(url, function () {
+        st.loading = false;
+        // Swap only once the new page has actually arrived, so navigating
+        // never flashes an empty plate.
+        var old = st.tex;
+        st.tex = tex;
+        st.page = i;
+        pageMat.map = tex;
+        pageMat.opacity = 1;
+        pageMat.needsUpdate = true;
+        if (old) old.dispose();       // one page resident, per the header note
+        if (label) label.setAttribute('troika-text', 'value', (i + 1) + ' / ' + man.files.length);
+      }, function () { st.loading = false; });
+    }
+
+    // Page counter + the two arrows, all hidden until grown — at cover size
+    // they would be unreadable clutter, and there is nothing to navigate until
+    // you can read the page.
+    var controls = document.createElement('a-entity');
+    var label = document.createElement('a-entity');
+    label.setAttribute('troika-text', {
+      value: '1 / ' + man.files.length, align: 'center', anchor: 'center', baseline: 'top',
+      color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
+      fontSize: VRType.label() * 0.8, maxWidth: w,
+      outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
+      outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
+    });
+    label.setAttribute('position', { x: 0, y: -h / 2 - 0.03, z: 0.01 });
+    controls.appendChild(label);
+
+    [{ up: true, d: -1 }, { up: false, d: 1 }].forEach(function (spec) {
+      var btn = document.createElement('a-entity');
+      var tri = triangle(0.035, spec.up, '#f5f5f0');
+      btn.object3D.add(tri);
+      // A generous invisible hit target around a small triangle — ui-button's
+      // scene-wide minimum applies to anything selectable, and a 3.5 cm arrow
+      // is far under it.
+      var hit = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.11),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+      btn.object3D.add(hit);
+      btn.setAttribute('position', { x: w / 2 + 0.11, y: spec.up ? 0.09 : -0.09, z: 0.01 });
+      btn.classList.add('clickable');
+      btn.addEventListener('click', function () { showPage(st.page + spec.d); });
+      controls.appendChild(btn);
+    });
+    controls.setAttribute('visible', false);
+    wrap.appendChild(controls);
+
+    inner.appendChild(wrap);
+
+    // Heading, same shape as a photo station's so it reads as one of the set.
+    var head = document.createElement('a-entity');
+    head.setAttribute('troika-text', {
+      value: (index + 1) + ' / ' + total + '   ' + (project.pdfLabel || 'Document'),
+      align: 'center', anchor: 'center', baseline: 'bottom',
+      color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
+      fontSize: VRType.label(), maxWidth: ST_W + 0.2, lineHeight: 1.2,
+      outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
+      outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
+    });
+    head.setAttribute('position', { x: 0, y: PDF_COVER_H / 2 + 0.05, z: 0.01 });
+    inner.appendChild(head);
+
+    outer.appendChild(inner);
+    container.appendChild(outer);
+    showPage(0);   // the cover, eagerly: it is on screen from the moment you arrive
+
+    // Eased by room-walk rather than GSAP on purpose. Every tween in the scene
+    // rides gsap.ticker, which is not serviced inside an immersive session
+    // without xr-frame's pump (§3.14) — and a panel that grows only sometimes
+    // is worse than one that grows plainly. A lerp in the scene's own tick
+    // cannot be starved by that.
+    var scaleTarget = 1, scaleNow = 1;
+    return {
+      el: outer,
+      // What to MEASURE against. `outer` is only a rotation — its origin is
+      // the room's centre, so a head-to-outer vector is zero length and every
+      // off-axis reading came back 0, which left the document permanently
+      // grown. `inner` is the entity carrying the actual z offset.
+      at: inner,
+      material: plate.material,
+      isPdf: true,
+      focus: function (deg, dt) {
+        if (deg < PDF_FOCUS_DEG) st.focused = true;
+        else if (deg > PDF_BLUR_DEG) st.focused = false;
+        scaleTarget = st.focused ? (PDF_GROWN_H / PDF_COVER_H) : 1;
+        if (reducedMotion) scaleNow = scaleTarget;
+        else scaleNow += (scaleTarget - scaleNow) * Math.min(1, (dt || 16) / PDF_EASE_MS);
+        wrap.object3D.scale.setScalar(scaleNow);
+        // Controls appear only once it is most of the way open, so they do not
+        // swim about during the grow.
+        var open = scaleNow > (PDF_GROWN_H / PDF_COVER_H) * 0.8;
+        if (open !== controls.getAttribute('visible')) {
+          controls.setAttribute('visible', open);
+          refreshClickableRaycasters();
+        }
+      },
+      dispose: function () { if (st.tex) { st.tex.dispose(); st.tex = null; } }
+    };
+  }
+
+  function placeStation(container, station, index, total, angleDeg, radius, accent) {
+    var images = (station.images || []).slice(0, 4);
+    if (!images.length) return null;
+
+    var outer = document.createElement('a-entity');
+    outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
+    var inner = document.createElement('a-entity');
+    inner.setAttribute('position', { x: 0, y: ST_Y, z: -radius });
+    // Same tilt-to-the-seated-eye as everything else in here: these are aimed
+    // once, not sunflower-tracked (that is hub panels only).
+    inner.setAttribute('rotation', {
+      x: THREE.MathUtils.radToDeg(Math.atan2(ST_Y - EYE_Y, radius)), y: 0, z: 0
+    });
+
+    // Backing plate for the whole station, so a mosaic reads as one object.
+    var plate = new THREE.Mesh(
+      new THREE.PlaneGeometry(ST_W, ST_H),
+      VRGlass.makeCardMaterial(ST_W, ST_H, 0.045, accent, 0, 0.5)
+    );
+    var wrap = document.createElement('a-entity');
+    wrap.object3D.add(plate);
+
+    var rows = mosaicGrid(images.length);
+    var pad = 0.03;
+    var cellH = (ST_H - pad * 2 - ST_GAP * (rows.length - 1)) / rows.length;
+    var k = 0;
+    rows.forEach(function (row, r) {
+      var cellW = (ST_W - pad * 2 - ST_GAP * (row.length - 1)) / row.length;
+      // Texture sized to the CELL, not a flat 1024. Measured: a part-loaded
+      // Chess room was already 22.5 MB of decoded texture across 8 images, all
+      // of them 1024-class — while a 2x2 cell subtends about 11° x 8°, i.e.
+      // roughly 230 x 160 screen pixels on a Quest. That is ~20x more texels
+      // than the cell can show, and it is the reason loading a room looked
+      // expensive enough to need deferring. Right-sized, the whole room is
+      // cheap enough to load up front, which is what we want: no dwell gate on
+      // a photograph, and nothing popping in as you turn.
+      var cellPx = texelsFor(Math.max(cellW, cellH), radius);
+      row.forEach(function (_, c) {
+        var im = images[k++];
+        if (!im) return;
+        var mesh = VRGlass.makeFeatheredImage(im.src, cellW, cellH, 0.05, cellPx);
+        mesh.position.set(
+          -ST_W / 2 + pad + cellW / 2 + c * (cellW + ST_GAP),
+          ST_H / 2 - pad - cellH / 2 - r * (cellH + ST_GAP),
+          0.008
+        );
+        wrap.object3D.add(mesh);
+      });
+    });
+    inner.appendChild(wrap);
+
+    // Heading ABOVE the station: the page's own phase name where it has one,
+    // and the step number always, so the direction of travel is legible from
+    // any single station rather than only by turning. Same halo as everything
+    // else a room floats over its own themed sky.
+    var head = document.createElement('a-entity');
+    head.setAttribute('troika-text', {
+      value: (index + 1) + ' / ' + total + (station.label ? '   ' + station.label : ''),
+      align: 'center', anchor: 'center', baseline: 'bottom',
+      color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
+      fontSize: VRType.label(), maxWidth: ST_W + 0.2, lineHeight: 1.2,
+      outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
+      outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
+    });
+    head.setAttribute('position', { x: 0, y: ST_H / 2 + 0.026, z: 0.01 });
+    inner.appendChild(head);
+
+    outer.appendChild(inner);
+    container.appendChild(outer);
+    // The plate material goes back to the caller so room-walk can drive its
+    // uHover for the direction wave.
+    return { el: outer, at: inner, material: plate.material };
   }
 
   // A decorative generated panel for text-forward rooms (the PDF write-ups
@@ -254,11 +695,20 @@
   // would have painted straight over the photograph (guide §3.6).
   var TEXT_Z = 2.0;
   var EYE_Y = 1.6;
-  // Half-height of the dome's ember band, from dome.js's 0.42/0.58 gradient
-  // stops. Text has to clear this as well as the hero — a 16:9 hero is only
-  // 0.66 m tall and does NOT cover the band's full extent, so in the wide
-  // rooms it is the BAND, not the hero, that sets where text can go.
-  var BAND_DEG = 14.4;
+  // How much of the dome's horizon band text has to stay off. Read from
+  // dome.js rather than hand-copied — this was a local `14.4` duplicating a
+  // number that lives there, and dome.js's own history is a warning about
+  // exactly that (its light values drifted out of sync with index.html's).
+  //
+  // The band is now a crisp ~2.5° core inside a dim bloom out to 14.4°, so
+  // only the core plus its ramp is bright enough to fight text; the bloom is
+  // readable over with ROOM_HALO. That is why the title no longer has to sit
+  // 22° up: for most heroes the HERO is now the binding constraint, not the
+  // band. Falls back to the old full-width figure if dome.js hasn't loaded.
+  function bandAvoidDeg() {
+    var d = window.VRDome;
+    return d ? (d.BAND_CORE_DEG + d.BAND_RAMP_DEG) : 14.4;
+  }
   // Budget for the title's own block (one line plus slack) and the breathing
   // gap either side, both measured at the text plane.
   var TITLE_BLOCK = 0.14, TEXT_GAP = 0.06;
@@ -270,8 +720,60 @@
     return EYE_Y + TEXT_Z * (y - EYE_Y) / HERO_Z;
   }
 
+  // A playing <video> hero. Only Slip Door has one, and it is the project's
+  // actual hero on the flat site: the door sliding open, which no still frame
+  // conveys.
+  //
+  // MUTED at the element, not just at a mixer, and never given an audio path at
+  // all — the scene's standing rule is that /vr makes no sound (VR_AUDIO is
+  // hard false), and a video element is the one thing in here that could
+  // smuggle some in. `muted` is also what lets it autoplay without a gesture.
+  //
+  // Returns the element too, so the idle manager can pause it: a playing video
+  // texture re-uploads a frame to the GPU every frame whether or not anyone is
+  // looking, which is the one place in a room where "idle to save power" is
+  // literally true rather than just tidy.
+  function makeVideoHero(project, w, h) {
+    var v = document.createElement('video');
+    v.muted = true;
+    v.defaultMuted = true;
+    v.volume = 0;
+    v.loop = true;
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('muted', '');
+    v.crossOrigin = 'anonymous';
+    v.preload = 'auto';
+    (project.video.sources || []).forEach(function (s) {
+      var el = document.createElement('source');
+      el.src = s.src;
+      if (s.type) el.type = s.type;
+      v.appendChild(el);
+    });
+
+    // IN the document, not detached. A VideoTexture will read from a detached
+    // element in some browsers and quietly never decode in others, which is
+    // exactly the kind of works-here-fails-in-the-headset difference this
+    // codebase keeps getting bitten by. Parked off-screen at 1px rather than
+    // display:none, because a display:none video is allowed to stop decoding.
+    v.style.cssText = 'position:absolute;left:-2px;top:-2px;width:1px;height:1px;opacity:0.01;pointer-events:none';
+    v.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(v);
+
+    var tex = new THREE.VideoTexture(v);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    // Not tagged __vrOwned: VideoTexture owns a DOM element rather than a
+    // decoded image, and disposeSubtree's texture branch is written for the
+    // latter. It is disposed explicitly in the teardown below instead.
+    var mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+    var mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    var play = v.play();
+    if (play && play.catch) play.catch(function () { /* autoplay refused; the idle manager retries on approach */ });
+    return { mesh: mesh, video: v, texture: tex };
+  }
+
   function placeHero(container, project, accent) {
-    if (!project.image) return null;
+    if (!project.image && !(project.video && project.video.sources && project.video.sources.length)) return null;
 
     // Fall back to 4:3 if a card ever ships without width/height rather than
     // guessing square, which is the one aspect none of the heroes are.
@@ -294,12 +796,23 @@
       new THREE.PlaneGeometry(w, h),
       VRGlass.makeCardMaterial(w, h, 0.045, accent, 0, 0.5)
     );
-    var img = VRGlass.makeFeatheredImage(project.image, w - 0.06, h - 0.06, 0.08, 1024, project.heroTone || 0);
+    // A video hero wins over the still. Slip Door is the only project with
+    // one, and projects.json's `image` override exists purely to give its card
+    // SOMETHING to show, so preferring the video here undoes a workaround
+    // rather than overriding a choice.
+    var vid = null, img;
+    if (project.video && project.video.sources && project.video.sources.length) {
+      vid = makeVideoHero(project, w - 0.06, h - 0.06);
+      img = vid.mesh;
+    } else {
+      img = VRGlass.makeFeatheredImage(project.image, w - 0.06, h - 0.06, 0.08, 1024, project.heroTone || 0);
+    }
     img.position.z = 0.008;
 
     wrap.object3D.add(plate);
     wrap.object3D.add(img);
     container.appendChild(wrap);
+    if (vid) state.video = vid;   // so applyExit can stop and free it
     return { el: wrap, w: w, h: h, top: HERO_Y + h / 2, bottom: HERO_Y - h / 2 };
   }
 
@@ -386,7 +899,7 @@
       // title up only as far as it actually needs and a wide 16:9 one doesn't
       // pay for it. Whichever is more restrictive wins: the hero's own edge,
       // or the band's — see BAND_DEG.
-      var bandHalf = TEXT_Z * Math.tan(BAND_DEG * Math.PI / 180);
+      var bandHalf = TEXT_Z * Math.tan(bandAvoidDeg() * Math.PI / 180);
       var titleTop = Math.max(heroYToTextY(hero.top), EYE_Y + bandHalf) + TEXT_GAP + TITLE_BLOCK;
       var belowTop = Math.min(heroYToTextY(hero.bottom), EYE_Y - bandHalf) - TEXT_GAP;
       VRTextFlow.stack(room, [titleSpec], { startY: titleTop, z: -TEXT_Z });
@@ -397,37 +910,44 @@
       VRTextFlow.stack(room, [titleSpec].concat(belowSpecs), { startY: 2.02, z: -1.7 });
     }
 
-    // The room's real gallery — up to 4 of the project's own images (§7:
-    // "holds the project's images ... around you"). Wrapped to the SIDES
-    // (min ±26°) so they never sit in the central column where the title/
-    // blurb/tags and the action buttons live — a bounding-box sweep caught
-    // the previous ±14°/±42° arc overlapping the centered text. Skipped
-    // entirely for the four PDF write-ups, which have no photography.
-    var images = (project.roomImages || []).slice(0, 4);
-    // Gallery lives out to the SIDES, fully clear of the forward column where
-    // the text + buttons sit — you turn slightly to browse it, which is the
-    // spec's "its images around you" feel and the only reliable way to avoid
-    // the wide, wrapping blurb text colliding with them (a bounding-box sweep
-    // of an earlier ±26° arc caught the blurb overlapping the inner cards, and
-    // the cards overlapping each other).
+    // ── The walk round ───────────────────────────────────────────────────
+    // The gallery used to be a MIRROR: up to four photos at ±55° and ±80°,
+    // which is a display, not a story — the same two images either side of you
+    // with no order and no reason to turn one way rather than the other.
     //
-    // The angles/radius/height live in themes.js now (`room.gallery`) rather
-    // than as constants here — but they are deliberately the SAME for every
-    // room for now: rooms differ by colour only, so this layout gets judged
-    // and refined once instead of five times. No theme overrides it; when one
-    // does, only that room changes.
-    // Read the four limits in themes.js before retuning any of these: the safe
-    // range is narrow, and two of them are previously-fixed bugs (blurb
-    // overlap, and walking into your own photographs).
+    // It is a one-directional circle now. The hero holds 0°, and the project's
+    // build stations run CLOCKWISE from just right of it all the way round, so
+    // turning right from the hero starts at the beginning and continuing in
+    // that direction takes you through the making of the thing and back to
+    // where you started. Stations take the page's own phase headings
+    // ("Sketching & Ideation" -> "Cardboard Prototype" -> "Refined Prototype"
+    // -> "Force Analysis"), grouped by data-loader.js.
+    //
+    // Angles: the hero occupies one of N+1 evenly spaced slots and the stations
+    // take the rest, so the last station lands just LEFT of the hero and the
+    // circle closes without any station colliding with it.
+    var stations = project.roomStations || [];
     var g = VRThemes.room(project.theme).gallery;
-    if (images.length) {
-      images.forEach(function (image, i) {
-        var mag = g.inner + Math.floor(i / 2) * g.step;
-        var angle = (i % 2 === 0 ? -1 : 1) * mag;
-        // Stagger alternates ACROSS the pair (left up / right down), so a
-        // stagger of 0 is a strict level row — see chess and timecollector.
-        var height = g.height + (i % 2 === 0 ? g.stagger : -g.stagger);
-        placeImageCard(room, image, angle, g.radius, height, accent, a11y);
+    var placed = [];
+    // A written analysis is the last stop on the walk, if the project has one.
+    // Counted into the total up front so the headings read "5 / 6" rather than
+    // the document arriving as an unnumbered extra.
+    var hasDoc = !!pageManifest(project.pdf);
+    if (stations.length) {
+      var total = stations.length + (hasDoc ? 1 : 0);
+      var step = 360 / (total + 1);
+      stations.forEach(function (st, i) {
+        placed.push(placeStation(room, st, i, total, (i + 1) * step, g.radius, accent));
+      });
+      if (hasDoc) {
+        placed.push(placePdfStation(room, project, total - 1, total, total * step, g.radius, accent));
+      }
+    } else if ((project.roomImages || []).length) {
+      // Images but no grouping (a page whose markup this pass has not seen):
+      // fall back to one station per image rather than dropping them.
+      (project.roomImages || []).forEach(function (im, i, arr) {
+        placed.push(placeStation(room, { label: '', images: [im] }, i, arr.length,
+                    (i + 1) * (360 / (arr.length + 1)), g.radius, accent));
       });
     } else {
       // No photography → a symmetric pair of generated accent panels flanking
@@ -436,6 +956,23 @@
       placePlaceholderCard(room, project.title, -g.inner, g.radius, g.height, accent);
       placePlaceholderCard(room, project.title, g.inner, g.radius, g.height, accent);
     }
+
+    // Drive the direction wave and the video's idle state. Attached even with
+    // no stations (a write-up room) so there is one code path, and it simply
+    // has nothing to animate.
+    room.setAttribute('room-walk', '');
+    room.addEventListener('loaded', function () {
+      var walk = room.components['room-walk'];
+      if (!walk) return;
+      placed.forEach(function (p, i) { if (p) walk.addStation(p, i); });
+      if (state.video) walk.setVideo(state.video);
+    }, { once: true });
+    // The document station swaps its page texture as you navigate, so the
+    // resident one is not the one the room was built with. disposeSubtree only
+    // frees what it can still reach, so the station hands back its own closer.
+    state.stationDisposers = placed
+      .filter(function (p) { return p && p.dispose; })
+      .map(function (p) { return p.dispose; });
 
     // Only a Return control — the experience stays fully in VR (no link out
     // to the flat webpage). Everything the room has to say is already visible
@@ -554,6 +1091,9 @@
     // Null-safe: only detach if it's still parented (guards against a double
     // exit or the node being pulled out from under us), so a stray exit never
     // throws and leaves the hub half-restored.
+    releaseVideo();   // before the subtree goes, while the element is still reachable
+    (state.stationDisposers || []).forEach(function (d) { try { d(); } catch (e) {} });
+    state.stationDisposers = null;
     if (state.roomEl) {
       // Frees the room's own frames, hero images and buttons. Sealed behind
       // window.VR_ROOMS today, so this leaked nothing in practice — but the code
@@ -567,10 +1107,15 @@
     // The room's clickables are gone now — drop them from every ray's cached
     // target list so a stale mesh can't keep swallowing hits back in the hub.
     refreshClickableRaycasters();
+    if (window.VRPlace) VRPlace.leave('room');
   }
 
   function enter(project) {
     if (state.open) applyExit(); // clean up any open room instantly (rare — rooms are only entered from the hub)
+    // Evict the reader or the portrait lab if either is live. Without this a
+    // room could open on top of the reader — measured at 18 meshes and two
+    // rival "Back to the dome" buttons (see place.js).
+    if (window.VRPlace) VRPlace.enter('room');
     state.open = true;
     runTransition(function () { applyEnter(project); });
   }
@@ -581,5 +1126,17 @@
     runTransition(applyExit);
   }
 
-  window.VRProjectRoom = { enter: enter, exit: exit };
+  // Instant teardown for place.js, with no transition and nothing deferred:
+  // whoever is evicting us is already running their own dip, and disposal
+  // parked in a GSAP callback may never run at all in a headset.
+  function evict() {
+    if (!state.open) return;
+    state.open = false;
+    if (state.transTween) { state.transTween.kill(); state.transTween = null; }
+    applyExit();
+  }
+
+  window.VRProjectRoom = { enter: enter, exit: exit, evict: evict, isOpen: function () { return state.open; } };
+
+  if (window.VRPlace) VRPlace.register('room', { isOpen: function () { return state.open; }, evict: evict });
 })();

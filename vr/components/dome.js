@@ -43,18 +43,63 @@
     return '#' + ca.lerp(cb, t).getHexString();
   }
 
+  // ── The horizon band: a crisp LINE inside a dim BLOOM ────────────────────
+  // This used to be a single stop pair — dark at 0.42, full horizon colour at
+  // 0.50, dark at 0.58 — which made one band that was 29° tall AND full
+  // brightness. That fused two jobs which want opposite shapes:
+  //
+  //   • DEFINING the horizon, so ground and sky are distinguishable and the
+  //     floor's edge lands on something (the whole reason dome and floor share
+  //     a radius — ISSUE-09). Wants sharpness. Does not want width.
+  //   • ATMOSPHERE — the just-after-sunset ember, each project's palette, the
+  //     slow hue drift. Wants width and softness. Does not want brightness.
+  //
+  // Fusing them cost the content: a 29°-tall bright band sits exactly where
+  // room text and image captions live, and in the warm themes it washed them
+  // out (Bastón's blurb and tags on magenta, screenshotted).
+  //
+  // So: a ~2.5° core at full colour does the defining, and a wide dim glow out
+  // to ±14.4° does the atmosphere. Same silhouette from a distance, but only
+  // 2.5° of it is bright enough to compete with text.
+  var FEATHER = '#0a0908';
+  var CORE_HALF = 0.007;   // of texture height; x180° = 2.5° of elevation
+  var RAMP_HALF = 0.013;   // core -> bloom shoulder
+  var BLOOM_HALF = 0.03;   // bloom plateau
+  var EDGE_HALF = 0.08;    // bloom -> feather; x180° = 14.4°, as before
+  var BLOOM_NEAR = 0.55;   // shoulder brightness, toward the horizon colour
+  var BLOOM_FAR = 0.22;    // plateau brightness
+
   function paintDomeTexture(canvas, topColor, horizonColor) {
     var ctx = canvas.getContext('2d');
     var h = canvas.height;
+    var near = lerpColor(FEATHER, horizonColor, BLOOM_NEAR);
+    var far = lerpColor(FEATHER, horizonColor, BLOOM_FAR);
     var grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, topColor);
-    grad.addColorStop(0.42, '#0a0908');
-    grad.addColorStop(0.5, horizonColor);
-    grad.addColorStop(0.58, '#0a0908');
+    grad.addColorStop(0.5 - EDGE_HALF, FEATHER);
+    grad.addColorStop(0.5 - BLOOM_HALF, far);
+    grad.addColorStop(0.5 - RAMP_HALF, near);
+    grad.addColorStop(0.5 - CORE_HALF, horizonColor);
+    grad.addColorStop(0.5 + CORE_HALF, horizonColor);
+    grad.addColorStop(0.5 + RAMP_HALF, near);
+    grad.addColorStop(0.5 + BLOOM_HALF, far);
+    grad.addColorStop(0.5 + EDGE_HALF, FEATHER);
     grad.addColorStop(1, topColor);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, h);
   }
+
+  // Published so nothing has to hand-copy these. project-room.js keeps its
+  // text off the band and used to carry its own `BAND_DEG = 14.4` — a second
+  // copy of a number that lives here, exactly the kind of duplication that let
+  // this file's light values drift out of sync with index.html's before.
+  // CORE is what text actually has to avoid now; BLOOM is dim enough to read
+  // over with the standard halo.
+  window.VRDome = {
+    BAND_CORE_DEG: CORE_HALF * 180,
+    BAND_RAMP_DEG: RAMP_HALF * 180,
+    BAND_BLOOM_DEG: EDGE_HALF * 180
+  };
 
   AFRAME.registerComponent('dusk-sky', {
     init: function () {

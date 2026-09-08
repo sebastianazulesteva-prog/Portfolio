@@ -152,9 +152,22 @@
   // one that's already been looked at rather than a new guess. 1.3 matches
   // index.html's authored dusk-rug radius, so a room no longer resizes the rug
   // at all (only recolours it). Edit here to change ALL FIVE rooms at once.
+  // `gallery` is now MOSTLY VESTIGIAL. It described the old mirrored layout —
+  // two photos at ±inner and two more at ±(inner+step), staggered in height —
+  // and the room walks a one-directional CIRCLE of stations now, whose angles
+  // are derived from the station count rather than authored. Only `radius`
+  // still reaches anything. inner/height are used by the no-photography
+  // fallback (the generated flanking panels); step/stagger are read by nothing
+  // and are kept only so an existing theme override cannot break.
+  //
+  // radius went 1.90 -> 2.00 for the circle. At 1.90, a THREE-station room
+  // puts a station at exactly 90° — dead lateral, which is precisely where the
+  // walk ellipse is widest (1.6 m of its 1.6/1.15 axes) — leaving 0.30 m, on
+  // the limit. Pendant has three stations, so that was live, not theoretical.
+  // 2.00 gives 0.40 m there and clears every station count from 1 to 6.
   var DEFAULT_ROOM = {
     rugRadius: 1.3,
-    gallery: { inner: 55, step: 25, radius: 1.90, height: 1.52, stagger: 0.07 }
+    gallery: { inner: 55, step: 25, radius: 2.00, height: 1.52, stagger: 0.07 }
   };
 
   function hex2rgb(hex) {

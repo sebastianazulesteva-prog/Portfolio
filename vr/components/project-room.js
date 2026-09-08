@@ -253,9 +253,15 @@
   var VIDEO_RESUME_DEG = 120, VIDEO_PAUSE_DEG = 150;
 
   AFRAME.registerComponent('room-walk', {
+    // `|| this.x` rather than plain assignment, because init is NOT guaranteed
+    // to run before the room registers its stations. The room is built inside
+    // the transition's callback and its `loaded` handler can fire either side
+    // of component init — so registration has to be order-independent in both
+    // directions: addStation creates the array if init hasn't run, and init
+    // must not then wipe what was already registered.
     init: function () {
-      this.stations = [];
-      this.video = null;
+      this.stations = this.stations || [];
+      this.video = this.video || null;
       this.head = document.querySelector('#head');
       this._fwd = new THREE.Vector3();
       this._to = new THREE.Vector3();
@@ -265,6 +271,7 @@
     },
 
     addStation: function (entry, index) {
+      if (!this.stations) this.stations = [];
       this.stations.push({
         el: entry.el, at: entry.at || entry.el, index: index,
         mat: entry.material, focus: entry.focus
@@ -962,6 +969,12 @@
     // has nothing to animate.
     room.setAttribute('room-walk', '');
     room.addEventListener('loaded', function () {
+      // Bail if this room is no longer the open one. `loaded` is asynchronous,
+      // so entering a room and immediately pressing Back — which a visitor can
+      // absolutely do, and which every rapid test does — fires this against a
+      // room that has already been torn down and detached. It threw five
+      // uncaught TypeErrors in one such run, one per abandoned room.
+      if (state.roomEl !== room) return;
       var walk = room.components['room-walk'];
       if (!walk) return;
       placed.forEach(function (p, i) { if (p) walk.addStation(p, i); });

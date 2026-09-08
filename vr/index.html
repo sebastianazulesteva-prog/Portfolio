@@ -106,29 +106,30 @@
     if (!window.VR_AUDIO) console.info('[vr] audio disabled (no ambience, no UI cues)');
   </script>
 
-  <!-- ══ PROJECT-ROOM KILL SWITCH ══
-       The themed per-project rooms (project-room.js) are unfinished — Sebastian:
-       "the project rooms are just ugly right now, so I don't want there to be a
-       way into them just yet." So every DOOR into one is sealed while the rooms
-       themselves stay exactly as they are, ready for the dedicated rebuild
-       (VR_AI_BUILD_GUIDE.md §9.11).
+  <!-- ══ PROJECT-ROOM SWITCH — OPEN ══
+       The rooms were sealed because they were unfinished — Sebastian: "the
+       project rooms are just ugly right now, so I don't want there to be a way
+       into them just yet." They have since been rebuilt: a hero dead ahead at
+       the size of the home portrait, then the project's own photography as a
+       clockwise circle of stations whose order and phase names are read out of
+       each project page's own structure, a travelling light that shows which
+       way round without saying so, per-project colour that no longer paints
+       five identical rooms, and a document station for a project that ends in
+       a written analysis. So the doors are open.
 
-       Sealed, NOT removed: "let's have a little 'project rooms will be coming
-       soon' pop up when people hit that." The three doors stay visible and stay
-       clickable, and each one now shows the notice (notice.js) instead of
-       entering. A control that silently does nothing reads as broken; one that
-       vanishes reads as a feature you can't ask about. While this is false:
-         • hub-panel.js  — "Enter the project room" on a photo card → notice.
-           A body tap on that card pulls it into the focus stage instead of
-           entering, which is what an Experience card already does.
-         • focus-stage.js — its "Enter the project room" CTA → notice.
-         • photo-cloud.js — a selected photo's "View full project" → notice.
-       The PDF reader is NOT affected: writing pieces never had a room, and
-       their reading space is finished. Flip this to true to reopen all three.
-       Same pattern as the audio switch above: one flag, nothing deleted.
+       Three doors, all live again:
+         • hub-panel.js  — "Enter the project room" on a photo card, and a body
+           tap on the card itself (which went to the focus stage while sealed).
+         • focus-stage.js — its "Enter the project room" CTA.
+         • photo-cloud.js — a selected photo's "View full project".
+       The PDF reader is unaffected either way: writing pieces never had a room.
+
+       Setting this back to false re-seals all three and swaps them for the
+       "coming soon" notice (notice.js) — nothing was deleted to open them, so
+       it remains a one-word retreat if a room ever regresses.
   -->
   <script>
-    window.VR_ROOMS = false;
+    window.VR_ROOMS = true;
     if (!window.VR_ROOMS) console.info('[vr] project rooms disabled (no entry points)');
   </script>
 
@@ -258,7 +259,7 @@
   <script src="components/spatial-photo.js?v=5"></script>
   <script src="components/portrait-lab.js?v=5"></script>
   <script src="components/bio-card.js?v=36"></script>
-  <script src="components/project-room.js?v=40"></script>
+  <script src="components/project-room.js?v=41"></script>
   <!-- The reading ruler inside pdf-reader: finds the text lines in each
        pre-rendered page IMAGE and highlights the one you are looking at.
        Above pdf-reader, which begins and ends it. -->

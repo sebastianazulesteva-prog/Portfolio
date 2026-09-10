@@ -52,8 +52,18 @@ in practice. Breaking any of them is a regression.
    VR_TEST_REPORT.md G9. Re-add super-hands, plus the
    `delete AFRAME.components.grabbable` shim it needs, only alongside the first
    real grabbable target.)
-3. **Don't touch the rest of the site.** The one sanctioned touchpoint is the
-   nav entry in `index.html` — the old inert `VR Website Version Coming Soon`
+3. **Don't touch the rest of the site.** Two sanctioned touchpoints, both by
+   explicit ask. The second, added 2026-09-09: the **alt text on the contact
+   photos and the hero** in `index.html`. Writing the VR captions meant working
+   out what is actually in each photograph, and at that point leaving
+   `alt="Sebastian Esteva — candid photo 1"` on the live site was knowingly
+   leaving a screen reader worse off than the dome. Sebastian asked for it
+   directly; do not take it as licence for anything else. Note the hero pair is
+   already CORRECT and was only reworded: `contact-photo-mosaic.jpg` carries
+   `alt=""` on purpose because it is the bottom layer of a two-image composite
+   that the top layer describes once — "fixing" the empty one would make a
+   screen reader announce the same picture twice.
+   The first, and still the main one, is the nav entry in `index.html` — the old inert `VR Website Version Coming Soon`
    placeholder, now a live `Experience in VR` link with a `.nav-beta` pill
    (`<li class="nav-vr">`). It is the only nav link NOT in the off-white the
    others use: it wears `--ember` (#b8863b, the same gold as vr.css's `--ember`
@@ -2697,6 +2707,384 @@ disable the ruler (`vr-reading-line`'s `enabled` false); rendered at 3× as a
 contact sheet and looked at, in both states; and §9.24's leak measurement re-run
 because this adds four disposables — still **+0 / +0**, with the lamp's core
 showing 4 made / 4 freed in the census.
+
+---
+
+### 9.26 The second walkthrough list (2026-09-08)
+
+Twenty-odd items from a headset pass, worked through in one session. The four
+that changed how something in here *works* rather than how it looks are 9.26.1,
+9.26.2, 9.26.5 and 9.26.6 — read those even if you skip the rest.
+
+#### 9.26.1 `visible: false` DOES NOT STOP SOMETHING BEING CLICKED
+
+The most important finding in this pass, and it had been true since the first
+project room.
+
+`setAttribute('visible', false)` sets `object3D.visible = false`. three.js r158
+honours that when RENDERING and **ignores it when RAYCASTING** — `intersect()`
+tests `object.layers`, never `visible` — and A-Frame's raycaster does not filter
+the results either. So every `.hub-cluster` a room, the reader or the lab hid
+stayed a live, invisible hit target: 33 photo tiles, five project cards, five
+writing cards, the bio card's Skills toggle, the portrait.
+
+Two symptoms, both reported:
+
+* **A control in the place you ARE in silently refuses to work**, because
+  something you cannot see is nearer the eye. This is what "the PDF reader for
+  the FEA analysis is broken, I can't page through" partly was: aimed at the
+  document station's arrows, the first thing the head cursor hit was
+  `#homePortrait`, invisible, at 1.68 m.
+* **A click on empty room floor opens another project's content on top of the
+  room you are standing in.** Best candidate for the "engineering communication
+  builder content appearing in the Time Collector room" note — unreproduced, see
+  the open item at the end.
+
+Fixed in `place.js`, which now owns `VRPlace.setHubVisible()` /
+`setBranchVisible()`: hiding a branch also takes `.clickable` off every
+descendant (recording it in `data-vr-was-clickable` so showing restores exactly
+what was there) and refreshes the three rays. `project-room.js`, `pdf-reader.js`
+and `portrait-lab.js` all route through it.
+
+Measured: entering a room takes the scene from 72 clickables to 4 (three station
+controls + the exit console) and the head cursor's object list from 88 to 9;
+leaving restores 72 with zero leftover flags.
+
+Two more of the same shape, found by counting clickables across a full
+round-trip rather than by reading code:
+
+* **The portrait lab builds its room once and hides it**, so between visits
+  three depth panels and a Back button sat invisible in the hub and still took
+  clicks (73 → 78 after one visit).
+* **`busy.js`'s card is built once and parked**, leaving its Cancel button as a
+  live invisible target floating mid-hub for the rest of the session (+1 per
+  reader visit).
+
+Both now go through `VRPlace.setBranchVisible`. The regression test is one line:
+**the hub's `.clickable` count must come back to exactly what it was** after any
+room, reader or lab visit. Measured after: 73 across two rooms, two reader
+visits and a lab visit.
+
+**Use `VRPlace.setBranchVisible(el, on)` for anything that hides a branch.** A
+bare `setAttribute('visible', false)` is a rendering change, not a hiding.
+
+#### 9.26.2 The two hand raycasters are phantoms when no controller is connected
+
+`#leftHand` and `#rightHand` are in the markup from page load. `raycaster` does
+not care whether a controller ever arrives: it ticks and casts from wherever the
+entity is, and with nothing attached that entity has never moved off the RIG
+ORIGIN. Both hands therefore fire a permanent ray along −Z at world y 0.
+
+Measured in the reading room, no controllers anywhere:
+
+```
+  #head [cursor]   1 hit,  y 2.45,  distance 2.08    <- the actual gaze
+  #leftHand        2 hits, y 0.00,  distance 1.90    <- phantom, and NEARER
+  #rightHand       2 hits, y 0.00,  distance 1.90    <- the same phantom
+```
+
+Anything resolving "the pointer" as *nearest hit across all three* — the
+obviously correct rule — gets the phantom, permanently, on every device with no
+controllers. **That includes a Vision Pro, where controllers never connect and
+the gaze is the only pointer there is.**
+
+`reading-line.js` did exactly that. So the reading ruler has been tracking a
+floor-level ray rather than the reader: it still lit a line, so it looked alive,
+but always a low one and never the one being read. On a desktop the mouse ray
+usually lands nearer and hides it, which is why it survived testing.
+
+New `pointer.js`: `hand-ray-gate` disables a hand's raycaster until
+`controllerconnected` fires (starting disabled — on a Vision Pro that event never
+comes), and `VRPointer.nearest([accept])` is the shared answer for everyone else.
+`reading-line.js` and the reader's auto-scroll both use it.
+
+**Never hand-roll "nearest across the three rays" again. Call `VRPointer`.**
+
+#### 9.26.3 `.clickable` is not what makes something clickable
+
+The document station's paging arrows could not be clicked by any pointer, on any
+device, and never could. The class was right, the handler was right, the
+explicit `refreshClickableRaycasters()` was right. The meshes were attached with
+`el.object3D.add(mesh)`.
+
+A-Frame's raycaster resolves its `objects` selector and then calls
+`flattenObject3DMaps`, which walks each matched entity's **object3DMap** — the
+registry `setObject3D(name, obj)` writes to. A mesh added with `object3D.add()`
+is in the scene graph, renders perfectly, and is in no entity's object3DMap, so
+the entity contributes **zero objects** to the ray.
+
+Proof it was never the handler: `emit('click')` paged perfectly the whole time.
+
+Every other clickable in the scene already used `setObject3D` (photo-cloud tiles,
+scroll-arrows' pads, notice, bio-card's toggle). This was the only raw `add()`,
+and it was the only control that did not work. The page plane is now its own
+clickable entity too — tap the lower half to go on, the upper half to go back.
+
+#### 9.26.4 The project rooms walked ANTICLOCKWISE
+
+*"It loads with the hero photo centre and '5 of 5' to the right; the first photo
+should be to the right on entry and the last one after a full rotation."*
+
+`project-room.js` has always DESCRIBED a clockwise walk. The code did the
+opposite: A-Frame yaw is right-handed about +Y, so `rotation.y = +θ` sends a
+child at `(0, y, −r)` to negative x — the viewer's LEFT. Every station carried
+its correct number the whole time, so the room read as counting down rather than
+as being mirrored, which is why it survived. One `var CW = -1`.
+
+#### 9.26.5 The 25% went into the ROOMS, after a wrong turn through the hub
+
+Sebastian's note said *"images overall: increase size by ~25%"*, under a heading
+about the Experience and gallery sections. That was read as the hub
+constellations, and the whole hub was grown and re-cut for it. **Reverted on
+2026-09-09** — *"25% bigger in the project rooms, not in other places"* — and the
+growth moved to `project-room.js`: `ST_W/ST_H` 0.86 × 0.62 → **1.075 × 0.775**,
+`PDF_COVER_H` and both placeholder cards with them, so a room has one scale.
+
+Cheap, because a room owns the whole 360° and spends it on at most six
+stations. Checked against this file's own no-overlap rule: 0.86 subtends 26.17°
+at the 1.85 m gallery radius, 1.075 subtends 32.40°, and the tightest real
+layout (Time Collector, six stations, 51.43° step) goes from a 25.26° gap
+between neighbours to 19.03°. Still clear — which matters more in a room than
+anywhere else, because everything in one is renderOrder 0 and overlapping quads
+paint in scene-graph order (§3.6).
+
+**The hub is back to exactly what it was**, verified by re-measuring the placed
+card edges: writing 33.02–53.98, projects 61.08–131.96, experience −116.89 to
+−47.11, cloud arc 124.5–220.7, `TILE` 0.5. `card-flip.js`'s `GROW` is the one
+thing kept from the reverted pass: it was `2.0`, which was only ever
+`BACK_W / 0.50` written down as the ratio instead of as the two things it is a
+ratio of. It is `growFor(cardEl)` now — same value at the authored size, and it
+no longer silently breaks if the card ever does change.
+
+##### Keep this: where the 25% could have come from
+
+Worth not re-deriving if the hub is ever grown for real. At radius 2.0 the dome
+is FULL — every section sits inside a ~7° gap of its neighbour, all the way
+round. Measured (index.html's convention, 0 ahead, + to the LEFT):
+
+```
+  portrait  5.33 .. 29.83     writing 33.04 ..  53.96    projects 61.07 .. 131.96
+  bio     -38.16 ..  -3.57    experience -116.89 .. -47.11
+  cloud (its own convention, + right) 124.5 .. 220.7, arc 96.2
+```
+
+The only thing that made +25% fit was **taking Experience from 4 columns to 3**.
+Ten cards at 4 columns cost three column steps; 25% bigger that widens the
+section 69.8° → 83.9°, on top of the ~15° the projects grid needs on the other
+side, and the cloud does not have 29° to give (67° is on record here as "one
+tight clump"). At 3 columns the same ten cards, 25% bigger, span 61.9° —
+*narrower than the row they replace* — and that 8° pays for most of the rest.
+
+The writing column must **not** grow with the others: a paperTitle card has no
+photograph on it, the column is five cards tall inside a fixed 0.20 m row gap,
+and at ×1.25 its bottom card lands at y 0.11, ankle height.
+
+Angles come from holding each section's INNER edge and sending the growth
+outward — the same rule `layoutCluster`'s a11y widening compensation follows.
+The set that worked: `WRITING_ANGLE` 43.5 (unchanged), `PROJECTS_GRID_ANGLE`
+96.5 → 104.5, `EXPERIENCE_ANGLE` −82 → −76, photo-cloud `EDGE_MIN/MAX`
+124.5/220.7 → 115.1/204.3 (arc 96.2° → 89.2°), `TILE` 0.5 → 0.625. Verified with
+`_dev-camera-path.js` across 20 waypoints — hub-sweep, command-zone (lean
+left/right/forward/back) and four eye heights: **zero screen overlaps**.
+
+##### The company marks were re-tuned for the small card
+
+The logo was sized against the grown 0.625 × 0.425 card; back at 0.5 × 0.34 it
+had to shrink (`LOGO_FRAC` 0.19 → 0.17, with its own tighter inset). What a mark
+costs is the TITLE's height budget, and the auto-fitter spends that as font
+size. Built each card twice, with and without:
+
+```
+  Maker Nexus                       0.0520 -> 0.0520     0%
+  Stanford Univ - Comparative Med   0.0447 -> 0.0400   -11%
+  Virtual Human Interaction Lab     0.0510 -> 0.0400   -22%
+```
+
+Only the two longest names pay anything, and 0.0400 is above `hub-panel`'s own
+`TITLE_FLOOR` (0.0364) and subtends 1.15° at 2 m — larger than the reading-guide
+toggle's 0.80°, the smallest type in the scene Sebastian has signed off. The
+mark is affordable on this card and would not be on a smaller one.
+
+#### 9.26.6 A completed reach is LOCKED
+
+*"Once an image is fully circled it should always come forward — it deselects
+mid-load if the gaze drifts."* The ring costs ~0.9 s of deliberate holding and
+then half a degree of head drift sent the photo home again, often while it was
+still fetching. `mouseleave` no longer unwinds a completed reach; only another
+tile's ring completing, a click, or `select(null)` does. `_focus` owns the
+handover, on COMPLETION rather than on arming, so an abandoned ring leaves the
+tile you already pulled in exactly where it is.
+
+Dismiss speed: out is 0.95 s against in at 0.5 s (*"slow down the deselection,
+but not too slow"*). Asymmetric on purpose — arriving is an answer to something
+you did, leaving is not.
+
+#### 9.26.7 The rest of the list
+
+* **Photo captions.** New `vr/images.json`, keyed by bare file name, same
+  enrichment-not-content contract as `projects.json`: a `caption` that replaces
+  the alt in the cloud, an `exclude` flag, and a `project` href override for the
+  one file whose name does not start with its project's stem
+  (`slide-1-sketch.png`). An alt is written for a screen reader working down a
+  page that supplies the context; a cloud tile floats alone in a dome with
+  nothing around it. `contact-photo-framed-for-mosaic.jpg` is excluded — it is
+  the same photograph as `contact-photo-professional.jpg`, cropped to register
+  with the mosaic, and its alt describes a compositing effect the cloud does not
+  run.
+* **Per-station room copy.** `data-loader.js` scrapes `.step-body p` /
+  `.block-body p` (or a `<p>` in the image's own box) alongside the phase name.
+  Chess, Pendant and Slip Door have it; Bastón and Time Collector have no prose
+  on their process cards at all, and the honest answer there is a heading and a
+  photograph — add a `<p>` to a process card on the flat page and it appears in
+  the room next load. The alt text is deliberately NOT a fallback: in a room the
+  visitor is looking straight at the picture.
+* **The ceiling.** `dome.js`'s zenith #050505 → **#242f44**, 18× the relative
+  luminance and still firmly dark, and held FLAT above 40° of elevation
+  (`ZENITH_PLATEAU`) — as one stop at the pole the lift was invisible from a
+  normal forward look. Every room sky scaled to the same 0.028 luminance target
+  keeping its own hue, except Chess, which has no colour to scale and whose
+  character is a gallery wall. The ember band is untouched: it is bounded by
+  FEATHER at ±14.4° and never meets the zenith.
+* **The exit console, 25% smaller and 5° left.** Every dimension scaled together
+  — plate, label, deck, both rules — because they are ratios tuned against each
+  other; shrinking the plate alone walks the back mark into the "B" of "Back".
+  The shrink is what does most of the work on occlusion (the deck's top edge
+  subtends 6.8° from its centre now against 9.0°, so the reader page coverage
+  falls ~15% → ~10.6%); the shift uncovers the right-hand end of the lines still
+  behind it. 5° and not more: at 0.66 wide the deck's outer edge lands at 21.6°,
+  no further into the phone crop than the old 0.88 deck did centred.
+* **Auto-scroll in the reader.** The strip drifts whenever the pointer sits away
+  from eye level on a page, on a squared ramp out of a 22% dead zone, up to
+  0.42 m/s, after a 320 ms settle. Both directions — §9.23's one-way argument was
+  about a CLICK undoing itself and does not carry here. Not a gaze fuse: it
+  commits to nothing and reverses immediately. Measured: 0.027 / 0.129 / 0.365 /
+  0.504 m per 1.2 s at 0.25 / 0.40 / 0.55 / 0.65 m below the eye, and 0.0003 m of
+  drift in the dead zone.
+* **The end of a piece.** Reach the bottom and "Look up" appears under the last
+  page; tip past 38° and every page of the piece fans across the ceiling with
+  the count. Re-uses the trail textures the reader already keeps, so it costs no
+  memory and no network, and the conceit is literally true — a page can only be
+  in the fan if you scrolled through it. Two things that only rendering caught:
+  the leaves must face DOWN (`+90°` about X, not the floor convention's `−90°`,
+  which points them away and mirrors the caption), and the strip behind has to
+  dim or a fan of 256 px thumbnails loses to a 4 m column of white pages.
+* **Sunflower on the hero portrait**, and it is not cosmetic. A stereo pair is
+  only valid seen square on: the disparity is baked along the image's horizontal
+  axis for a head at 1.5 m dead ahead, so an oblique view shears the depth —
+  which is exactly *"the background moves too much when looking sideways"*. With
+  bounded walking that is not an edge case. Rate 12 (slower than the
+  constellation's 18: this panel is 1.5 m away and directly in front of you),
+  maxTurnDeg 34. `sunflower.js` now honours `?sunflower=0` itself rather than
+  only through `layoutCluster`, or the A/B would compare a scene with one panel
+  still drifting.
+* **Convergence, the other half of that.** `spatial-photo` samples both textures
+  at a per-eye horizontal offset, which slides the ZERO-disparity plane through
+  the scene without touching relative disparity — the depth structure is
+  bit-for-bit what was baked. Default `converge: 0.75` puts the backdrop most of
+  the way onto the panel (residual 1.22 px against 4.88), because the deepest
+  thing in a stereo pair is always the least stable thing in it. Not 1.0: the
+  subject would stand further in front of the frame, and a window violation is
+  worse than a slightly soft backdrop. `?converge=N` for the in-headset call.
+* **Company logos.** Upper-left of each Experience card, from
+  `/images/logos/<hostname>.png` — the hostname of the job's OWN link on
+  experience.html, so nothing anywhere maps a company to a picture. Four Stanford
+  orgs carry four copies of the Stanford mark rather than sharing one through an
+  alias table; 4 × 9 KB against a hand-written map, in a codebase whose rule 5 is
+  that content is derived. Each is composited onto a common light rounded plate,
+  because ten brand marks with ten different backgrounds (a navy square, a black
+  square, a white field) do not read as a set against dark glass. The title is
+  top-anchored below the mark: it is centred and wraps to four lines, so there is
+  no reliable corner for a badge beside it.
+* **Card return, 380 → 620 ms.** This card is not dismissed to reveal something
+  else, it is putting itself back — 0.9 m of travel, 1.6× of shrink and 180° of
+  turn — and at 380 ms that reads as a yank. Still under the 520 ms flip in.
+* **The portrait lab is a walk site**, radius 1.35 (a circle, per
+  walk-controls' own reasoning), so you can reach 0.50 m from a panel and stand
+  square on to the outer ones. It used to inherit the HUB's ellipse, which is
+  squashed to 1.15 m toward −Z *because the home panel is that way* — in here the
+  thing ahead is the exhibit. **What this cannot fix:** visionOS fades an
+  immersive space to passthrough when you physically walk out of its area, and no
+  WebXR page can move that. On a Vision Pro all locomotion is physical, so
+  Apple's limit is the real one.
+* **A fourth lab panel: `parallax-photo.js`.** Parallax occlusion mapping over
+  the relief panel's own depth map — two triangles, no new asset, the relief
+  panel's motion response with none of its stretching. Runs at 0.085 m of depth
+  against the relief panel's 0.1951 m, and that difference IS the finding: at the
+  full depth a 30° view marches 15.6% of the panel's width across ground the
+  photograph has no data for, which rendered as a fringe of streaks along the
+  hairline. Plus an edge guard that stops parallaxing where the march lands on a
+  depth step. GAP 0.95 → 0.86 so four panels span ±34.9°.
+* **The splat.** It renders — verified on the monitor, drawing correctly in the
+  lab. For the in-headset report there is now a **watchdog**: ready with
+  `instanceCount === 0` forces a sort up to five times a second apart, then says
+  so on the busy card, because every remaining failure mode is silent and there
+  is no console (§3.16). Also a forced re-sort on every `sessionstart`/`end` —
+  `webXRActive` switches the library's stereo correction, so the sorted order is
+  for a different projection, and putting a headset on does not move the head
+  past `tick()`'s gate.
+* **`leave-vr.js`.** A pad on the floor 0.70 m ahead, revealed by looking down
+  past 45° and hidden again at 32°, that ends the session and navigates to `/`.
+  Deliberately NOT `.hub-cluster`: "I want out" is most likely felt somewhere
+  that already replaced the hub. Not a gaze fuse — looking down reveals it,
+  pressing it takes a click. It draws UNLIT: `exit-button.js` uses the same
+  #141816 through `litMaterial` and reads as dark furniture because that deck
+  stands up edge-on to the rack, while this one lies flat pointing straight at
+  four warm lights and came back tan.
+  **On the question asked:** visionOS's Digital Crown and Quest's system menu
+  already end a session and cannot be overridden — but they leave you in the
+  browser looking at /vr's flat page, which is a WebXR scene with an "Enter VR"
+  button on it. There is no native affordance for "and take me back to the
+  website"; that last step is the only part a page can do, and it is the part
+  that was asked for.
+
+#### 9.26.9 The Experience card, settled (2026-09-09)
+
+Three passes with Sebastian looking at renders, so these are decisions rather
+than defaults. Do not re-litigate them.
+
+**The ROLE is the headline, the employer is the small line.** *"My titles should
+be the big, and where I work should be the small — swap those."* It was the
+other way round, which reads as a list of employers rather than a list of what
+he did. The role also has to be SPLIT to do it: experience.html's own convention
+for `.exp-role` is `Title · Place` ("Maker on Duty · Stanford, CA"), and a
+headline is the job, not the postcode — so `expLines()` in index.html takes the
+first segment for the big line and drops the tail into the small line with the
+company and the dates. Nine of ten roles use that separator; "Teaching
+Assistant, Neurobiology of Pain" has no tail and is unaffected. Both faces of
+the card use the same split, or it would change what it leads with mid-flip.
+
+**The place STAYS in the small line**, even though it costs a third line on a
+few cards and repeats "Stanford" on two. Put to him against the tighter
+"company · date"; he kept it, because San Francisco / Remote / Hybrid say
+something about three of the roles that nothing else on the card does.
+
+**The marks stay small** (`LOGO_FRAC` 0.17). Shown in the scene next to the
+measured cost of going bigger — every millimetre comes out of the title's
+height budget and the two longest names are already being shrunk — and he chose
+the modest mark.
+
+**Three marks are not that host's own icon**, and `images/logos/SOURCES.txt`
+records why for all ten. VHIL ships a wide lockup, so only its head-and-visor
+ICON is used (the wordmark is unreadable at 58 mm). The Neurobiology of Pain
+card carries the **Stanford Medicine shield** rather than the generic tree its
+host serves, because that is what the job is. Open to Debate publish only a
+white-on-transparent wordmark, so it is **recoloured to #111** — letterforms
+untouched, fill inverted — because white is invisible on the plate. The naming
+convention is unchanged and is still the whole mechanism: `<hostname>.png`, no
+table anywhere.
+
+#### 9.26.8 Not resolved
+
+**"Engineering communication builder content appearing incorrectly in the Time
+Collector room."** Not reproduced. The phrase appears nowhere in the repo; the
+Time Collector room's blurb, its five station headings, its FEA document and the
+pages behind it were all checked against the live page and are correct. The
+nearest thing on the site is the bio card's Skills row — "Engineering ·
+Communication · Strategy · VR" — and the expanded panel's "Community Building",
+which is why 9.26.1 is the leading theory: until this pass a click on empty room
+floor could land on an invisible hub card and open another project's content
+inside the room. If it recurs after 9.26.1, it is something else and needs a
+screenshot.
 
 ---
 

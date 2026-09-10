@@ -25,8 +25,45 @@
 
 (function () {
   var PANEL_W = 0.72, PANEL_H = 1.08;
-  var GAP = 0.95;                 // centre-to-centre; ~0.23 m of air between panels
+  // 0.95 -> 0.86 when the fourth variant arrived (2026-09-08). Four panels at
+  // 0.95 span 2.85 m at z -1.85, which is +/-37.6 deg — past a comfortable
+  // seated sweep, so the two ends would only ever be seen edge on, and two of
+  // the four techniques here are ABOUT what happens when you see them off
+  // axis. 0.86 spans 2.58 m, +/-34.9 deg, and still leaves 0.14 m of air
+  // between panels.
+  var GAP = 0.86;                 // centre-to-centre; ~0.14 m of air between panels
   var ROOM_Z = -1.85;             // far enough back that all three fit a seated fov
+
+  // ── The lab is a WALK SITE, with a bigger bound than anywhere else ───────
+  // Sebastian: *"the walkable space in the 3D compare portrait scene is too
+  // small — expand the boundary so users can get closer to the images."*
+  //
+  // The lab used to inherit the HUB's bound, and the hub's bound is authored
+  // for the hub: an ellipse 1.6 m across and only 1.15 m toward -Z, squashed
+  // that way precisely because the home panel is 1.5 m ahead and there has to
+  // be clearance to it (walk-controls.js §9.5). In here the thing 1.85 m ahead
+  // is not something to keep clear of, it is the whole exhibit — so that
+  // asymmetry stopped you 0.70 m short of the panels, and the outer two sit at
+  // x ±0.95 where a 1.6 m lateral bound never let you stand square on to
+  // either. A comparison you cannot walk up to is a poster.
+  //
+  // A site bound is a CIRCLE by default, which is the right shape here for the
+  // reason walk-controls gives: a site's asymmetry would be authored in world
+  // axes and land at an arbitrary angle to whatever the site faces. 1.35 m
+  // brings you to 0.50 m from a panel — close enough to put your face in it,
+  // and still 0.5 m of air, which matters because these are FIXED-AIM panels
+  // and a stereo pair seen from 0.2 m is not a portrait, it is two images.
+  //
+  // What this does NOT fix, and cannot: *"the Vision Pro starts exiting the
+  // virtual space mid-walk."* That is visionOS's own boundary — it fades an
+  // immersive space back to passthrough when you physically walk out of the
+  // area it recognised, and no WebXR page can move it or turn it off. The bound
+  // here governs the VIRTUAL walk (joystick/WASD); on a Vision Pro, which has
+  // no controllers, all locomotion is physical and Apple's limit is the real
+  // one. The honest answer to reaching the panels there is that they should
+  // come to you, which is what the site radius plus the closer ROOM_Z above
+  // are for.
+  var SITE_WALK_RADIUS = 1.35;
   // The relief panel builds its interior for one reference viewpoint, and that
   // has to be where the panel actually is or the box does not fill its opening.
   // The home portrait's default is 1.5 m; in here they hang at 1.85 m.
@@ -40,10 +77,23 @@
     { key: 'relief', title: 'Relief panel',
       note: 'displaced geometry · looks through' },
     { key: 'splat', title: '3D gaussians',
-      note: 'SHARP splats · sees behind edges' }
+      note: 'SHARP splats · sees behind edges' },
+    // Added 2026-09-08. Sits LAST, after the splat, because the lab reads
+    // left-to-right as increasing commitment — two images, then displaced
+    // geometry, then a real reconstruction — and this one is the coda: it
+    // gets most of the way back to the relief panel's motion response from
+    // two triangles and a texture the relief panel was already loading.
+    { key: 'parallax', title: 'Parallax map',
+      note: 'depth in the texture, not the mesh' }
   ];
 
   function setHubVisible(visible) {
+    // Through VRPlace, not a local querySelectorAll: hiding a branch with
+    // `visible:false` leaves every `.clickable` in it a live, invisible hit
+    // target (three.js raycasts ignore `visible`). See the long note in
+    // place.js — this is how a hub card behind a room's floor could swallow a
+    // click, and how the hub's portrait was blocking this room's own controls.
+    if (window.VRPlace && VRPlace.setHubVisible) return VRPlace.setHubVisible(visible);
     [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
       el.setAttribute('visible', visible);
     });
@@ -135,6 +185,13 @@
             + ' width: ' + PANEL_W + '; height: ' + PANEL_H + ';'
             + ' relief: assets/portrait-relief.png;'
             + ' viewDistance: ' + ROOM_VIEW_DIST);
+        } else if (v.key === 'parallax') {
+          // Same depth map and the same metric span as the relief panel beside
+          // it (parallax-photo.js's depthM defaults to the bake's relief_m), so
+          // the only thing differing between those two is the technique.
+          art.setAttribute('parallax-photo', {
+            width: PANEL_W, height: PANEL_H
+          });
         } else {
           // The splat is a free-standing bust, not something behind an opening —
           // it has no backdrop to frame, because the bake prunes it away. Sized
@@ -167,7 +224,7 @@
 
       var hint = document.createElement('a-entity');
       hint.setAttribute('troika-text', {
-        value: 'Lean side to side. Only the middle and right panels change.',
+        value: 'Lean side to side. The first panel is fixed; the other three move.',
         align: 'center', anchor: 'center', baseline: 'top',
         color: '#ffffff', fillOpacity: 0.62, font: VRFonts.body(),
         fontSize: VRType.body(), maxWidth: 2.6
@@ -193,10 +250,22 @@
         this.room = this.buildRoom();
         this.el.sceneEl.appendChild(this.room);
       } else {
-        this.room.setAttribute('visible', true);
+        // Through VRPlace, for the same reason setHubVisible goes through it:
+        // the lab BUILDS ITS ROOM ONCE and hides it on close, so between visits
+        // four depth panels and a Back button sat invisible in the hub and
+        // still took clicks. Measured before the fix: the hub came back from a
+        // lab visit with 78 clickables against the 73 it started with, and the
+        // five extra were this room.
+        VRPlace.setBranchVisible(this.room, true);
       }
       // The splat and the textures land asynchronously, so the click targets
       // that exist a frame from now are not the ones that exist right now.
+      // Its own walk bound, wider than the hub's. Entered at the origin so the
+      // lab's own geometry (authored around 0,0) stays where it is; only the
+      // BOUND changes, and walk-controls moves it with the site.
+      if (window.VRWalk && VRWalk.enterSite) {
+        VRWalk.enterSite({ x: 0, z: 0, radius: SITE_WALK_RADIUS });
+      }
       refreshRays();
       setTimeout(refreshRays, 400);
       this.el.sceneEl.emit('portrait-lab-open', null, false);
@@ -205,7 +274,10 @@
     closeLab: function () {
       if (!this.open) return;
       this.open = false;
-      if (this.room) this.room.setAttribute('visible', false);
+      if (this.room) VRPlace.setBranchVisible(this.room, false);
+      // Puts the viewer back on the spot they walked from, and restores the
+      // hub's own ellipse.
+      if (window.VRWalk && VRWalk.leaveSite) VRWalk.leaveSite();
       setHubVisible(true);
       refreshRays();
       this.el.sceneEl.emit('portrait-lab-close', null, false);

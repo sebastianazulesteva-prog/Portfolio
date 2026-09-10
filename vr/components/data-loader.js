@@ -129,15 +129,44 @@
       .concat(quickLinks.map(parseQuickLink));
   }
 
+  // '/images/logos/<hostname>.png' for an absolute http(s) link, else null.
+  // Parsed with URL rather than a regex so a link with a port, credentials or
+  // an unusual scheme can't produce a path that half-resolves.
+  function hostLogo(href) {
+    if (!href) return null;
+    try {
+      var u = new URL(href, location.origin);
+      if (!/^https?:$/.test(u.protocol) || !u.hostname) return null;
+      return '/images/logos/' + u.hostname + '.png';
+    } catch (e) { return null; }
+  }
+
   function parseExperience(doc) {
     var items = Array.prototype.slice.call(doc.querySelectorAll('.exp-item'));
     if (!items.length) throw new Error('.exp-item not found — experience.html markup may have changed');
     return items.map(function (item) {
       var companyEl = item.querySelector('.exp-company');
       var bullets = Array.prototype.slice.call(item.querySelectorAll('.exp-bullets li')).map(textOf);
+      var href = companyEl ? companyEl.getAttribute('href') : null;
       return {
         company: textWithout(companyEl, '.exp-company-arrow'),
-        companyHref: companyEl ? companyEl.getAttribute('href') : null,
+        companyHref: href,
+        // ── The company mark, DERIVED, never mapped ────────────────────────
+        // Each job on experience.html already links to its own organisation, so
+        // the organisation is already named on the page — by its hostname,
+        // which is the one identifier that cannot drift the way a display name
+        // can ("Stanford University - Comparative Medicine" vs "Stanford").
+        // So the logo path is the hostname, and there is no table anywhere
+        // saying which company gets which picture. Adding a job to the flat
+        // page and dropping `<hostname>.png` into /images/logos is the whole
+        // workflow; a missing file simply means no mark (hub-panel skips it).
+        //
+        // Four Stanford orgs therefore carry four identical copies of the
+        // Stanford mark rather than sharing one through an alias table. That is
+        // the deliberate trade: 4 × 9 KB against a hand-written map, in a
+        // codebase whose rule 5 is that content is derived and never listed.
+        // It is also what those four sites actually serve as their own icon.
+        logo: hostLogo(href),
         date: textOf(item.querySelector('.exp-date')),
         role: textOf(item.querySelector('.exp-role')),
         bullets: bullets
@@ -193,6 +222,58 @@
   var BOX_LABEL_SEL = '.process-tag,figcaption,h4,h3';
   var HEADING_SEL = '.block-label,.step-body h3,.journey-heading,h3,h2';
 
+  // ── Station BODY copy ─────────────────────────────────────────────────────
+  // Sebastian, on the rooms: *"add descriptive text pulled from existing web
+  // page copy; expand over time."* A station already carries the page's phase
+  // NAME; this is the page's phase PROSE, so a room reads as the project page
+  // does rather than as a caption sheet.
+  //
+  // Same discipline as the label: found on the page, never typed here (rule 5),
+  // and looked for from the most specific container outwards.
+  //   1. a <p> inside the image's own box — the tightest possible scope
+  //   2. the enclosing section's body paragraphs (chess/pendant `.step-body p`,
+  //      slipdoor `.block-body p`), joined when a block has more than one
+  //   3. nothing — and "nothing" is the honest answer for two of the five
+  //      rooms. Bastón and Time Collector have `.process-card`s carrying a tag
+  //      and an image and no prose at all, so their stations show a heading and
+  //      a photograph. `expand over time` is exactly this: add a <p> to a
+  //      process card on the flat page and it appears in the room on next load,
+  //      with no change here.
+  //
+  // The alt text is deliberately NOT a fallback. It is a description of the
+  // PICTURE written for someone who cannot see it, and in a room the visitor is
+  // looking straight at the picture — so it lands as a redundant narration of
+  // what is plainly in front of them, in the one place the page had nothing to
+  // say. It is already the photo-cloud's caption, where the tile floats alone
+  // and that job is the right one.
+  var BODY_SEL = '.step-body p,.block-body p';
+  // Two short paragraphs of a project page run past what a station can carry at
+  // arm's length without becoming the thing you stand and read. Measured
+  // against the real copy: the longest single source paragraph on the five
+  // pages is slipdoor's 168 characters, and its block has two — so the cap only
+  // ever bites on a join, which is the case where the second paragraph is the
+  // expendable one.
+  var BODY_MAX = 260;
+
+  function trimTo(s, max) {
+    s = (s || '').replace(/\s+/g, ' ').trim();
+    if (s.length <= max) return s;
+    // Prefer a sentence end, then a word boundary — never a mid-word cut.
+    var cut = s.slice(0, max);
+    var stop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
+    if (stop > max * 0.5) return cut.slice(0, stop + 1);
+    return cut.replace(/[\s,;:]+\S*$/, '') + '…';
+  }
+
+  function bodyFor(box, sec) {
+    var own = box && box.querySelector('p');
+    if (own && textOf(own)) return trimTo(textOf(own), BODY_MAX);
+    if (!sec) return '';
+    var ps = Array.prototype.slice.call(sec.querySelectorAll(BODY_SEL)).map(textOf)
+      .filter(function (s) { return !!s; });
+    return ps.length ? trimTo(ps.join('  '), BODY_MAX) : '';
+  }
+
   // A run short of target SPLITS its largest mosaic, in document order, so the
   // page's grouping is the starting point without being the ceiling. Adjacent
   // halves keep the same heading, which reads as one phase spanning two
@@ -221,15 +302,17 @@
       var sec = img.closest(SECTION_SEL);
       var head = sec && sec.querySelector(HEADING_SEL);
       var label = textOf(own) || (head ? textOf(head) : '');
+      var body = bodyFor(box, sec);
       var i = byNode.indexOf(box);
       if (i === -1) {
         byNode.push(box);
-        groups.push({ label: label, images: [] });
+        groups.push({ label: label, body: body, images: [] });
         i = groups.length - 1;
       }
       // First non-empty heading wins — a container spanning two sections keeps
       // the phase it starts in rather than flipping to the later one.
       if (!groups[i].label && label) groups[i].label = label;
+      if (!groups[i].body && body) groups[i].body = body;
       groups[i].images.push({
         src: rootHref(img.getAttribute('src')),
         alt: (img.getAttribute('alt') || '').trim()
@@ -244,7 +327,9 @@
       if (big === -1) break;   // nothing large enough left to split without eating a mosaic
       var half = Math.ceil(groups[big].images.length / 2);
       var tail = groups[big].images.splice(half);
-      groups.splice(big + 1, 0, { label: groups[big].label, images: tail });
+      // The body follows the label for the same reason: two halves of one
+      // mosaic are one phase shown in two positions, not two phases.
+      groups.splice(big + 1, 0, { label: groups[big].label, body: groups[big].body, images: tail });
     }
 
     return groups;
@@ -328,11 +413,20 @@
   // matching a project href stem (baston-parts.jpg → baston.html → "Bastón").
   // Contact photos and anything unmatched keep project: null (caption is just
   // the alt text then).
-  function buildImageCatalog(lists, projects) {
-    var byStem = {};
+  //
+  // `meta` is vr/images.json keyed by bare file name — a per-image `caption`
+  // that replaces the alt in the cloud, and an `exclude` flag. Both are read
+  // HERE rather than in photo-cloud.js so that anything else consuming the
+  // catalog later gets the same labels and the same exclusions; a tile the
+  // cloud is told to skip should not reappear in the next surface that reads
+  // this list. The alt is still carried through untouched on `alt`.
+  function buildImageCatalog(lists, projects, meta) {
+    meta = meta || {};
+    var byStem = {}, byHref = {};
     projects.forEach(function (p) {
       var stem = (p.href || '').replace(/^\//, '').split('.')[0].split('-')[0];
       if (stem) byStem[stem] = p.title;
+      if (p.href) byHref[p.href] = p.title;
     });
     var seen = {}, out = [];
     lists.forEach(function (list) {
@@ -340,8 +434,18 @@
         if (!im.src || seen[im.src]) return;
         seen[im.src] = true;
         var file = im.src.split('/').pop();
+        var m = meta[file] || {};
+        if (m.exclude) return;
+        // The project is inferred from the file name's leading token; `project`
+        // in images.json is the escape hatch for the files that convention
+        // misses (slide-1-sketch.png is Time Collector's), given as an href so
+        // the title is still read off the live page rather than typed here.
         var stem = file.split('-')[0].split('.')[0];
-        out.push({ src: im.src, alt: im.alt, project: byStem[stem] || null });
+        out.push({
+          src: im.src, file: file, alt: im.alt,
+          caption: m.caption || im.alt || '',
+          project: (m.project && byHref[rootHref(m.project)]) || byStem[stem] || null
+        });
       });
     });
     return out;
@@ -382,8 +486,19 @@
       .catch(function (err) { console.warn('[vr] projects.json unavailable:', err); return { projects: [] }; });
   }
 
+  // The photo-cloud caption catalog (vr/images.json). Same no-store reasoning
+  // as projects.json, and the same contract: enrichment over the scraped alt,
+  // never a second copy of the content. Absent or malformed → every image keeps
+  // its alt, which is the behaviour this file had before the catalog existed.
+  function loadImageManifest() {
+    return fetch('./images.json', { cache: 'no-store' }).then(function (r) { return r.json(); })
+      .catch(function (err) { console.warn('[vr] images.json unavailable:', err); return { images: {} }; });
+  }
+
   function load() {
-    return loadManifest().then(function (manifest) {
+    return Promise.all([loadManifest(), loadImageManifest()]).then(function (manifests) {
+      var manifest = manifests[0];
+      var imageMeta = (manifests[1] && manifests[1].images) || {};
       return Promise.all([
         fetch('/index.html', { cache: 'no-store' }).then(function (r) { return r.text(); }),
         fetch('/experience.html', { cache: 'no-store' }).then(function (r) { return r.text(); }).catch(function () { return null; })
@@ -403,7 +518,7 @@
           // images, deduped and project-tagged.
           var imageLists = [imgsFromDoc(indexDoc), imgsFromDoc(experienceDoc)]
             .concat(withBlurbs.map(function (p) { return p.pageImgs || []; }));
-          var images = buildImageCatalog(imageLists, withBlurbs);
+          var images = buildImageCatalog(imageLists, withBlurbs, imageMeta);
           withBlurbs.forEach(function (p) { delete p.pageImgs; });
           return { bio: bio, projects: withBlurbs, experience: experience, images: images };
         });

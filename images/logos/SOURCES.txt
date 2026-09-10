@@ -1,0 +1,70 @@
+Company marks for the VR Experience cards.
+==========================================
+
+NAMING IS THE WHOLE MECHANISM. Each file is named after the HOSTNAME of that
+job's own link on experience.html, and data-loader.js builds the path from that
+hostname (see hostLogo()). There is no table anywhere mapping a company to a
+picture. To add a mark for a new job: link the job on experience.html, then drop
+<hostname>.png in here. To remove one: delete the file — a missing file means no
+mark, and nothing breaks.
+
+FORMAT: 128 x 128 PNG. The mark is composited onto a rounded #f5f5f0 plate with
+~13 px of margin. The plate is not decoration: these are ten brand marks with
+ten different backgrounds — a navy square, a black square, a white field, a
+teal circle — and against the dome's dark glass they do not read as a set
+without one. Build them with the snippet at the bottom of this file.
+
+WHERE EACH ONE CAME FROM
+------------------------
+vhil.stanford.edu              vhil.stanford.edu .../2025-09/vhil-logos.png,
+                               ICON ONLY (left third of the lockup, trimmed).
+                               The full lockup's wordmark is unreadable at the
+                               58 mm this is drawn at; the head-and-visor mark
+                               is the part that survives.
+exploreintrosems.stanford.edu  med.stanford.edu SM-Shield-152x152.png.
+                               NOT that host's own icon, deliberately: the site
+                               serves the generic Stanford tree, and the job is
+                               Teaching Assistant in Comparative Medicine, so
+                               the Stanford Medicine shield is the true mark.
+                               Sebastian's call, 2026-09-09.
+opentodebate.org               opentodebate.org .../open-to-debate_white-logo-
+                               scaled.png, RECOLOURED to #111. They ship only a
+                               white-on-transparent wordmark and white is
+                               invisible on the plate; only the fill changed,
+                               the letterforms are theirs untouched.
+explore-energy.stanford.edu    www-media.stanford.edu apple-touch-icon-180.
+mindovermoney.stanford.edu     ditto  <- PLACEHOLDER, see below.
+exploretech.ai                 exploretech.ai android-chrome-512x512.png
+www.guidewheel.com             guidewheel.com apple-touch-icon
+www.everytown.org              everytown.org apple-touch-icon
+www.makernexus.org             squarespace CDN, their og:image logo
+www.stanfordsensa.org          their Google Sites icon
+
+SUPPLIED BY SEBASTIAN (2026-09-09)
+----------------------------------
+mindovermoney.stanford.edu     Their own wordmark. Not hosted on their Stanford
+                               site and not published anywhere fetchable, so it
+                               came from him directly. A 2.9:1 lockup, so it is
+                               width-limited on a square plate and sits short —
+                               that is the shape of the mark, not a mistake.
+opentodebate.org               Their SQUARE lockup, replacing the wide
+                               white-on-transparent wordmark their site serves.
+                               Reads far better at 58 mm.
+
+Both arrived FLATTENED ON WHITE rather than transparent, so the builder below
+trims the white border first (`trim_white`) — otherwise the mark floats in a
+box inside the plate and reads half the size it should.
+
+REBUILDING A PLATE
+------------------
+    from PIL import Image, ImageDraw
+    SIZE, PAD, RADIUS, PLATE = 128, 13, 26, (245, 245, 240, 255)
+    p = Image.new('RGBA', (SIZE*4,)*2, (0, 0, 0, 0))
+    ImageDraw.Draw(p).rounded_rectangle([0, 0, SIZE*4-1, SIZE*4-1],
+                                        radius=RADIUS*4, fill=PLATE)
+    p = p.resize((SIZE, SIZE), Image.LANCZOS)
+    logo = Image.open(SRC).convert('RGBA')
+    logo = logo.crop(logo.getchannel('A').getbbox())        # trim to the mark
+    logo.thumbnail((SIZE - PAD*2,)*2, Image.LANCZOS)
+    p.alpha_composite(logo, ((SIZE-logo.width)//2, (SIZE-logo.height)//2))
+    p.save(DEST, optimize=True)

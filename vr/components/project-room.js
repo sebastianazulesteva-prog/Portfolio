@@ -114,6 +114,12 @@
   }
 
   function setHubVisible(visible) {
+    // Through VRPlace, not a local querySelectorAll: hiding a branch with
+    // `visible:false` leaves every `.clickable` in it a live, invisible hit
+    // target (three.js raycasts ignore `visible`). See the long note in
+    // place.js — this is how a hub card behind a room's floor could swallow a
+    // click, and how the hub's portrait was blocking this room's own controls.
+    if (window.VRPlace && VRPlace.setHubVisible) return VRPlace.setHubVisible(visible);
     [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
       el.setAttribute('visible', visible);
     });
@@ -177,7 +183,7 @@
 
   function placeImageCard(container, image, angleDeg, radius, height, accent, a11y) {
     var eyeHeight = 1.6;
-    var w = 0.62, h = 0.8;
+    var w = 0.775, h = 1.0;   // +25% with ST_W/ST_H, so a room has one scale
 
     var outer = document.createElement('a-entity');
     outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
@@ -347,7 +353,21 @@
   // two stations overlap on screen — which matters more here than anywhere
   // else in the scene, because everything in a room is renderOrder 0 and
   // overlapping quads paint in scene-graph order rather than by depth (§3.6).
-  var ST_W = 0.86, ST_H = 0.62;
+  // ── 25% bigger, 2026-09-09 ────────────────────────────────────────────
+  // Sebastian: *"25% bigger in the project rooms, not in other places."* The
+  // first pass at this grew the hub constellations instead and was reverted;
+  // a room is where the photographs actually are, and it is also the one place
+  // in the scene with yaw to spare, because a room owns the whole 360° and
+  // spends it on at most six stations.
+  //
+  // Checked against this file's own no-overlap rule (below): 0.86 subtends
+  // 26.17° at the shared 1.85 m gallery radius, 1.075 subtends 32.40°, and the
+  // tightest real layout is Time Collector's six stations at a 51.43° step —
+  // so the gap between neighbours goes 25.26° -> 19.03°. Still comfortably
+  // clear, which matters more here than anywhere else in the scene because
+  // everything in a room is renderOrder 0 and overlapping quads paint in
+  // scene-graph order rather than by depth (§3.6).
+  var ST_W = 1.075, ST_H = 0.775;
   var ST_GAP = 0.014;          // between mosaic cells
   var ST_Y = 1.56;             // station centre height
 
@@ -394,7 +414,7 @@
   // discipline (it keeps a ±1 window and never more than 3 pages). Four pages
   // at 1024 would be ~13 MB standing in a room the whole time it is open, to
   // show one of them.
-  var PDF_COVER_H = 0.62;      // matches a photo station's height
+  var PDF_COVER_H = 0.775;     // matches a photo station's height — moves with ST_H
   var PDF_GROWN_H = 1.70;      // readable; the reading room itself uses ~1.95
   var PDF_FOCUS_DEG = 26;      // start growing inside this
   var PDF_BLUR_DEG = 40;       // start shrinking outside this (hysteresis)
@@ -447,10 +467,21 @@
     // The page itself. A plain textured plane, not the feathered image shader:
     // a document should have a hard edge like paper, and feathering the margin
     // eats the first line of text.
+    //
+    // Its own ENTITY, and `.clickable`: the page is the biggest, most obvious
+    // thing in front of you, so it should also be the easiest way to turn it —
+    // tap the lower half to go on, the upper half to go back, the same halves a
+    // physical page turns by. The two arrows stay as the explicit control (they
+    // are also what tells you paging exists at all); this is the one you find
+    // without being told. `setObject3D`, not `object3D.add`, for the reason set
+    // out at length on the arrows below — a raw add is invisible to every
+    // raycaster in the scene.
+    var pageEl = document.createElement('a-entity');
     var pageMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, toneMapped: false });
     var pageMesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), pageMat);
-    pageMesh.position.z = 0.006;
-    wrap.object3D.add(pageMesh);
+    pageEl.setObject3D('page', pageMesh);
+    pageEl.object3D.position.z = 0.006;
+    wrap.appendChild(pageEl);
 
     var st = {
       page: 0, tex: null, loading: false,
@@ -479,6 +510,25 @@
       }, function () { st.loading = false; });
     }
 
+    // Tap the page: lower half forward, upper half back. Only once it is grown
+    // — at cover size the whole station is a thumbnail you are walking past, and
+    // a tap on it should not silently change what it shows. The uv is read off
+    // the intersection rather than from a hit position, because that is the one
+    // thing a Vision Pro pinch reliably carries (trap §3.13: the whole
+    // enter/click/leave cycle arrives from ONE pose, so there is no tick in
+    // which a raycaster resolved this target).
+    pageEl.classList.add('clickable');
+    pageEl.addEventListener('click', function (e) {
+      if (!st.focused) return;
+      if (e && e.stopPropagation) e.stopPropagation();
+      var uv = e && e.detail && e.detail.intersection && e.detail.intersection.uv;
+      // PlaneGeometry's uv origin is bottom-left, so uv.y < 0.5 is the LOWER
+      // half of the page (same flip reading-line.js documents). No uv at all
+      // (a synthesised click) means forward, which is the common case.
+      var back = uv ? uv.y > 0.5 : false;
+      showPage(st.page + (back ? -1 : 1));
+    });
+
     // Page counter + the two arrows, all hidden until grown — at cover size
     // they would be unreadable clutter, and there is nothing to navigate until
     // you can read the page.
@@ -494,19 +544,51 @@
     label.setAttribute('position', { x: 0, y: -h / 2 - 0.03, z: 0.01 });
     controls.appendChild(label);
 
+    // ── THE ARROWS WERE NEVER HITTABLE ──────────────────────────────────────
+    // Sebastian: *"the PDF reader for the FEA analysis is broken, I can't page
+    // through it."* He was right, and it was never possible: these two buttons
+    // could not be clicked by any pointer in the scene, on any device.
+    //
+    // `.clickable` is not what puts an entity in a raycaster's target list.
+    // A-Frame's raycaster resolves its `objects` selector and then calls
+    // `flattenObject3DMaps`, which walks each matched entity's **object3DMap**
+    // — the registry `setObject3D(name, obj)` writes to. A mesh attached with
+    // `el.object3D.add(mesh)` is in the scene graph, renders perfectly, and is
+    // in NO entity's object3DMap, so the entity contributes zero objects to the
+    // ray. Both meshes here were added that way, which is why the class, the
+    // generous invisible hit plane and project-room's explicit
+    // refreshClickableRaycasters() all looked correct and did nothing.
+    //
+    // Measured before the fix, with the station grown and its controls visible:
+    // the arrows were in `document.querySelectorAll('.clickable')` (75 hits) and
+    // in NONE of the three raycasters' object lists (83 objects each); a hand
+    // raycast from the head straight at the down arrow returned the triangle and
+    // its hit plane, so the geometry was there and in the way. `emit('click')`
+    // paged perfectly, which is exactly why this survives a code read — the
+    // handler was never the broken part.
+    //
+    // Every other clickable in the scene already does this right (photo-cloud's
+    // tiles, scroll-arrows' pads, notice, bio-card's toggle) — this was the one
+    // place that used a raw add(), and it is the one control that did not work.
     [{ up: true, d: -1 }, { up: false, d: 1 }].forEach(function (spec) {
       var btn = document.createElement('a-entity');
-      var tri = triangle(0.035, spec.up, '#f5f5f0');
-      btn.object3D.add(tri);
+      btn.setObject3D('tri', triangle(0.035, spec.up, '#f5f5f0'));
       // A generous invisible hit target around a small triangle — ui-button's
       // scene-wide minimum applies to anything selectable, and a 3.5 cm arrow
-      // is far under it.
-      var hit = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.11),
-        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-      btn.object3D.add(hit);
-      btn.setAttribute('position', { x: w / 2 + 0.11, y: spec.up ? 0.09 : -0.09, z: 0.01 });
+      // is far under it. 0.18 x 0.15 rather than 0.13 x 0.11: the wrap is
+      // authored at COVER size and scaled up to grow, so these are cover-size
+      // metres. At the cover scale the old target was 0.13 m ≈ 3.7° at 2 m,
+      // under the 6.9°/2.9° minimum ui-button enforces; grown it is fine, but
+      // the control only exists when grown, so size it for the state it is used
+      // in and let it be comfortably over at that scale.
+      btn.setObject3D('hit', new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.15),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })));
+      btn.setAttribute('position', { x: w / 2 + 0.13, y: spec.up ? 0.10 : -0.10, z: 0.01 });
       btn.classList.add('clickable');
-      btn.addEventListener('click', function () { showPage(st.page + spec.d); });
+      btn.addEventListener('click', function (e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        showPage(st.page + spec.d);
+      });
       controls.appendChild(btn);
     });
     controls.setAttribute('visible', false);
@@ -632,6 +714,36 @@
     head.setAttribute('position', { x: 0, y: ST_H / 2 + 0.026, z: 0.01 });
     inner.appendChild(head);
 
+    // The page's own prose for this phase, BELOW the images (data-loader's
+    // `body`; see the long note there for where it comes from and why two of
+    // the five rooms have none). Below rather than above because the heading
+    // owns the space above and a station should read top-down the way the page
+    // does: name, picture, explanation.
+    //
+    // maxWidth is the plate's own width, not wider: a line that overhangs the
+    // photographs it belongs to stops reading as part of the station and starts
+    // reading as loose text in the room. At VRType.body() over 0.86 m that is
+    // about nine words a line, and the 260-character cap is four lines at the
+    // very worst — bottom edge y 1.06, still well clear of the floor and of the
+    // horizon band the title/blurb column works so hard to avoid.
+    if (station.body) {
+      var body = document.createElement('a-entity');
+      body.setAttribute('troika-text', {
+        value: station.body,
+        align: 'center', anchor: 'center', baseline: 'top',
+        // 0.88 rather than full: this is the supporting line under the picture,
+        // and the heading above it is the thing that has to carry from across
+        // the room. Not lower — the tags measured 3.45:1 at 0.9 opacity over a
+        // pale themed floor, which is what ROOM_HALO exists for.
+        color: '#f5f5f0', fillOpacity: 0.88, font: VRFonts.body(),
+        fontSize: VRType.body(), maxWidth: ST_W, lineHeight: 1.32,
+        outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
+        outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
+      });
+      body.setAttribute('position', { x: 0, y: -ST_H / 2 - 0.045, z: 0.01 });
+      inner.appendChild(body);
+    }
+
     outer.appendChild(inner);
     container.appendChild(outer);
     // The plate material goes back to the caller so room-walk can drive its
@@ -646,7 +758,7 @@
   // (VR_BUGFIX item 1 / item 6).
   function placePlaceholderCard(container, label, angleDeg, radius, height, accent) {
     var eyeHeight = 1.6;
-    var w = 0.62, h = 0.8;
+    var w = 0.775, h = 1.0;   // +25% with ST_W/ST_H, so a room has one scale
 
     var outer = document.createElement('a-entity');
     outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
@@ -930,9 +1042,29 @@
     // ("Sketching & Ideation" -> "Cardboard Prototype" -> "Refined Prototype"
     // -> "Force Analysis"), grouped by data-loader.js.
     //
+    // ── The SIGN, which was wrong and inverted the whole walk ──
+    // That paragraph has always described the intent; the code did the
+    // opposite. A-Frame yaw is right-handed about +Y, so `rotation.y = +θ`
+    // sends a child at (0, y, -r) to (-r·sinθ, y, -r·cosθ) — NEGATIVE x, the
+    // viewer's LEFT. Placing station i at +(i+1)·step therefore laid the walk
+    // out anticlockwise: step one was on your left and the LAST station sat
+    // immediately to your right, which is exactly what Sebastian reported —
+    // *"currently loads with the hero photo centre and '5 of 5' to the right;
+    // the first photo should be to the right on entry and the last one after a
+    // full rotation."* Every station carried its correct number the whole time,
+    // so the room read as counting down rather than as being mirrored, which is
+    // why it survived so long.
+    //
     // Angles: the hero occupies one of N+1 evenly spaced slots and the stations
     // take the rest, so the last station lands just LEFT of the hero and the
     // circle closes without any station colliding with it.
+    //
+    // Yaw is placement only. Everything else in a station — the mosaic, the
+    // heading, the tilt to the seated eye — is built in the station's own
+    // frame, so negating the angle mirrors WHERE each one hangs and nothing
+    // about how any of them is laid out.
+    // Right is negative yaw. Named, because the sign is the bug above.
+    var CW = -1;
     var stations = project.roomStations || [];
     var g = VRThemes.room(project.theme).gallery;
     var placed = [];
@@ -944,17 +1076,17 @@
       var total = stations.length + (hasDoc ? 1 : 0);
       var step = 360 / (total + 1);
       stations.forEach(function (st, i) {
-        placed.push(placeStation(room, st, i, total, (i + 1) * step, g.radius, accent));
+        placed.push(placeStation(room, st, i, total, CW * (i + 1) * step, g.radius, accent));
       });
       if (hasDoc) {
-        placed.push(placePdfStation(room, project, total - 1, total, total * step, g.radius, accent));
+        placed.push(placePdfStation(room, project, total - 1, total, CW * total * step, g.radius, accent));
       }
     } else if ((project.roomImages || []).length) {
       // Images but no grouping (a page whose markup this pass has not seen):
       // fall back to one station per image rather than dropping them.
       (project.roomImages || []).forEach(function (im, i, arr) {
         placed.push(placeStation(room, { label: '', images: [im] }, i, arr.length,
-                    (i + 1) * (360 / (arr.length + 1)), g.radius, accent));
+                    CW * (i + 1) * (360 / (arr.length + 1)), g.radius, accent));
       });
     } else {
       // No photography → a symmetric pair of generated accent panels flanking

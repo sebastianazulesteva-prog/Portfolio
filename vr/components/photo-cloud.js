@@ -3,9 +3,14 @@
    site drifts as a loose 3D constellation in its own zone BEHIND the viewer —
    turn around from the hub to find it. Hold your gaze (or the pointer) on one
    for ~0.9 s — a small ring fills on the tile while you do, see dwell.js — and
-   it floats forward, enlarges, and shows its caption (the image's alt text +
-   the project it belongs to); look away and it eases back into the cloud.
+   it floats forward, enlarges, and shows its caption (vr/images.json's label
+   for that file, else the image's alt text, + the project it belongs to).
    Clicking one SELECTS it, which is immediate and skips the ring.
+
+   A completed reach is LOCKED FORWARD. Looking away does nothing; it goes home
+   only when another tile's ring completes, when it is clicked (promoting it to
+   a selection), or when the selection is cleared. This reverses the original
+   "look away and it eases back" — see the long note on the mouseleave handler.
 
    Data-driven (data-loader.js's `images` catalog), so new photos on the real
    site appear here automatically. Textures are downscaled to 512px on load
@@ -57,6 +62,20 @@
   var FOCUS_R = 1.6;       // how close a reached tile floats in
   var FOCUS_SCALE = 1.45;  // enlarge on reach — kept modest so a focused tile can't loom over neighbouring panels (VR_BUGFIX item 8)
   var FOCUS_TOP = 1.9;     // a focused tile's TOP edge is clamped below this height, so it can never rise into the title banner above the hub
+
+  // ── Coming and going are deliberately not the same speed ──────────────────
+  // Sebastian: *"slow down the deselection, but not too slow."* Arriving should
+  // feel answered — you held a ring for 0.9 s to ask for it — so IN stays quick.
+  // Going away is not an answer to anything the visitor just did (a reach is
+  // dismissed by picking something ELSE), so at 0.6 s the old photo whipped out
+  // of frame at the same moment the new one arrived and both movements
+  // competed for the eye. Slowing the exit lets the handover read as one
+  // exchange instead of two events. Past about a second it stops reading as
+  // "leaving" and starts reading as "stuck", which is the other failure — hence
+  // "not too slow".
+  var IN_S = 0.5;          // reach in (unchanged)
+  var OUT_S = 0.95;        // reach out / deselect / cloud returning from recede
+  var RECEDE_S = 0.55;     // the cloud pushing BACK is a background move, stays brisk
 
   // ── Selection (§9.8) ── distinct from the hover/reach above.
   // Sebastian: "when a user selects a photo to view/read it, that photo should
@@ -121,8 +140,12 @@
   function frac(x) { return x - Math.floor(x); }
 
   // Turn a messy alt string + owning project into a short one-line caption.
+  // `im.caption` is data-loader's resolved label: vr/images.json's entry for
+  // this file if it has one, else the flat site's alt. Falls back to the raw
+  // alt so a catalog that failed to fetch degrades to the old behaviour rather
+  // than to a cloud of "Untitled".
   function caption(im) {
-    var alt = (im.alt || '').replace(/\s+/g, ' ').trim();
+    var alt = (im.caption || im.alt || '').replace(/\s+/g, ' ').trim();
     if (alt.length > 90) alt = alt.slice(0, 88).replace(/[\s,.;:]+\S*$/, '') + '…';
     if (im.project) return (alt ? alt + '  ·  ' : '') + im.project;
     return alt || 'Untitled';
@@ -260,19 +283,32 @@
         tileEl.addEventListener('mouseenter', function () {
           if (self._selected && self._selected !== tile) return;
           if (tile.selected) return;
+          // Already forward: nothing to arm. Re-running the ring on the tile it
+          // has already pulled in is pure noise — it draws a filling circle over
+          // a photo that is not going to move when it finishes.
+          if (tile.hovered) return;
           self._armReach(tile);
         });
         tileEl.addEventListener('mouseleave', function () {
           if (self._selected && self._selected !== tile) return;
           if (tile.selected) return;
+          // Disarm an INCOMPLETE dwell — you looked away before the ring filled,
+          // so the reach never happens. A dwell abandoned half-way never moved
+          // the tile, so there is nothing to unwind.
           self._disarmReach(tile);
-          // Only unwind a reach that actually happened. A dwell abandoned
-          // half-way never moved the tile, so calling _focus(tile, false) here
-          // would start a 0.6 s return tween from home to home — harmless in
-          // isolation, but it also flips tile.hovered and re-writes renderOrder
-          // on a tile that was never lifted, and it would kill the idle bob's
-          // ownership of y for the duration.
-          if (tile.hovered) self._focus(tile, false);
+          // ── THE REACH IS LOCKED, and does not unwind on mouseleave ────────
+          // This used to call _focus(tile, false) here. Sebastian, on the walk-
+          // through: *"once an image is fully circled, it should always come
+          // forward … it deselects mid-load if the gaze drifts."* Which is
+          // exactly what happened: the ring costs ~0.9 s of deliberate holding,
+          // and then a photo that may still be fetching its full-size texture
+          // was sent home again by half a degree of head drift — the visitor
+          // paid the gate and got nothing for it, and the bigger the photo the
+          // more likely it was still loading when the gaze wandered.
+          //
+          // So a completed reach now holds until something explicit replaces it:
+          // another tile's ring completing (_focus's handover below), a click
+          // (which promotes it to a full selection), or select(null).
         });
         tileEl.addEventListener('click', function (e) {
           if (e && e.stopPropagation) e.stopPropagation();
@@ -311,7 +347,15 @@
     },
 
     // Float a tile forward + enlarge (reach), or ease it back into the cloud.
+    //
+    // Only ONE tile is ever reached, and this is where the handover happens: a
+    // reach is locked (see the mouseleave note), so the next one has to send the
+    // last one home itself. Done on COMPLETION rather than when the new ring is
+    // armed, so a ring the visitor abandons half-way leaves the tile they
+    // already pulled in exactly where it is.
     _focus: function (tile, on) {
+      if (on && this._reached && this._reached !== tile) this._focus(this._reached, false);
+      this._reached = on ? tile : (this._reached === tile ? null : this._reached);
       tile.hovered = on;
       this._setCaptionVisible(tile, on);
       // Same paint-order problem as selection, one step smaller: a reached tile
@@ -348,7 +392,7 @@
       var from = { x: o.position.x, y: o.position.y, z: o.position.z, s: o.scale.x, d: tile.mat.uniforms.uDim.value };
       var proxy = { t: 0 };
       tile.tween = gsap.to(proxy, {
-        t: 1, duration: on ? 0.5 : 0.6, ease: 'power2.inOut',
+        t: 1, duration: on ? IN_S : OUT_S, ease: 'power2.inOut',
         onUpdate: function () {
           o.position.set(
             from.x + (target.pos.x - from.x) * proxy.t,
@@ -376,6 +420,18 @@
       // where hover can act again, and it should start from a clean gate.)
       this._tiles.forEach(this._disarmReach, this);
 
+      // A locked reach (see _focus) is also released by selection, and it has
+      // to be released THROUGH _focus so the lock pointer, the caption and the
+      // render order all come down with the tile. Two cases: the reached tile
+      // IS the one being selected — it is about to be moved again by the
+      // selection itself, so only the bookkeeping is undone — or it is some
+      // other tile, which _recedeOthers is about to push home underneath us
+      // without ever clearing the lock.
+      if (this._reached) {
+        if (this._reached === tile) { this._reached = null; }
+        else { this._focus(this._reached, false); }
+      }
+
       // Jump this tile's texture to the front of the shared load queue. With 32
       // tiles loading four at a time, the one you just picked can be twentieth
       // in line — and until it lands, selecting it pulls an EMPTY frame to your
@@ -392,7 +448,7 @@
         this._teardownAction(prev);
         this._setCaptionVisible(prev, false);
         this._setRenderOrder(prev, 0);
-        this._moveTile(prev, prev.home.clone(), 1, prev.depthDim, 0.6);
+        this._moveTile(prev, prev.home.clone(), 1, prev.depthDim, OUT_S);
       }
 
       this._selected = tile || null;
@@ -413,7 +469,7 @@
       var dir = tile.home.clone(); dir.y = 0; dir.normalize();
       var halfH = tile.size * SELECT_SCALE / 2;
       var y = Math.min(1.55, SELECT_TOP - halfH);
-      this._moveTile(tile, dir.multiplyScalar(SELECT_R).setY(y), SELECT_SCALE, 0, 0.5);
+      this._moveTile(tile, dir.multiplyScalar(SELECT_R).setY(y), SELECT_SCALE, 0, IN_S);
 
       this._recedeOthers(true);
       this._buildAction(tile);
@@ -522,7 +578,7 @@
           var k = (r * OTHERS_PUSH) / (r || 1);
           target.x *= k; target.z *= k;
         }
-        self._moveTile(t, target, 1, on ? OTHERS_DIM : t.depthDim, on ? 0.55 : 0.6);
+        self._moveTile(t, target, 1, on ? OTHERS_DIM : t.depthDim, on ? RECEDE_S : OUT_S);
       });
     },
 

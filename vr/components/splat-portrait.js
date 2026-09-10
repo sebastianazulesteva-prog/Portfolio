@@ -265,6 +265,46 @@
                           this.el.sceneEl.renderer.xr.isPresenting);
       var moveGate = presenting ? 0.06 : 0.02;
       var turnGate = presenting ? 0.002 : 0.0005;   // ~3.6 deg vs ~1.8 deg
+      // ── The watchdog: loaded, and drawing nothing ────────────────────
+      // Sebastian, after a headset pass: *"the 3D Gaussian splat is still not
+      // rendering."* Every failure mode this component has left is SILENT and
+      // looks identical from inside a headset — empty space where a bust
+      // should be — and §3.16 means there is no console to ask.
+      //
+      // `instanceCount` is the one number that separates them: it is what the
+      // sort worker writes, and it is 0 for a splat that downloaded perfectly,
+      // parsed perfectly, and has never been ordered. So: if the viewer is
+      // ready and nothing is being drawn, force a sort rather than waiting for
+      // the head to move past the gate — and if it is STILL zero after a few
+      // seconds of trying, say so on the busy card, because "it did not work"
+      // is worth more to someone wearing a headset than an empty patch of dome.
+      //
+      // Bounded on purpose. This is a recovery path, not a render loop: five
+      // attempts a second apart, then it gives up and reports.
+      var mesh = this.viewer.splatMesh;
+      var drawn = mesh && mesh.geometry ? (mesh.geometry.instanceCount || 0) : 0;
+      if (!drawn) {
+        var now = performance.now();
+        if (!this._blankSince) this._blankSince = now;
+        if (now - this._blankSince > 900) {
+          this._blankSince = now;
+          this._blankTries = (this._blankTries || 0) + 1;
+          if (this._blankTries <= 5) { this.resort(); return; }
+          if (this._blankTries === 6) {
+            var n = mesh && mesh.getSplatCount ? mesh.getSplatCount() : 0;
+            this._say(n
+              ? 'gaussians loaded (' + n + ') but the sort never returned'
+              : 'gaussians loaded but the scene is empty');
+            var self2 = this;
+            setTimeout(function () { self2._done(); }, 5200);
+          }
+          return;
+        }
+      } else if (this._blankSince) {
+        this._blankSince = 0;
+        this._blankTries = 0;
+      }
+
       var moved = this._camPos.distanceTo(this._lastPos);
       var turned = 1 - this._viewDir.dot(this._lastDir);
       if (moved < moveGate && turned < turnGate) return;
@@ -329,6 +369,19 @@
 
       var setActive = function (on) {
         if (self.viewer && self.viewer.viewer) self.viewer.viewer.webXRActive = on;
+        // FORCE A RE-SORT ON EVERY SESSION CHANGE. `webXRActive` switches the
+        // library's `adjustForWebXRStereo` on and off, which rescales the
+        // splats' render dimensions by the ratio of the flat projection to the
+        // per-eye one — so the geometry that was sorted a moment ago was sorted
+        // for a different projection. Nothing else would trigger it: tick()'s
+        // gate is on how far the HEAD has moved, and putting a headset on does
+        // not move the head. The result is a splat that looked right on the
+        // monitor and is wrong (or absent) for the whole first still moment of
+        // the session, which is exactly when someone decides it is broken.
+        // Also reset the watchdog: this is a fresh chance to draw.
+        self._blankSince = 0;
+        self._blankTries = 0;
+        if (self.resort) self.resort();
       };
       this._onSessionStart = function () { setActive(true); };
       this._onSessionEnd = function () { setActive(false); };

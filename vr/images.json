@@ -1,0 +1,116 @@
+{
+  "$comment": "VR-only image enrichment, keyed by BARE FILE NAME. Same contract as projects.json: enrichment, never content. The flat site's alt attribute is still the primary label and is used whenever there is no entry here — this file exists because an alt is written for a screen reader reading a page in order ('Sebastian Esteva — candid photo 1' is fine there, since the surrounding page says what the carousel is) while a photo-cloud tile floats alone in a dome with nothing around it to supply the context. CAPTIONS ARE FIRST PERSON — 'a night I ran', never 'a night he ran'. Sebastian's call, 2026-09-09: the site speaks as him, and a caption that slips into the third person reads as a museum label about someone else. `caption` replaces the alt for the cloud; `exclude` drops the image from the cloud entirely; `project` is an href override for the handful of files whose name does not start with their project's stem, which is how the catalog normally infers it. Nothing here changes the flat site.",
+
+  "images": {
+    "contact-photo-professional.jpg": {
+      "caption": "Me"
+    },
+    "contact-photo-framed-for-mosaic.jpg": {
+      "exclude": true,
+      "$why": "The same photograph as contact-photo-professional.jpg, cropped and registered to line up with the mosaic underneath it. It exists only as the top layer of the flat site's hero dissolve, and its alt describes the COMPOSITE ('with a digital mosaic and VR headset illustration overlaid on one eye'), which is a caption for an effect the cloud does not run. In the cloud it showed up as a second, identical portrait carrying a description of something not in the picture."
+    },
+    "contact-photo-mosaic.jpg": {
+      "caption": "My mosaic portrait, each tile shows some of my interests"
+    },
+    "contact-photo-fun-1.jpg": {
+      "caption": "Paper and tape only \u2014 a tower-building night I ran as an RA"
+    },
+    "contact-photo-fun-2.jpg": {
+      "caption": "The Hot Ones challenge, at an Explore Energy community night I ran"
+    },
+    "contact-photo-fun-3.jpg": {
+      "caption": "Most Innovative Solution at the d.school \u2014 a mirrored robotic arm, for Craig"
+    },
+    "contact-photo-fun-4.jpg": {
+      "caption": "Pizza with my visiting grad students; building community was the job"
+    },
+
+    "baston-hero.jpg": {
+      "caption": "Folded into three and tucked under a striped Mexican bag"
+    },
+    "baston-final.jpg": {
+      "caption": "The finished cane — burl handle, ash shaft — against a garden bench"
+    },
+    "baston-3dprint.jpg": {
+      "caption": "A printed test of the folding wrist joint, held in the hand"
+    },
+    "baston-parts.jpg": {
+      "caption": "Ash shafts, aluminium tube and machined fittings, laid out before assembly"
+    },
+    "baston-sketch.jpg": {
+      "caption": "The first pencil sketches of the folding mechanism, beside the wooden mock-up"
+    },
+    "baston-working.jpg": {
+      "caption": "Turning the cane shaft down on the lathe"
+    },
+
+    "pendant-hero.jpg": {
+      "caption": "The finished sterling pendant on its chain, name engraved along one edge"
+    },
+    "pendant-cast-raw.jpg": {
+      "caption": "Straight out of the investment mould, before any finishing"
+    },
+    "pendant-wax-print.jpg": {
+      "caption": "The pattern printed in castable resin, waiting to be invested"
+    },
+    "pendant-worn.jpg": {
+      "caption": "Worn — silver against a striped shirt"
+    },
+
+    "chess-hero.jpg": {
+      "caption": "The panel on the wall, its ranks folding out from flat"
+    },
+    "chess-fea.jpg": {
+      "caption": "Simulation: 1.75 mm max displacement, safety factor 4.5 once fillets went in"
+    },
+    "chess-final-AI-Pieces.jpg": {
+      "caption": "A game in progress on the finished set, a pawn mid-move"
+    },
+    "chess-final-success.png": {
+      "caption": "Holding the finished panel up, the board fully deployed"
+    },
+    "chess-ideation.jpg": {
+      "caption": "Reference boards and the first concept sketches — keep the rows thin"
+    },
+    "chess-mechanism-prototype.jpg": {
+      "caption": "A printed rack-and-swivel prototype of the row mechanism"
+    },
+    "chess-press-insert.jpg": {
+      "caption": "Press-fit magnet inserts and joining blocks, tested by hand"
+    },
+    "chess-prototyping.jpg": {
+      "caption": "Printed frame corners dry-fitted on the cutting mat"
+    },
+
+    "slipdoor-hero.jpg": {
+      "caption": "The rig under its Volkswagen ‘Future of Entry’ banner"
+    },
+    "slipdoor-process-1.jpg": {
+      "caption": "Bolting the plywood floor onto the frame"
+    },
+    "slipdoor-process-2.jpg": {
+      "caption": "The team around the half-built frame, late in the shop"
+    },
+
+    "timecollector-hero-front.png": {
+      "caption": "Head-on — gear train, marble wheel and the hanging weight that drives it"
+    },
+    "timecollector-hero-side.png": {
+      "caption": "From the side: the marble chute and the funnel it empties into"
+    },
+    "timecollector-cardboard-real.png": {
+      "caption": "The first cardboard prototype of the gear train and escapement"
+    },
+    "timecollector-fbd-full.png": {
+      "caption": "The whole force analysis by hand — power source, gear train, pulley, escapement"
+    },
+    "timecollector-refined-real.png": {
+      "caption": "The refined printed prototype — spoked wheel, pinion and marble track"
+    },
+    "slide-1-sketch.png": {
+      "caption": "Gestalting sketch: the escapement, the actuator pin, and the marble disc",
+      "$why": "The only image on the site whose file name does not start with its project's href stem, so the catalog's stem match cannot tag it and it was the one Time Collector photo in the cloud with no project on its caption and no way into the room.",
+      "project": "timecollector.html"
+    }
+  }
+}

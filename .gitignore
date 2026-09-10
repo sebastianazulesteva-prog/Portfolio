@@ -25,3 +25,9 @@ vr/_dev-*
 # included) that .tools/vr-phone.sh generates for phone testing. Never publish.
 .tools/
 .Rhistory
+
+# Another session's git WORKTREE, not a directory of this site. Its `.git` is a
+# pointer file, it is ~95 MB, and it holds a full second copy of every page —
+# so a stray `git add -A` would publish a duplicate of the whole site. Ignored
+# rather than merely untracked, for the same reason the /vr audio is.
+portfolio-sharp/

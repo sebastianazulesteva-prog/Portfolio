@@ -115,6 +115,19 @@
   // The alternative to a backstop here is a scene that is dead until reload.
   var STALE_MS = 30000;
 
+  // ── Hiding this card does not stop it being clicked ─────────────────────
+  // `visible:false` hides a branch from the RENDERER and not from the
+  // raycasters (three.js r158 tests `layers`, never `visible` — see place.js's
+  // long note). So a parked busy card left its Cancel button as a live,
+  // invisible hit target floating in the middle of the hub for the rest of the
+  // session. Measured: the hub came back from one reader visit with 74
+  // clickables against the 73 it started with, and the extra one was this.
+  function setCardVisible(on) {
+    if (!root) return;
+    if (window.VRPlace && VRPlace.setBranchVisible) VRPlace.setBranchVisible(root, on);
+    else root.setAttribute('visible', on);
+  }
+
   var jobs = [];              // a stack; nested loads are possible in principle
   var root = null;            // the card, built once and reused
   var titleEl, stageEl, barFill, barTrack, fillPivot, cancelEl, plateMesh, glassMesh;
@@ -148,7 +161,7 @@
     if (!s) return null;
 
     root = document.createElement('a-entity');
-    root.setAttribute('visible', false);
+    setCardVisible(false);
     root.classList.add('vr-busy');
     s.appendChild(root);
 
@@ -374,7 +387,7 @@
       if (!el.getAttribute('busy-follow')) el.setAttribute('busy-follow', '');
       var f = el.components['busy-follow'];
       if (f) f.first = true;                       // snap on first appearance
-      el.setAttribute('visible', true);
+      setCardVisible(true);
       titleEl.setAttribute('troika-text', 'value', job.label);
       stageEl.setAttribute('troika-text', 'value', 'starting…');
       setIndeterminate(true);
@@ -431,7 +444,7 @@
     var i = job ? jobs.indexOf(job) : -1;
     if (i >= 0) jobs.splice(i, 1);
     else if (!job) jobs.length = 0;
-    if (!jobs.length && root) root.setAttribute('visible', false);
+    if (!jobs.length && root) setCardVisible(false);
   }
 
   // Belt and braces: if a caller throws between begin() and end(), the gate
@@ -442,7 +455,7 @@
     if (!jobs.length) return;
     console.warn('[vr] busy: force-cleared', jobs.length, 'job(s) —', why || 'no reason given');
     jobs.length = 0;
-    if (root) root.setAttribute('visible', false);
+    if (root) setCardVisible(false);
   }
 
   window.VRBusy = {

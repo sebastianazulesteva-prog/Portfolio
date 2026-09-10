@@ -36,6 +36,7 @@
 
 (function () {
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var SUNFLOWER_OFF = new URLSearchParams(location.search).get('sunflower') === '0';
 
   // three.js does not cache effective visibility, so walk the (shallow) parent
   // chain. Cheap: ~4 links x 20 panels.
@@ -59,7 +60,14 @@
       enabled: { type: 'boolean', default: true }
     },
 
+    // `?sunflower=0` is honoured HERE, not only in index.html's layoutCluster.
+    // It was a flag on one caller, so a panel that carries this component from
+    // the markup — the hero portrait does, as of 2026-09-08 — kept tracking
+    // with the switch off, and the A/B the flag exists for compared a scene
+    // with one panel still drifting in the middle of it. Read once, at module
+    // scope, so a hundred ticks do not re-parse the query string.
     init: function () {
+      if (SUNFLOWER_OFF) this.data.enabled = false;
       this._camWorld = new THREE.Vector3();
       this._selfWorld = new THREE.Vector3();
       this._targetQuat = new THREE.Quaternion();

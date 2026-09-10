@@ -658,21 +658,23 @@
     // wins, so the scroll rail and the exit button — both pulled toward the
     // viewer in front of the page — keep their own hover rather than having the
     // ruler read through them.
+    // Through VRPointer as of 2026-09-08, and the fix matters most here.
+    //
+    // This used to walk the three raycasters itself and take the nearest hit.
+    // With no controller connected — which is EVERY Vision Pro session, since
+    // there are no controllers to connect (§3.13) — the two hand entities have
+    // never moved off the rig origin and cast a permanent ray along -Z at floor
+    // level. Measured in the reading room: the hands report a hit 1.90 m away
+    // at y 0.00 while the gaze reports one 2.08 m away at y 2.45, so the
+    // phantom wins "nearest" on every frame.
+    //
+    // The ruler was therefore tracking the floor, not the reader: it still lit
+    // a line, so it looked alive, but always a low one and never the one being
+    // read. On a desktop the mouse ray usually lands nearer than the phantom
+    // and hides it, which is why it survived testing.
     _readPointer: function () {
-      if (!this._rays) {
-        this._rays = ['#head [cursor]', '#leftHand', '#rightHand'].map(function (sel) {
-          return document.querySelector(sel);
-        });
-      }
-      var bestHit = null, bestD = Infinity;
-      for (var i = 0; i < this._rays.length; i++) {
-        var el = this._rays[i];
-        var rc = el && el.components && el.components.raycaster;
-        var hits = rc && rc.intersections;
-        if (!hits || !hits.length) continue;
-        if (hits[0].distance < bestD) { bestD = hits[0].distance; bestHit = hits[0]; }
-      }
-      return this._hitToLine(bestHit);
+      var hit = window.VRPointer ? VRPointer.nearest() : null;
+      return this._hitToLine(hit);
     },
 
     // ── Input ──────────────────────────────────────────────────────────────

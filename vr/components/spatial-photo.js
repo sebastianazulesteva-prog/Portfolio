@@ -45,6 +45,7 @@
 
   var FRAG = [
     'uniform sampler2D tEye;',        // this eye's photo
+    'uniform float uConverge;',       // per-eye horizontal sample offset, in uv
     'uniform sampler2D tMosaic;',     // this eye's mosaic, same disparity field
     'uniform float uDesaturate;',
     'uniform vec2 uSize;',
@@ -73,7 +74,15 @@
     // and this one are the same picture. Deliberately lighter than the flat
     // site's brightness(0.65): that page has surrounding white to carry the
     // contrast, this panel hangs in a dark dome and reads murky at that value.
-    '  vec3 photo = texture2D(tEye, vUv).rgb;',
+    // ── The convergence plane ────────────────────────────────────────────
+    // Sampling BOTH textures at the same shifted uv moves where zero disparity
+    // lies without touching the relative disparity between any two points — so
+    // the depth structure of the photograph is bit-for-bit what was baked, and
+    // only its position relative to the panel changes. Both textures, and the
+    // same offset, or the reveal would break the guarantee below it that a
+    // fully revealed pixel is exactly the mosaic.
+    '  vec2 cUv = vUv + vec2(uConverge, 0.0);',
+    '  vec3 photo = texture2D(tEye, cUv).rgb;',
     '  float lum = dot(photo, vec3(0.299, 0.587, 0.114));',
     '  vec3 grey = mix(photo, vec3(lum * 0.84), uDesaturate);',
 
@@ -90,7 +99,7 @@
     // At mixAmount = 1 this is mathematically exactly the mosaic and nothing
     // else — no tint, no rolloff, no lighting. Sebastian's call: "no
     // effects/changes at all" once revealed. Keep it provable, not approximate.
-    '  vec3 col = mix(grey, texture2D(tMosaic, vUv).rgb, mixAmount);',
+    '  vec3 col = mix(grey, texture2D(tMosaic, cUv).rgb, mixAmount);',
     // ── Falling off, rather than stopping ────────────────────────────────
     // Alpha alone does not dissolve an edge here. This photograph is a bright
     // near-white studio backdrop and it hangs in a near-black dome, so a pure
@@ -155,6 +164,46 @@
       //
       // Not a gaze-fuse violation (hard rule 7): that forbids gaze SELECTING
       // things. This selects nothing and arms nothing. It moves a colour wash.
+      // ── Where the zero-disparity plane sits, 0..1 ────────────────────
+      // Sebastian: *"the background moves too much when looking sideways —
+      // the background should stay more solid while the depth feeling is
+      // preserved."* The first half of that is sunflower (index.html: a stereo
+      // pair is only valid seen square on). This is the second half.
+      //
+      // The bake (vr/assets/portrait-eye.json) puts EVERY point behind the
+      // panel: the subject at 1.29 px of per-eye shift and the backdrop at
+      // 4.88 px, on a 768 px texture. So the backdrop carries the largest
+      // disparity in the frame, and disparity is what your eyes have to keep
+      // re-fusing as your head moves — the deepest thing in a stereo pair is
+      // always the least stable thing in it, and here that is the whole
+      // background.
+      //
+      // Sampling both textures at a constant horizontal offset slides the
+      // ZERO-disparity plane through the scene. It is a rigid shift: the
+      // RELATIVE disparity between the subject and the backdrop is untouched,
+      // which is precisely "the depth feeling is preserved". At converge = 1
+      // the backdrop sits exactly on the panel and is as solid as a print,
+      // with the subject standing 3.59 px in front of it.
+      //
+      // 0.75 rather than 1.0, and the reason is the window. A subject in front
+      // of the frame that TOUCHES the frame is a window violation — the edge
+      // occludes something your eyes are told is nearer than the edge, and the
+      // brain refuses to fuse it. He is centred with clear air all round, so a
+      // small pop is safe and is what makes the portrait read as a portrait
+      // rather than a hole; going all the way to 1.0 spends that margin for
+      // the last quarter of an already-small effect. Backdrop residual at
+      // 0.75: 1.22 px, a quarter of what it was.
+      //
+      // `?converge=N` overrides it, for the same in-headset A/B `?portrait=`
+      // and `?sunflower=` exist for — this is a judgement that can only be
+      // made with two eyes and cannot be made on this monitor.
+      converge: { type: 'number', default: 0.75 },
+      // Per-eye shift at converge = 1, in TEXTURE PIXELS, from the bake's
+      // `disparity_px.far`. Here rather than fetched: it is one number that
+      // changes only when the pair is re-baked, and a fetch would make the
+      // panel's geometry wait on a round trip.
+      farDisparityPx: { type: 'number', default: 4.88 },
+      texWidthPx: { type: 'number', default: 768 },
       gaze: { type: 'boolean', default: true },
       gazeMargin: { type: 'number', default: 0.12 },
       fadeMs: { type: 'number', default: 260 }
@@ -178,7 +227,21 @@
       };
 
       var self = this;
-      function plate(photoUrl, mosaicUrl, layer) {
+      var qConverge = new URLSearchParams(location.search).get('converge');
+      var converge = qConverge !== null ? parseFloat(qConverge) : d.converge;
+      if (!isFinite(converge)) converge = d.converge;
+      // In uv, and signed per eye. The LEFT eye's content was shifted LEFT by
+      // the bake (its shift_px_range is negative), so undoing it means sampling
+      // further LEFT again — the sign follows the bake, not intuition, and
+      // getting it backwards doubles the disparity instead of removing it,
+      // which on a monitor looks like nothing at all.
+      // 4.88 / 768 = 0.6% of the width, so the outermost ~4 mm of a 0.72 m
+      // panel samples past the texture edge and clamps. That is inside the
+      // 12 mm feather, where alpha is already on its way to zero, so the smear
+      // is not reachable — worth knowing before anyone raises `converge` a lot.
+      var convergeUv = converge * (d.farDisparityPx / d.texWidthPx);
+
+      function plate(photoUrl, mosaicUrl, layer, eyeSign) {
         function tex(url) {
           var t = VRGlass.loadTexture(url, function (tt) { tt.anisotropy = 8; });
           t.anisotropy = 8;
@@ -186,6 +249,7 @@
         }
         var mat = new THREE.ShaderMaterial({
           uniforms: {
+            uConverge: { value: eyeSign * convergeUv },
             tEye: { value: tex(photoUrl) },
             tMosaic: { value: tex(mosaicUrl) },
             uSize: { value: new THREE.Vector2(d.width, d.height) },
@@ -210,8 +274,8 @@
         return mesh;
       }
 
-      this.left = plate(d.left, d.mosaicLeft, 1);
-      this.right = plate(d.right, d.mosaicRight, 2);
+      this.left = plate(d.left, d.mosaicLeft, 1, -1);
+      this.right = plate(d.right, d.mosaicRight, 2, +1);
       this.el.setObject3D('eye-left', this.left);
       this.el.setObject3D('eye-right', this.right);
 

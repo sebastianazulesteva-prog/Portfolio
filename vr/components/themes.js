@@ -63,6 +63,26 @@
 
 (function () {
   window.VRThemes = {
+  // ── SKY: the ceiling was lifted out of near-black (2026-09-08) ────────────
+  // Sebastian, after a headset pass: *"the dome feels too dark — brighten the
+  // upper ceiling colour so it feels more open and outdoor-like."* Same change
+  // as dome.js's ZENITH, applied to every room; read that comment for the why.
+  //
+  // Method, so these stay re-derivable rather than becoming seven magic hexes:
+  // each sky keeps its own HUE and is scaled until its relative luminance hits
+  // 0.028 — the same target as the hub's new zenith, and about 2/3 of the way
+  // to the pendant room, which was already a bright gallery and is left alone.
+  //
+  // Why this is safe for the two things a room's sky could break:
+  //   • CARD CONTRAST. `sky` paints the ZENITH only. dome.js ramps it down to
+  //     FEATHER (#0a0908) by 14.4° of elevation, and every card in a room sits
+  //     under 25°, where the mix is ~86% FEATHER — a card at the brightest of
+  //     these skies still has L≈0.003 behind it against the glass's own
+  //     0.012–0.026. The lift is felt overhead, which is exactly where it was
+  //     asked for.
+  //   • THE HORIZON BAND, which is bounded by FEATHER on both sides at ±14.4°
+  //     and so does not touch the zenith at all. Chess's band in particular —
+  //     hard-won, see its note below — measures the same after this as before.
     // No `room` block on any theme by design — see the header. Every room uses
     // DEFAULT_ROOM, so all five are identical in position and behaviour and
     // differ only in colour.
@@ -96,10 +116,10 @@
       // that page's :root, it's the VW blue) is the colour the page itself
       // accents with, and it's the only fully-saturated candidate of the three
       // — chroma 1.00 against 0.82, so it actually colours the light.
-      sky: '#0d1b20', horizon: '#0091c8', accent: '#0091c8', panel: '#141414', ink: '#e3f6fc'
+      sky: '#18323c', horizon: '#0091c8', accent: '#0091c8', panel: '#141414', ink: '#e3f6fc'
     },
     baston: { // Bastón — warm personal craft (baston.html --pink/--pink-deep/--cream)
-      sky: '#1c0e16', horizon: '#b8066c', accent: '#e30887', panel: '#221018', ink: '#f4efe9'
+      sky: '#472337', horizon: '#b8066c', accent: '#e30887', panel: '#221018', ink: '#f4efe9'
     },
     timecollector: { // Time Collector — warm brass/marble/timekeeping (timecollector.html --brass/--copper/--ink)
       // accent was --brass #b8863b — which is ALSO _default's accent and the
@@ -110,7 +130,7 @@
       // more luminous: accent-on-floor contrast goes 5.67 → 7.59. Chose it
       // over --highlight-gold #f4c95d, which at chroma 0.87 reads gold-leaf
       // rather than brass mechanism.
-      sky: '#1a1408', horizon: '#a15c3e', accent: '#d69c47', panel: '#1a1408', ink: '#f6e3bd'
+      sky: '#3a2d12', horizon: '#a15c3e', accent: '#d69c47', panel: '#1a1408', ink: '#f6e3bd'
     },
     chess: { // Poser Chess Set — stark monochrome (chess.html --bg/--white)
       // --white, and now the card rims and tags too. They used to take
@@ -129,7 +149,14 @@
       // --line (white at 15% over --bg) and lands at 1.30/1.26 — as present
       // as the hub's ember, restrained enough for a monochrome room, and a
       // real page token rather than an invented grey.
-      sky: '#000000', horizon: '#252524', accent: '#f7f5f0', panel: '#0e0e0e', ink: '#f7f5f0'
+      // Chess is the one room the 0.028 target is NOT applied to, and its
+      // palette is the reason: it has no colour to scale (--bg is pure #000),
+      // and the room's whole character is stark monochrome — an overcast-grey
+      // ceiling would be the wrong note in the one room that is meant to feel
+      // like a gallery wall rather than outdoors. #20201f sits between the
+      // page's own --bg-panel (#0e0e0e) and --line (#252524), lands at L 0.014
+      // — half the other rooms — and stays below the band's own tone.
+      sky: '#20201f', horizon: '#252524', accent: '#f7f5f0', panel: '#0e0e0e', ink: '#f7f5f0'
     },
     // Shared by the four PDF write-up pages (glasses, HP's Reckoning,
     // Algorithmic Modeling, Social Engineering) — checked their real :root
@@ -138,12 +165,12 @@
     // A warm parchment accent (not reused from any other theme) keeps them
     // feeling distinct from the base dome without inventing new brand color.
     signatureDark: {
-      sky: '#050505', horizon: '#111111', accent: '#c9c0ac', panel: '#111111', ink: '#e8e8e8'
+      sky: '#2e2e2e', horizon: '#111111', accent: '#c9c0ac', panel: '#111111', ink: '#e8e8e8'
       // No `room`: these four are the PDF write-ups, which open the reader and
       // never a room at all. They inherit DEFAULT_ROOM if that ever changes.
     },
     _default: {
-      sky: '#050505', horizon: '#3a2418', accent: '#b8863b', panel: '#161514', ink: '#f5f5f0'
+      sky: '#2e2e2e', horizon: '#3a2418', accent: '#b8863b', panel: '#161514', ink: '#f5f5f0'
     }
   };
 

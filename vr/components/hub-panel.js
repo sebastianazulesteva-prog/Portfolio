@@ -23,6 +23,21 @@
 */
 
 (function () {
+  // ── The company mark's footprint ────────────────────────────────────────
+  // The one thing a mark on a text card costs is the TITLE's height budget,
+  // and on an Experience card that budget is already the tight thing: the
+  // longest company name wraps to four lines and the auto-fitter below shrinks
+  // type to make it fit. So the mark is inset tighter than the card's own
+  // padding (there is dead space in that corner anyway) and sized by
+  // measurement — see the table in the §9.26 note.
+  // 0.17, and SETTLED — not a first guess waiting to be raised. Sebastian was
+  // shown it in the scene next to the measured cost of going bigger (every
+  // millimetre comes straight out of the title's height budget, and the two
+  // longest role names are already being shrunk to fit) and chose the modest
+  // mark: *"I like the modest small logos."* 2026-09-09.
+  var LOGO_FRAC = 0.17;    // of the card's short side
+  var LOGO_INSET = 0.014;  // from the top and left edges, in metres
+  var LOGO_GAP = 0.008;    // between the mark's bottom and the title's top
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   AFRAME.registerComponent('hub-panel', {
@@ -54,7 +69,19 @@
       // (not a re-drawn lookalike — see window.VRArrowGlyph), same rest/
       // hover rotation, but with no backing pad of its own since the card
       // it sits on is already the whole hit target.
-      arrowHint: { type: 'boolean', default: false }
+      arrowHint: { type: 'boolean', default: false },
+      // ── The organisation's own mark, upper-left ────────────────────────
+      // Sebastian: *"company logos: source high-quality logos and place on
+      // upper-left of each card."* A path to a 128 px square PNG in
+      // /images/logos, whose name is the company's own hostname — see
+      // data-loader.js's hostLogo() for why that is the key and why there is no
+      // table anywhere mapping companies to pictures.
+      //
+      // Text-only cards ONLY. An image card is full-bleed by explicit
+      // instruction ("the image should fill the entire card... no contrast/
+      // things over"), so a badge in its corner would be exactly the overlay
+      // that was removed.
+      logo: { type: 'string', default: '' }
     },
 
     init: function () {
@@ -282,7 +309,43 @@
         // real wrapped height (same troika blockBounds technique as
         // name-scatter-3d.js) means the subtitle always lands just below
         // it, regardless of how many lines the title wraps to.
-        var titleTopY = h * 0.42;
+        // ── The mark, and the space it takes out of the title band ───────
+        // 0.17 of the card's short side: 0.058 m on an Experience card, which
+        // subtends 1.66° at the constellation's 2.0 m. These are marks a
+        // visitor already recognises rather than text to be read.
+        //
+        // The title is TOP-ANCHORED and moves down to clear it rather than the
+        // mark being tucked beside the first line. The title is centred and
+        // wraps to as many as four lines ("Stanford University - Comparative
+        // Medicine"), so there is no reliable corner for a badge to sit in
+        // beside it — a flow-around would have to re-measure on every wrap and
+        // would still collide the moment a11y mode widened the type.
+        //
+        // ── What it costs, measured on the real cards ───────────────────
+        // The title's own auto-fitter (below) absorbs the lost band by
+        // shrinking type, so the cost shows up as font size, not as overflow.
+        // Built each card twice, with and without the mark:
+        //
+        //   Maker Nexus                       0.0520 -> 0.0520    0%
+        //   Stanford Univ - Comparative Med   0.0447 -> 0.0400  -11%
+        //   Virtual Human Interaction Lab     0.0510 -> 0.0400  -22%
+        //
+        // Only the two longest names pay anything, and 0.0400 is still above
+        // this component's own TITLE_FLOOR (0.0364) and subtends 1.15° at 2 m
+        // — which is larger than the reading-guide toggle's 0.80°, the
+        // smallest type in the scene Sebastian has signed off. So the mark is
+        // affordable here; it would NOT be on a card any smaller.
+        // LOGO_INSET is tighter than the card's own `pad` on purpose: that
+        // corner is dead space, and every millimetre of it is a millimetre the
+        // title keeps.
+        var logoSize = 0;
+        if (this.data.logo) {
+          logoSize = Math.min(w, h) * LOGO_FRAC;
+          this._buildLogo(this.data.logo, logoSize, w, h, LOGO_INSET);
+        }
+        var titleTopY = logoSize
+          ? (h / 2 - LOGO_INSET - logoSize - LOGO_GAP)
+          : h * 0.42;
         // Needs the same emissive floor as CAPTION_LIT / the paper-title card:
         // without it this text is lit only by the dim, warm key rack and
         // sinks toward muddy grey-brown regardless of the '#f5f5f0' it's
@@ -562,6 +625,42 @@
         .catch(function () { say('Copy blocked'); });
     },
 
+    // ── The company mark ──────────────────────────────────────────────────
+    // A plain textured quad in the card's upper-left. Not the feathered image
+    // shader: the PNG already carries its own rounded corners in its alpha (a
+    // light plate with the mark inset, baked that way so ten brand marks with
+    // ten different backgrounds — a navy square, a black square, a white field
+    // — all read the same against this scene's dark glass), and feathering it
+    // would eat that edge and turn a crisp plate into a smudge.
+    //
+    // Built at opacity 0 and revealed on load, so a missing or slow file shows
+    // nothing rather than a grey square. The LAYOUT above does not wait for it:
+    // the space is reserved the moment `logo` is set, because re-flowing the
+    // title when a texture lands would move the card's text under the visitor
+    // several hundred milliseconds after they started reading it.
+    _buildLogo: function (url, size, w, h, inset) {
+      var self = this;
+      var mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, toneMapped: false });
+      var mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
+      mesh.position.set(-w / 2 + inset + size / 2, h / 2 - inset - size / 2, 0.004);
+      // Above the glass in the transparent paint order for the same reason
+      // everything else on a card is: this scene does not depth-sort
+      // transparents (§3.6), so being 4 mm in front is not enough on its own.
+      mesh.renderOrder = 2;
+      this.el.setObject3D('panel-logo', mesh);
+      this._logoMesh = mesh;
+      VRGlass.loadTexture(url, function (tex) {
+        if (!self._logoMesh) { tex.dispose(); return; }   // card torn down mid-load
+        mat.map = tex;
+        mat.opacity = 1 - self._dim * 0.7;
+        mat.needsUpdate = true;
+        mesh.__lit = true;
+      }, function () {
+        // No file for this hostname. Nothing is drawn and the reserved space
+        // simply stays empty — see the note in data-loader.js's hostLogo().
+      });
+    },
+
     _text: function (attrs, x, y, z, litOpts) {
       var t = document.createElement('a-entity');
       t.setAttribute('troika-text', attrs);
@@ -625,6 +724,12 @@
         this._dim += (this._dimTarget - this._dim) * k;
         this.material.uniforms.uDim.value = this._dim;
         if (this.imgMesh) this.imgMesh.material.uniforms.uDim.value = this._dim;
+        // The logo is a plain MeshBasicMaterial (no uDim uniform), so it dims
+        // through opacity instead. Same 0.7 factor as the text, so the card
+        // recedes as one object rather than leaving a bright chip behind.
+        if (this._logoMesh && this._logoMesh.__lit) {
+          this._logoMesh.material.opacity = 1 - this._dim * 0.7;
+        }
         // Fade the caption/label text along with the glass (down to ~30% at
         // full dim) so a receded card reads as one unit, not bright text
         // hovering over a dim panel.
@@ -638,6 +743,19 @@
     remove: function () {
       this.el.removeObject3D('panel-mesh');
       if (this.imgMesh) this.el.removeObject3D('panel-image');
+      // removeObject3D frees nothing (trap §3.17), and a card that is rebuilt
+      // — every accessibility toggle rebuilds all 20 of them — would otherwise
+      // leak a geometry, a material and a texture per logo.
+      if (this._logoMesh) {
+        var m = this._logoMesh;
+        this._logoMesh = null;
+        this.el.removeObject3D('panel-logo');
+        if (m.geometry) m.geometry.dispose();
+        if (m.material) {
+          if (m.material.map) m.material.map.dispose();
+          m.material.dispose();
+        }
+      }
       this.el.removeEventListener('click', this._onClick);
       this.el.removeEventListener('mouseenter', this._onEnter);
       this.el.removeEventListener('mouseleave', this._onLeave);

@@ -152,11 +152,23 @@
   // next mount picks it up.
   var CFG = {
     label: 'Back to the dome',
-    // Sized for the console deck. The arrow is inset by height*0.42 from the
-    // left edge, and the label measures ~0.28 m at this type size, so a width
-    // below ~0.50 walks the arrow straight into the 'B' of 'Back'.
-    width: 0.60,
-    height: 0.165,
+    // ── 25% smaller, everything at once (2026-09-08) ────────────────────
+    // Sebastian, after a headset pass: *"back-to-dome buttons: make ~25%
+    // smaller."* Every dimension of this control is scaled by 0.75 together —
+    // plate, label, deck, both rules — because the numbers below are a set of
+    // RATIOS that were tuned against each other, not five independent sizes.
+    // Shrinking the plate alone walks the back mark into the 'B' of 'Back'
+    // (the note this comment replaced was warning about exactly that): the mark
+    // is inset by height*0.42 from the left edge and ui-button centres the
+    // label, so the two close on each other whenever the plate narrows OR the
+    // type grows. At 0.45 wide with labelScale still 1.27 they overlap by
+    // 3 mm at a11y scale; at the matching 0.95 they clear by 13.5 mm, the same
+    // proportional gap §9.25 measured and shipped.
+    //
+    // Was 0.60 x 0.165. Both still clear ui-button's scene-wide minimum target
+    // (0.24 x 0.10) — the height by 24%, which is the binding one.
+    width: 0.45,
+    height: 0.124,
 
     // Sebastian, 2026-09-06: *"the text in the back to the dome should be
     // clearer/bigger."* This rides `ui-button`'s own `fontScale` rather than
@@ -186,7 +198,12 @@
     // plate was deliberately NOT widened to buy more room: 0.60 is a number
     // Sebastian tuned by eye after calling the 0.82 version "far too annoying
     // and big", and widening it also grows the console's 30.5° subtend.
-    labelScale: 1.27,
+    // 1.27 x 0.75 = 0.9525, rounded to 0.95: the whole control shrank 25% and
+    // the type goes with it, holding every clearance in the table above at its
+    // measured proportion. The label subtended 1.85deg at 1.27 and subtends
+    // 1.39deg here — still well over the 0.80deg the reading-guide toggle uses,
+    // which is itself the angular size of the page's own body text.
+    labelScale: 0.95,
 
     fill: '#1d5c46',        // signal green; the only cool hue in the scene
 
@@ -210,7 +227,7 @@
     ring: '#58b892',        // mint, a clear lift on the fill so the rule reads
     arrow: '#9fe6c6',       // brighter again, so the mark reads on the fill
     labelColor: '#eafaf2',
-    rule: 0.014,            // ring thickness in metres
+    rule: 0.0105,           // ring thickness in metres (0.014 x 0.75)
 
     // The rust palette this replaced, kept because it was the design for long
     // enough to be referenced elsewhere and re-deriving it means re-rendering
@@ -243,10 +260,33 @@
     // margin was about the same width as the button's own rule, so the pair
     // read as one mis-registered double border instead of a button resting on
     // a surface. The deck needs to be visibly a surface or it is just a frame.
-    consoleW: 0.88,
-    consoleH: 0.35,
+    // x 0.75 with the button, so the deck margin stays the same fraction of
+    // the button it surrounds — that margin-to-rule ratio is the whole reason
+    // these are 0.88 x 0.35 and not the original 0.74 x 0.28.
+    consoleW: 0.66,
+    consoleH: 0.2625,
     consoleFill: '#141816',  // a surface, not a control — reads as furniture
-    consoleRule: 0.010,
+    // ── Off centre, to the LEFT ──────────────────────────────────────────
+    // Sebastian: *"move the back-to-dome button slightly left so the full page
+    // text is readable."* The console is the one thing in front of the content
+    // it sits below, and what it hides is the BOTTOM of that content — a
+    // project room's blurb and tags, the reader's last visible lines.
+    //
+    // Most of that is fixed by the 25% shrink above, not by this: the deck's
+    // top edge subtends 6.8deg from its centre now against 9.0deg before, so
+    // it starts 2.2deg lower and the reader-page coverage falls from ~15% of
+    // the page height to ~10.6%. The shift is what uncovers the RIGHT-HAND END
+    // of the lines that are still behind it, which is the difference between
+    // a line you can guess at and a line you can finish.
+    //
+    // 5deg, and not more, for the reason the console was centred in the first
+    // place: at 0.66 wide it subtends +/-16.6deg here, so 5deg of shift puts
+    // its outer edge at 21.6deg — just at the edge of a portrait phone's ~21deg
+    // field (§9.4), where the old 0.88 deck sat at 21.8deg centred. So this is
+    // free: off-centre and smaller lands no further into the phone crop than
+    // centred and larger did. At 8deg it would cost 3deg of phone that the
+    // centred version never spent.
+    consoleLeftDeg: 5,    consoleRule: 0.0075,     // 0.010 x 0.75
     // The deck's rim is its OWN colour, not the button's ring. Defaulting it to
     // CFG.ring (which is what it used to hardcode) draws two concentric ember
     // outlines around one control, and the pair reads as a mis-registered
@@ -496,7 +536,9 @@
 
     var deck = document.createElement('a-entity');
     deck.setAttribute('position', {
-      x: 0, y: eye - d * Math.tan(THREE.MathUtils.degToRad(down)), z: -d
+      x: -d * Math.tan(THREE.MathUtils.degToRad(CFG.consoleLeftDeg || 0)),
+      y: eye - d * Math.tan(THREE.MathUtils.degToRad(down)),
+      z: -d
     });
     // Square on to the eye. A-Frame's floor convention is rotation "-90 0 0",
     // i.e. NEGATIVE x tips the surface back and points its normal up — so

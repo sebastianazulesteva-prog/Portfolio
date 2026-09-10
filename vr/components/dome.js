@@ -61,11 +61,45 @@
   // So: a ~2.5° core at full colour does the defining, and a wide dim glow out
   // to ±14.4° does the atmosphere. Same silhouette from a distance, but only
   // 2.5° of it is bright enough to compete with text.
+  // ── The zenith, and why it is no longer near-black ──────────────────────
+  // Sebastian, after a headset pass: *"the dome feels too dark — brighten the
+  // upper ceiling colour so it feels more open and outdoor-like."*
+  //
+  // This was '#050505' — a value chosen when the dome's only job was to be a
+  // dark void that stayed out of the content's way, and which does that job
+  // very well and reads as a room with the lights off. The thing that makes a
+  // real just-after-sunset sky feel like OUTSIDE rather than a ceiling is that
+  // the zenith is not black: it is a deep blue holding the last of the light,
+  // over a warm horizon. That contrast between a cool top and a warm band is
+  // the whole cue, and having neither meant the ember band read as a glowing
+  // line in the dark instead of as a sunset.
+  //
+  // #242f44 is 18x the relative luminance of #050505 (0.0283 vs 0.0015) and
+  // still firmly dark — a card's own glass is lighter than the sky behind it,
+  // which is the relationship that has to hold. Cool, deliberately, and NOT a
+  // contradiction of the warm-only rule above: that rule governs the HORIZON
+  // drift, which used to swing to blue/violet and made the sunset itself read
+  // cold. A cool zenith over a warm horizon is the opposite arrangement.
+  //
+  // The gradient runs zenith -> FEATHER just above the band, so this lifts the
+  // whole upper hemisphere on a ramp and leaves the darkness immediately around
+  // the ember band untouched. FEATHER is deliberately NOT lifted with it: it is
+  // what gives the band its edge, and raising it would dissolve the horizon
+  // this dome is built around.
+  //
+  // Matched to themes.js's own 0.028 luminance target so the hub and the five
+  // rooms have the same ceiling brightness — the first version of this lifted
+  // the hub to 0.0103 and the rooms to 0.028, which would have made every room
+  // read as OPENING OUT relative to the dome it is reached from, for no reason
+  // anyone could have named.
+  var ZENITH = '#242f44';
+
   var FEATHER = '#0a0908';
   var CORE_HALF = 0.007;   // of texture height; x180° = 2.5° of elevation
   var RAMP_HALF = 0.013;   // core -> bloom shoulder
   var BLOOM_HALF = 0.03;   // bloom plateau
   var EDGE_HALF = 0.08;    // bloom -> feather; x180° = 14.4°, as before
+  var ZENITH_PLATEAU = 0.222;  // x180° = 40° of elevation; above this the sky is flat ZENITH
   var BLOOM_NEAR = 0.55;   // shoulder brightness, toward the horizon colour
   var BLOOM_FAR = 0.22;    // plateau brightness
 
@@ -76,6 +110,17 @@
     var far = lerpColor(FEATHER, horizonColor, BLOOM_FAR);
     var grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, topColor);
+    // ── The ceiling is a PLATEAU, not a point ────────────────────────────
+    // The zenith colour used to be one stop at the pole, ramping all the way
+    // down to FEATHER by 14.4° — so it was at full strength only where you
+    // have to tip your head right back, and a normal forward look saw almost
+    // none of it. Lifting the number alone therefore did very little to the
+    // thing being complained about. Holding it flat from 40° up puts the whole
+    // upper half of the dome at the lifted colour and leaves the ramp to do its
+    // job over the last 25°, which is where a real sky's gradient lives anyway.
+    // Below ZENITH_PLATEAU nothing changes, so the ember band's surround is
+    // untouched and the band measures exactly as before.
+    grad.addColorStop(0.5 - ZENITH_PLATEAU, topColor);
     grad.addColorStop(0.5 - EDGE_HALF, FEATHER);
     grad.addColorStop(0.5 - BLOOM_HALF, far);
     grad.addColorStop(0.5 - RAMP_HALF, near);
@@ -84,6 +129,7 @@
     grad.addColorStop(0.5 + RAMP_HALF, near);
     grad.addColorStop(0.5 + BLOOM_HALF, far);
     grad.addColorStop(0.5 + EDGE_HALF, FEATHER);
+    grad.addColorStop(0.5 + ZENITH_PLATEAU, topColor);
     grad.addColorStop(1, topColor);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, h);
@@ -120,7 +166,7 @@
 
       this._themeOverride = null; // set via setTheme() when a project room is open
       this._startTime = performance.now();
-      paintDomeTexture(canvas, '#050505', HORIZON_HUES[0]);
+      paintDomeTexture(canvas, ZENITH, HORIZON_HUES[0]);
       this.texture.needsUpdate = true;
     },
     // Project-room world-transform (§7): retint the whole dome to that
@@ -133,7 +179,7 @@
     },
     clearTheme: function () {
       this._themeOverride = null;
-      paintDomeTexture(this.canvas, '#050505', HORIZON_HUES[0]);
+      paintDomeTexture(this.canvas, ZENITH, HORIZON_HUES[0]);
       this.texture.needsUpdate = true;
     },
     tick: function () {
@@ -147,7 +193,7 @@
       var i = Math.floor(segment);
       var t = segment - i;
       var color = lerpColor(HORIZON_HUES[i], HORIZON_HUES[i + 1], t);
-      paintDomeTexture(this.canvas, '#050505', color);
+      paintDomeTexture(this.canvas, ZENITH, color);
       this.texture.needsUpdate = true;
     },
     remove: function () {

@@ -216,10 +216,14 @@
   <script src="components/xr-frame.js?v=1"></script>
   <!-- One place at a time (project room / reader / portrait lab). Must load
        before any of them, since each registers itself with VRPlace. -->
-  <script src="components/place.js?v=1"></script>
+  <!-- Who is actually pointing. Loaded before anything that asks: the two
+       hand entities cast a permanent floor-level ray when no controller is
+       connected, which is every Vision Pro session — see pointer.js. -->
+  <script src="components/pointer.js?v=1"></script>
+  <script src="components/place.js?v=2"></script>
   <script src="components/fonts.js?v=5"></script>
-  <script src="components/themes.js?v=7"></script>
-  <script src="components/dome.js?v=6"></script>
+  <script src="components/themes.js?v=8"></script>
+  <script src="components/dome.js?v=8"></script>
   <script src="components/glass-material.js?v=19"></script>
   <script src="components/text-flow.js?v=3"></script>
   <script src="components/ui-button.js?v=16"></script>
@@ -229,11 +233,17 @@
        column, so they sit above all of them. scroll-arrows is first because
        exit-button borrows its rounded-rect and triangle geometry helpers. -->
   <script src="components/scroll-arrows.js?v=4"></script>
-  <script src="components/exit-button.js?v=7"></script>
+  <script src="components/exit-button.js?v=8"></script>
+  <!-- The way out of the whole experience: a pad on the floor that appears
+       when you look down at your feet, ends the XR session and returns to the
+       flat site. Deliberately NOT one of the ".hub-cluster" things a room or
+       the reader hides — read leave-vr.js's header for why, and for what
+       visionOS's own Digital Crown does and does not do. -->
+  <script src="components/leave-vr.js?v=2"></script>
   <!-- Transient in-scene message card. Above the three files that call it
        (hub-panel, focus-stage, photo-cloud) and below glass-material, whose
        card shader and lit-text helper it uses. -->
-  <script src="components/busy.js?v=2"></script>
+  <script src="components/busy.js?v=3"></script>
   <script src="components/notice.js?v=3"></script>
   <!-- The intention gate: a small ring that fills up on whatever you are
        pointing at, and only then does the cheap reversible thing happen. Used
@@ -244,28 +254,31 @@
   <script src="components/dwell.js?v=3"></script>
   <script src="components/reticle.js?v=4"></script>
   <script src="components/name-scatter-3d.js?v=16"></script>
-  <script src="components/hub-panel.js?v=35"></script>
+  <script src="components/hub-panel.js?v=38"></script>
   <script src="components/focus-stage.js?v=23"></script>
-  <script src="components/card-flip.js?v=8"></script>
-  <script src="components/photo-cloud.js?v=20"></script>
+  <script src="components/card-flip.js?v=10"></script>
+  <script src="components/photo-cloud.js?v=24"></script>
   <script src="components/mosaic-reveal.js?v=23"></script>
   <!-- Inert unless ?portrait=splat asks for it: the component only builds when
        the entity carries the attribute, and nothing carries it by default. The
        665 KB renderer is fetched lazily from inside the component, so an
        unflagged visit does not pay for this tag. -->
-  <script src="components/splat-portrait.js?v=6"></script>
+  <script src="components/splat-portrait.js?v=7"></script>
+  <!-- The lab's fourth depth treatment: parallax occlusion mapping over the
+       relief panel's own depth map. Two triangles, no new asset. -->
+  <script src="components/parallax-photo.js?v=2"></script>
   <!-- Both inert until the lab is opened: spatial-photo builds nothing unless
        an entity carries it, and portrait-lab builds only its button up front. -->
-  <script src="components/spatial-photo.js?v=5"></script>
-  <script src="components/portrait-lab.js?v=5"></script>
+  <script src="components/spatial-photo.js?v=6"></script>
+  <script src="components/portrait-lab.js?v=9"></script>
   <script src="components/bio-card.js?v=36"></script>
-  <script src="components/project-room.js?v=41"></script>
+  <script src="components/project-room.js?v=45"></script>
   <!-- The reading ruler inside pdf-reader: finds the text lines in each
        pre-rendered page IMAGE and highlights the one you are looking at.
        Above pdf-reader, which begins and ends it. -->
-  <script src="components/reading-line.js?v=3"></script>
-  <script src="components/pdf-reader.js?v=18"></script>
-  <script src="components/sunflower.js?v=2"></script>
+  <script src="components/reading-line.js?v=4"></script>
+  <script src="components/pdf-reader.js?v=24"></script>
+  <script src="components/sunflower.js?v=3"></script>
   <script src="components/constellation.js?v=9"></script>
   <!-- carousel-drag.js is attached to nothing since 2026-08-30 (see the
        #projectsConstellation markup below for why), so it is not loaded rather
@@ -276,7 +289,7 @@
   <script src="components/walk-controls.js?v=5"></script>
   <script src="components/column-scroll.js?v=2"></script>
   <script src="components/onboarding.js?v=6"></script>
-  <script src="components/data-loader.js?v=14"></script>
+  <script src="components/data-loader.js?v=18"></script>
   <script src="components/xr-select.js?v=1"></script>
   <!-- ?xrdiag=1 only. There is no console in a Vision Pro, so this samples the
        clocks in-session and prints the answer on a card in the scene. Inert
@@ -422,8 +435,8 @@
            sit near its rest opacity, so the Quest ray reads as the same
            design language as the gaze/mouse reticle instead of A-Frame's
            default laser look. -->
-      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn></a-entity>
-      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn></a-entity>
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn hand-ray-gate></a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn hand-ray-gate></a-entity>
     </a-entity>
 
     <!-- Comfort vignette overlay — flashes briefly during a project-room
@@ -480,8 +493,34 @@
 
       <!-- Shifted left, bio card to its right (VR_BUGFIX_NOTES.md item 8) —
            both sit in front of the viewer on load, no turning required. -->
+      <!-- ── SUNFLOWER ON THE PORTRAIT (2026-09-08) ─────────────────────
+           Sebastian: *"apply the sunflower effect to the main portrait depth
+           photo as a test"* and, separately, *"the background moves too much
+           when looking sideways — the background should stay more solid while
+           the depth feeling is preserved."* Those are one fix, not two.
+
+           A stereo pair is only VALID viewed square on. The disparity is baked
+           along the image's own horizontal axis for a head at 1.5 m dead ahead
+           (vr/assets/portrait-eye.json), so the moment the panel is seen
+           obliquely that axis stops being parallel to the line between the
+           eyes and the depth shears — which reads exactly as Sebastian
+           describes it, the backdrop sliding against the subject as you move.
+           /vr has bounded walking (§9.5, a 1.6 m lateral ellipse), so an
+           oblique view of this panel is not an edge case, it is what happens
+           the moment anyone steps sideways.
+
+           Keeping it normal to the viewer is therefore not a nicety here the
+           way it is on a text card — it is the condition the format needs to
+           work at all. Rate 12, slower than the constellation's 18: this panel
+           is 1.5 m away and directly in front of you, so the same angular rate
+           is far more visible on it than on a card off at the edge of vision,
+           and it must never look like it is following you. maxTurnDeg 34 keeps
+           it belonging to the home cluster rather than swinging to meet
+           someone standing behind the projects grid.
+           `?sunflower=0` turns it off with everything else, for A/B. -->
       <a-entity id="homePortrait"
                  spatial-photo="width: 0.72; height: 1.08"
+                 sunflower="rate: 12; maxTurnDeg: 34"
                  position="-0.5 1.42 0" class="clickable"></a-entity>
       <!-- ?portrait= — overrides for the hero portrait ─────────────────────
            The relief window is now the DEFAULT (it is in the markup above), on
@@ -557,6 +596,11 @@
          splat, its 665 KB renderer and the stereo pair are all built on the
          first press and never before. -->
     <a-entity id="portraitLab" portrait-lab></a-entity>
+
+    <!-- "Leave VR" — at your feet, revealed by looking down. No .hub-cluster
+         class: this is the one control that has to survive a project room, the
+         reader and the lab, all of which put the hub away. -->
+    <a-entity id="leaveVr" leave-vr></a-entity>
 
     <!-- Focus stage — the single reusable "pulled closer" detail view
          (focus-stage.js). Repositioned in front of the viewer's current look
@@ -759,6 +803,14 @@
     // 0.21-0.51 m. -82 moves the inner edge to 47.2°, clearing the card by
     // 10.2°. Sebastian chose this over keeping the photo cloud wider — the
     // cloud's right bound has to follow (photo-cloud.js ZONE_MIN 131 -> 139).
+    // Sebastian, 2026-09-09, on the +25% pass: *"25% bigger in the project
+    // rooms, not in other places."* So the hub constellations are back at the
+    // sizes and angles they were tuned to, and the growth moved into
+    // project-room.js's stations. The three-column Experience block and the
+    // re-cut zone angles that paid for it are gone with it; the derivation is
+    // kept in VR_AI_BUILD_GUIDE.md §9.26.5 in case the hub is ever grown for
+    // real, because working out where the 25% could come from was the whole
+    // job and it should not have to be done twice.
     var EXPERIENCE_ANGLE = -82;
     // A small central command zone, not a gallery to walk across — kept at
     // the near end of the spec's 1.5–2m panel-radius range (VR_BUILD_SPEC.md
@@ -1014,8 +1066,7 @@
       // at 33.13°, clearing the portrait by 3.3°.
       var WRITING_ANGLE = 43.5;
       // Follows the writing column outward by the same amount, keeping the 7°
-      // gap between the two sections. Outer edge moves 126.51° -> 131.71°,
-      // which is what photo-cloud.js's ZONE_MAX is cut to clear.
+      // gap between the two sections.
       var PROJECTS_GRID_ANGLE = 96.5;
 
       // Top-aligned, per §9.1: "top-aligned to line up with where the writing
@@ -1082,6 +1133,45 @@
       // buildExperience, which has no shared-constant path to this file to
       // pull from (no build step, no module system across script tags).
       var EXPERIENCE_ACCENT = '#d6dbe0';
+      // ── What an Experience card leads with ──────────────────────────
+      // Sebastian, 2026-09-09: *"my titles should be the big, and where I work
+      // should be the small — swap those."* It was the other way round: the
+      // COMPANY was the Playfair headline and the role was the small accent
+      // line under it. That reads as a list of employers; he wants a list of
+      // what he did.
+      //
+      // The role also needs splitting, because experience.html's own
+      // convention for `.exp-role` is `Title · Place` — "Maker on Duty ·
+      // Stanford, CA", "Research Assistant · Stanford University" — and a
+      // headline is the job, not the postcode. So the first segment becomes
+      // the big line and everything after it falls back into the small line
+      // with the company and the dates, where it belongs. Nine of the ten
+      // roles use that separator; the one that does not ("Teaching Assistant,
+      // Neurobiology of Pain") simply has no tail and is unaffected.
+      //
+      // Split on the FIRST separator only, so a role that legitimately
+      // contains two of them keeps the remainder together rather than being
+      // shredded across the line.
+      //
+      // THE PLACE STAYS IN THE SMALL LINE. Settled 2026-09-09, so do not
+      // "tidy" it away: it makes the line run to three lines on a few cards
+      // and it repeats the word Stanford on two of them ("Stanford Explore
+      // Energy · Stanford University · Sep 2024"), and that was put to
+      // Sebastian against the tighter "company · date" alternative. He kept
+      // it, because San Francisco / Remote / Hybrid say something real about
+      // three of these roles that nothing else on the card does.
+      function expLines(exp) {
+        var role = (exp.role || '').trim();
+        var cut = role.indexOf('·');
+        var head = cut === -1 ? role : role.slice(0, cut).trim();
+        var tail = cut === -1 ? '' : role.slice(cut + 1).trim();
+        return {
+          title: head || exp.company,
+          subtitle: [exp.company, tail, exp.date].filter(Boolean).join('  ·  ')
+        };
+      }
+
+
       layoutCluster(document.querySelector('#experienceConstellation'), data.experience, {
         baseAngleDeg: EXPERIENCE_ANGLE, columns: 4, cardWidth: 0.5, cardHeight: 0.34, gapM: 0.14, centerHeight: 1.55,
         panelBuilder: function (exp) {
@@ -1090,7 +1180,11 @@
           // view (onPlaced below), this just hints that. It is NOT a link:
           // nothing here ever opens exp.companyHref — that would pull the
           // visitor out of VR, which Sebastian was explicit about not doing.
-          return { title: exp.company, subtitle: exp.role + ' · ' + exp.date, accent: EXPERIENCE_ACCENT, arrowHint: true };
+          // `logo` is derived from the job's own link on experience.html
+          // (data-loader's hostLogo) — nothing here names a company or a file.
+          var L = expLines(exp);
+          return { title: L.title, subtitle: L.subtitle,
+                   accent: EXPERIENCE_ACCENT, arrowHint: true, logo: exp.logo || '' };
         },
         onPlaced: function (exp, i, placed) {
           placed.panelEl.components['hub-panel'].detail = { type: 'experience', data: exp };
@@ -1105,9 +1199,12 @@
           // Experience card, and it is the fallback route if card-flip.js is
           // ever not loaded.
           if (window.VRCardFlip) {
+            // Same split as the front, or the card would change what it
+            // leads with halfway through turning over.
+            var LB = expLines(exp);
             window.VRCardFlip.attach(placed.panelEl, {
-              title: exp.company,
-              subtitle: exp.role + ' · ' + exp.date,
+              title: LB.title,
+              subtitle: LB.subtitle,
               bullets: exp.bullets || [],
               accent: EXPERIENCE_ACCENT
             });

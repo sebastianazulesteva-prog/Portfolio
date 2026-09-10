@@ -20,7 +20,7 @@
    from two bullets of 60 characters to four bullets totalling 283. Fifteen to
    twenty-five lines do not go into nine.
 
-   So the card flips AND grows, on his call: GROW = 2, ending at 1.00 m wide at
+   So the card flips AND grows, on his call: to BACK_W, ending at 1.00 m wide at
    1.02 m from the eye — the same reading distance the bio card's Skills panel
    and the focus stage both use, so all three "come here and read this" moves in
    the scene land in the same place. The back is BUILT at the front's size
@@ -41,7 +41,23 @@
 (function () {
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  var GROW = 2.0;                 // front card size -> reading size
+  // ── GROW is DERIVED, because it was 2.0 for a 0.50 m card ────────────────
+  // It says "front card size -> reading size", and the reading size is BACK_W
+  // (1.00 m at 1.02 m from the eye, 52° wide, which is the number Sebastian
+  // judged). 2.0 was only ever 1.00 / 0.50 — the Experience card's width at the
+  // time — written down as the ratio instead of as the two things it is a ratio
+  // of. When the cards grew 25% (index.html, 2026-09-08) a fixed 2.0 would have
+  // scaled the plate to 1.25 m while the back's CONTENT is still laid out for
+  // 1.00 m, giving a card two and a half handspans wide with its text hugging
+  // the middle. Read off the card so the reading size stays the reading size
+  // whatever the glance card does next.
+  var BACK_W = 1.00;              // the reading size, in world metres
+  var FRONT_W_FALLBACK = 0.625;   // only if a card is asked before it is sized
+  function growFor(cardEl) {
+    var hp = cardEl && cardEl.components && cardEl.components['hub-panel'];
+    var w = (hp && hp.data && hp.data.width) || FRONT_W_FALLBACK;
+    return BACK_W / w;
+  }
   // Matches bio-card's Skills panel exactly (SKILLS_READ_DISTANCE /
   // SKILLS_READ_HEIGHT). It does NOT match focus-stage, whose FOCUS_DISTANCE is
   // 1.05 — this comment used to claim all three agreed and they never have. The
@@ -53,7 +69,15 @@
   // pick up whichever number it happened to read.
   var READ_DISTANCE = 1.02;
   var READ_HEIGHT = 1.55;
-  var FLIP_IN_MS = 520, FLIP_OUT_MS = 380;
+  // Sebastian: *"slow down the card-return animation in the experience
+  // section."* 380 -> 620. Out was faster than in on the usual reasoning that
+  // dismissing should get out of the way — but this card is not dismissed to
+  // reveal something else, it is putting itself BACK, travelling ~0.9 m and
+  // shrinking 1.6x and turning 180° all at once, and at 380 ms that reads as
+  // the card being yanked rather than returning. Still under the 520 ms of the
+  // flip in, so coming to you is still the quicker half and the pair does not
+  // feel symmetrical and slow.
+  var FLIP_IN_MS = 520, FLIP_OUT_MS = 620;
 
   // Above the focus stage (10/11) and the Skills panel (12/13/14), below
   // notice.js's 20/21/22 — a "project rooms are coming soon" notice still lands
@@ -62,12 +86,12 @@
   // nearer the eye does NOT put the back face in front of the constellation.
   var ORDER_PLATE = 15, ORDER_GLASS = 16, ORDER_CONTENT = 17;
 
-  // FINAL, world-space sizes — every one is divided by GROW to build in the
-  // card's own local units. Keep them here in the units they are judged in.
-  var BACK_W = 1.00;
+  // FINAL, world-space sizes — every one is divided by this card's own GROW to
+  // build in the card's local units. Keep them here in the units they are
+  // judged in. (BACK_W lives up with growFor(), which is what consumes it.)
   var PAD = 0.055;
-  var TITLE_SIZE = 0.044;         // company
-  var META_SIZE = 0.024;          // role · date
+  var TITLE_SIZE = 0.044;         // the ROLE — what he did (index.html's expLines)
+  var META_SIZE = 0.024;          // company · place · date
   var BULLET_SIZE = 0.030;        // the bullets themselves: above VRType.body()
   var HINT_SIZE = 0.020;
   var BULLET_GAP = 0.020;
@@ -83,6 +107,7 @@
   function build(cardEl) {
     var spec = cardEl.__flipSpec;
     var m = mult();
+    var GROW = growFor(cardEl);
     var localW = (BACK_W / GROW) * m;
     var pad = (PAD / GROW) * m;
     var titleSize = (TITLE_SIZE / GROW) * m;
@@ -150,7 +175,7 @@
           mk.object3D.position.set(leftX, host.object3D.position.y - bulletSize * 0.72, 0.014 / GROW);
         });
 
-        buildPlate(back, localW, panelH, spec.accent);
+        buildPlate(back, localW, panelH, spec.accent, GROW);
         back.__panelH = panelH;
         back.__ready = true;
         // If the flip already reached its halfway swap while troika was still
@@ -189,15 +214,20 @@
   // the card shader clamps at 0.96 and even that measurably bleeds, so a
   // reading surface floating in front of a constellation needs something solid
   // behind the type or the cards and the dome show through the words.
-  function buildPlate(back, w, h, accent) {
-    var plateGeo = VRScrollArrows.roundedRectGeometry(w, h, 0.05 / GROW);
+  // `grow` is passed in rather than read from a module-level constant: it is
+  // per-card now (see growFor), and the corner radius here is a WORLD 0.05
+  // expressed in the card's local units, so it has to be the same grow the rest
+  // of the back was built at or the corners come out a different roundness from
+  // every other reading surface in the scene.
+  function buildPlate(back, w, h, accent, grow) {
+    var plateGeo = VRScrollArrows.roundedRectGeometry(w, h, 0.05 / grow);
     var plate = new THREE.Mesh(plateGeo, new THREE.MeshBasicMaterial({ color: '#0e0c09' }));
     plate.position.z = -0.004;
     back.setObject3D('flip-plate', plate);
 
     back.setObject3D('flip-glass', new THREE.Mesh(
       new THREE.PlaneGeometry(w, h),
-      VRGlass.makeCardMaterial(w, h, 0.05 / GROW, accent, 0, 0.96)
+      VRGlass.makeCardMaterial(w, h, 0.05 / grow, accent, 0, 0.96)
     ));
   }
 
@@ -250,7 +280,7 @@
     var localPos = parent.worldToLocal(target.clone());
     var faceQuat = parentQuat.clone().invert().multiply(dummy.quaternion);
 
-    var s = GROW / (parentScale.x || 1);
+    var s = growFor(cardEl) / (parentScale.x || 1);
     return { pos: localPos, faceQuat: faceQuat, scale: new THREE.Vector3(s, s, s) };
   }
 

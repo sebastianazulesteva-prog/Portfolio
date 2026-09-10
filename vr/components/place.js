@@ -53,6 +53,72 @@
   var places = {};
   var current = HUB;
 
+  // ── Hiding a branch does NOT stop it being clicked ────────────────────────
+  // Found 2026-09-08, chasing "I can't page through the FEA analysis" in the
+  // Time Collector room. The document station's two arrows sit at NDC x ≈ 0.89,
+  // and the FIRST thing the head cursor hit when aimed at them was
+  // `#homePortrait` — a hub element, inside a `.hub-cluster` that the room had
+  // correctly hidden, at 1.68 m, invisible, and in the way.
+  //
+  // `setAttribute('visible', false)` sets `object3D.visible = false`, which
+  // three.js honours when RENDERING and ignores when RAYCASTING: r158's
+  // `intersect()` tests only `object.layers`, never `visible`, and A-Frame's
+  // raycaster does not filter the results either. So every `.clickable` in the
+  // hub — 33 photo tiles, ten project cards, five writing cards, the bio card's
+  // Skills toggle, the portrait — stays a live, invisible hit target inside
+  // every room, the reader and the lab.
+  //
+  // Two ways that shows up, and both were reported: a control in the place you
+  // ARE in silently refuses to respond because something you cannot see is
+  // nearer the eye, and a click on empty room floor lands on a hub card and
+  // OPENS ANOTHER PROJECT'S CONTENT on top of the room you are standing in.
+  //
+  // The fix is the class, because the class is already the contract: A-Frame's
+  // raycasters here are all `objects: .clickable`, so taking the class off a
+  // hidden branch takes it out of every ray at once, and nothing has to agree
+  // about layers or filters. Recorded on the element so restoring cannot guess
+  // wrong — some descendants of a hidden cluster were never clickable, and
+  // handing them the class on the way back out would make the hub grow new hit
+  // targets every time you left a room.
+  var INERT_FLAG = 'vrWasClickable';
+
+  function setBranchClickable(root, on) {
+    if (!root) return;
+    var els = [].slice.call(root.querySelectorAll(on ? '[data-vr-was-clickable]' : '.clickable'));
+    if (!on && root.classList && root.classList.contains('clickable')) els.push(root);
+    if (on && root.dataset && root.dataset[INERT_FLAG]) els.push(root);
+    els.forEach(function (el) {
+      if (on) {
+        el.classList.add('clickable');
+        delete el.dataset[INERT_FLAG];
+      } else {
+        el.classList.remove('clickable');
+        el.dataset[INERT_FLAG] = '1';
+      }
+    });
+  }
+
+  // The three rays in the scene cache their target lists, so any change to who
+  // is clickable has to tell them. Same list as project-room.js's own
+  // refreshClickableRaycasters — kept here too because this helper is called
+  // from files that have no other reason to know about hands.
+  function refreshRays() {
+    ['#head [cursor]', '#leftHand', '#rightHand'].forEach(function (sel) {
+      var el = document.querySelector(sel);
+      var rc = el && el.components && el.components.raycaster;
+      if (rc) rc.refreshObjects();
+    });
+  }
+
+  // Hide or show a whole branch AND take it out of / put it back into the
+  // selection rays. This is what every place should call instead of
+  // `el.setAttribute('visible', false)`.
+  function setBranchVisible(el, visible) {
+    if (!el) return;
+    el.setAttribute('visible', visible);
+    setBranchClickable(el, visible);
+  }
+
   function isOpen(name) {
     var p = places[name];
     if (!p) return false;
@@ -78,6 +144,20 @@
 
   window.VRPlace = {
     register: function (name, api) { places[name] = api; },
+
+    // See the long note above: `visible:false` alone leaves a branch clickable.
+    setBranchVisible: setBranchVisible,
+    refreshRays: refreshRays,
+
+    // Hide/show every `.hub-cluster` at once — the call all three places were
+    // hand-rolling identically, now in the file that owns "one place at a
+    // time" and with the hit-testing half included.
+    setHubVisible: function (visible) {
+      [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
+        setBranchVisible(el, visible);
+      });
+      refreshRays();
+    },
 
     // Call BEFORE building. Returns the place that was evicted, if any, purely
     // so a caller can log or test it.

@@ -200,12 +200,24 @@
   // drifted apart from project-room.js's copy, and both missed
   // #writingConstellation, leaving the other four writing cards floating in the
   // reading space (VR_TEST_REPORT B1).
+  // Through VRPlace, not a local querySelectorAll, for the same reason its own
+  // note gives: `visible:false` hides a branch from the RENDERER and not from
+  // the RAYCASTER, so the whole hub stayed a wall of invisible hit targets in
+  // front of the page. In here that meant the reader's own rail, guide toggle
+  // and exit console could be silently intercepted by a photo tile or a project
+  // card floating between the eye and the page.
   function setHubVisible(visible) {
-    [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
-      el.setAttribute('visible', visible);
-    });
+    if (window.VRPlace && VRPlace.setHubVisible) VRPlace.setHubVisible(visible);
+    else {
+      [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
+        el.setAttribute('visible', visible);
+      });
+    }
     var focus = document.querySelector('#focusStage');
-    if (focus) focus.setAttribute('visible', visible);
+    if (focus) {
+      if (window.VRPlace && VRPlace.setBranchVisible) VRPlace.setBranchVisible(focus, visible);
+      else focus.setAttribute('visible', visible);
+    }
   }
 
   // Same reason as project-room.js's copy: a control created after load isn't
@@ -622,6 +634,301 @@
     });
   }
 
+  // ── Auto-scroll: the page follows your reading ───────────────────────────
+  // Sebastian: *"implement scroll-by-gaze or finger scroll if the Vision Pro
+  // supports it — trigger auto-scroll when the user reaches the bottom of the
+  // visible content."*
+  //
+  // It does support it, and this is the shape that works on all three devices
+  // at once: the reader already resolves a POINTER against the page planes (the
+  // head cursor plus either hand, nearest hit wins — reading-line.js's
+  // `_readPointer`), and on a Vision Pro the head cursor IS the gaze. So the
+  // same code is gaze on a headset, the laser on a controller, and the mouse on
+  // a desktop, with no per-device branch.
+  //
+  // Read the whole page rather than a band at the very bottom edge: what the
+  // ask is really about is that you should not have to stop reading to operate
+  // a control. So the strip drifts whenever your eye is in the lower part of
+  // what is in front of you, at a rate that ramps with how far down you are —
+  // barely moving as you cross the middle, and clearly carrying you when you
+  // reach the last lines. It stops dead the moment you look back up.
+  //
+  // ── This is not a gaze fuse (hard rule 7), and the distinction is real ──
+  // A fuse commits you to something by looking at it. This commits you to
+  // nothing: it is a continuous, self-correcting position control — look up and
+  // it reverses, at the same rate, immediately — and there is no state after it
+  // that you have to undo. The same reasoning dwell.js sets out for the photo
+  // cloud's reach, one step further down: the reach needs a 0.9 s gate because
+  // it is discrete and animated; this needs none because it is proportional.
+  //
+  // ── Both directions, deliberately, unlike the ruler's click-step ──
+  // §9.23 made the reading-line's own scroll ONE WAY, because a click that
+  // scrolled you backwards undid the click you just made. That argument does
+  // not carry here — nothing is being undone, you are looking up because you
+  // want to be further up — and one-way gaze scroll would be worse than none:
+  // it can only ever carry you towards the end of the piece and you would have
+  // to go find the rail to get back.
+  var AUTO_DEAD = 0.22;        // fraction of the visible half that scrolls at zero rate
+  var AUTO_MAX_MPS = 0.42;     // metres/second at the very edge of the read window
+  var AUTO_ARM_MS = 320;       // pointer must settle before it starts carrying
+  var AUTO_WINDOW = 0.62;      // metres above/below the eye that count as "the page in front of you"
+
+  var auto = { armedAt: 0, active: false, lastY: null };
+
+  // Where the reader's pointer is on the page, as a signed fraction of the read
+  // window: -1 at the top of it, +1 at the bottom, 0 at eye level. `null` when
+  // the pointer is not on a page at all — which is most of the time and is the
+  // reason this can be as sensitive as it is without ever firing by accident.
+  function pointerBias() {
+    if (!state.open || !state.pages.length) return null;
+    // Through VRPointer, which is where the "which rays are real" question is
+    // answered once. Resolving it here as `nearest across all three` — which
+    // is what this did first, and what reading-line.js still did — hands you a
+    // phantom: with no controller connected, both hand entities sit at the rig
+    // origin and cast a permanent ray along -Z at floor level, 1.90 m away and
+    // therefore NEARER than the gaze's 2.08 m. Measured; see pointer.js. The
+    // symptom was an auto-scroll that would only ever go DOWN, because the
+    // phantom's hit is always well below the eye.
+    var best = window.VRPointer ? VRPointer.nearest() : null;
+    if (!best) return null;
+    // Only a PAGE counts. The rail, the guide toggle and the exit console all
+    // sit nearer the eye and win the hit test where they overlap, and a pointer
+    // parked on the down pad must not also be driving a second scroll.
+    var onPage = false;
+    for (var p = 0; p < state.pages.length; p++) {
+      if (state.pages[p].mesh === best.object) { onPage = true; break; }
+    }
+    if (!onPage) return null;
+    var eyeY = EYE_HEIGHT;
+    var head = document.querySelector('#head');
+    if (head) { var wp = new THREE.Vector3(); head.object3D.getWorldPosition(wp); eyeY = wp.y; }
+    return THREE.MathUtils.clamp((eyeY - best.point.y) / AUTO_WINDOW, -1, 1);
+  }
+
+  AFRAME.registerComponent('reader-autoscroll', {
+    tick: function (time, dt) {
+      // Motion the visitor did not ask for, in the one place where the thing
+      // moving fills the whole view — reduced motion gets none of it and keeps
+      // the rail, which is an explicit control and always was.
+      if (reducedMotion || !state.open) { auto.active = false; return; }
+      var bias = pointerBias();
+      if (bias === null) { auto.active = false; auto.armedAt = 0; return; }
+      var mag = Math.abs(bias);
+      if (mag <= AUTO_DEAD) { auto.active = false; auto.armedAt = 0; return; }
+      if (!auto.armedAt) { auto.armedAt = time; return; }
+      if (time - auto.armedAt < AUTO_ARM_MS) return;
+      auto.active = true;
+      // Squared ramp out of the dead zone: linear made the middle of the page
+      // feel like it was already sliding, which is the failure mode of every
+      // edge-scroll — you cannot rest your eye anywhere.
+      var k = (mag - AUTO_DEAD) / (1 - AUTO_DEAD);
+      var v = Math.sign(bias) * k * k * AUTO_MAX_MPS;
+      var next = state.scroll + v * (Math.min(dt || 16, 50) / 1000);
+      next = Math.max(0, Math.min(state.maxScroll, next));
+      if (next === state.scroll) return;
+      // Written straight in, not through scrollBy: that eases to a TARGET over
+      // 0.55 s, and re-targeting it every frame is a tween fighting itself.
+      // A per-frame integration is already smooth because the rate is.
+      if (state.scrollTween) { state.scrollTween.kill(); state.scrollTween = null; }
+      state.scroll = next;
+      applyScroll();
+    }
+  });
+
+  // ── The end of the piece, overhead ───────────────────────────────────────
+  // Sebastian: *"easter egg — at the last page, prompt the user to look up and
+  // see all the pages read."*
+  //
+  // Reach the bottom and one quiet line appears under the last page: "Look up."
+  // Tip your head back past LOOKUP_DEG and every page of the piece is up there,
+  // laid out in a fan, with the count. Look back down and it goes away. Nothing
+  // is clickable, nothing has to be dismissed, and missing it entirely costs a
+  // visitor nothing — which is the whole definition of the thing.
+  //
+  // ── It costs no memory and no network, and that is why it can exist ──
+  // The reader keeps at most three pages at full resolution and demotes every
+  // page you scroll PAST to a 256 px "trail" copy it already re-rasterises for
+  // the strip above you (demoteToTrail). Those trail textures are exactly what
+  // this needs: every page, small, already decoded, already paid for. So the
+  // fan re-uses `rec.trailTex` rather than loading anything — which also makes
+  // the conceit literally true. A page can only be in the fan if you scrolled
+  // through it, so "all pages read" is a statement about what happened, not a
+  // decoration. A page with neither texture shows as a blank leaf rather than
+  // being skipped, so the count and the fan never disagree.
+  var LOOKUP_DEG = 38;         // head pitch above the horizon that opens it
+  var LOOKUP_HIDE_DEG = 26;    // and below which it closes again (hysteresis)
+  // 2.72, not 3.05. The key rack hangs at y 3.3 and a leaf half a metre under a
+  // point light blows out — visible in the first render as two hard hotspots
+  // burning through the fan. Lower also means nearer, which is what a fan of
+  // 256 px thumbnails needs to be legible at all.
+  var FAN_Y = 2.72;
+  var FAN_LEAF_H = 0.34;
+  var FAN_SPREAD_DEG = 74;     // total arc the leaves are dealt across
+  var END_EPS = 0.02;          // metres from maxScroll that counts as "the end"
+
+  var egg = { reached: false, promptEl: null, fanEl: null, shown: false };
+
+  function eggPrompt(on) {
+    if (on === !!egg.promptEl) return;
+    if (!on) {
+      if (egg.promptEl && egg.promptEl.parentNode) egg.promptEl.parentNode.removeChild(egg.promptEl);
+      egg.promptEl = null;
+      return;
+    }
+    if (!state.root) return;
+    var el = document.createElement('a-entity');
+    el.setAttribute('troika-text', {
+      value: 'Look up', align: 'center', anchor: 'center', baseline: 'top',
+      color: '#f5f5f0', fillOpacity: 0.55, font: VRFonts.body(),
+      fontSize: VRType.label(), maxWidth: 1.0, letterSpacing: 0.08
+    });
+    // Under the last page, at the height the last line of it just left. Dim on
+    // purpose: it is an aside at the end of a piece, not an instruction.
+    el.object3D.position.set(0, EYE_HEIGHT - 0.62, -READ_DISTANCE + 0.02);
+    state.root.appendChild(el);
+    egg.promptEl = el;
+  }
+
+  // Re-read every leaf's texture from its page record. Called each time the fan
+  // is opened, not only when it is built — because it is BUILT the moment the
+  // visitor reaches the bottom, and at that moment the pages they scrolled past
+  // may not all have been demoted to trail resolution yet. Rendered and looked
+  // at: the first version showed three real pages and four blank leaves, which
+  // reads as a document with holes in it rather than as the piece just read.
+  function refreshFan() {
+    if (!egg.fanEl) return;
+    var leaves = egg.fanEl.object3D.children;
+    for (var i = 0, n = 0; i < leaves.length; i++) {
+      var leaf = leaves[i];
+      if (!leaf.isMesh) continue;
+      var rec = state.pages[n++];
+      if (!rec) break;
+      var tex = rec.texture || rec.trailTex || null;
+      if (leaf.material.map === tex) continue;
+      leaf.material.map = tex;
+      leaf.material.color.set(tex ? '#ffffff' : '#4a4238');
+      leaf.material.needsUpdate = true;
+    }
+  }
+
+  // While the fan is up, the reading strip behind it goes quiet. Looking up at
+  // the end of a piece puts a 4 m column of white pages directly behind the
+  // fan, and the fan is 256 px thumbnails — it simply loses. This is the same
+  // move the focus stage makes for the same reason, one surface at a time.
+  function dimStrip(k) {
+    for (var i = 0; i < state.pages.length; i++) {
+      var m = state.pages[i].material;
+      if (!m) continue;
+      if (k > 0.002 && !m.transparent) m.transparent = true;
+      m.opacity = 1 - 0.78 * k;
+    }
+  }
+
+  function buildFan() {
+    if (egg.fanEl || !state.root) return;
+    var fan = document.createElement('a-entity');
+    var n = state.pages.length;
+    var stepDeg = n > 1 ? FAN_SPREAD_DEG / (n - 1) : 0;
+    for (var i = 0; i < n; i++) {
+      var rec = state.pages[i];
+      var tex = rec.texture || rec.trailTex || null;
+      var lw = FAN_LEAF_H * (state.pageW / state.pageH);
+      var geo = new THREE.PlaneGeometry(lw, FAN_LEAF_H);
+      // A page with no art still gets a leaf, in a dim paper tone rather than
+      // the near-black the strip uses for an unloaded page: in the fan a black
+      // leaf reads as a hole in the sequence, and the sequence is the point.
+      // (In a real read-through every page has been through the render window
+      // and has a trail texture, so this is the harness case and the
+      // interrupted-read case, not the normal one.)
+      var mat = new THREE.MeshBasicMaterial({
+        map: tex, color: tex ? '#ffffff' : '#4a4238',
+        transparent: true, opacity: 0, side: THREE.DoubleSide, toneMapped: false
+      });
+      state.disposables.push(geo, mat);
+      var leaf = new THREE.Mesh(geo, mat);
+      var a = THREE.MathUtils.degToRad(-FAN_SPREAD_DEG / 2 + i * stepDeg);
+      // Dealt across the ceiling in a shallow arc centred over the page you
+      // just finished, each leaf tipped to face straight down at the seat.
+      leaf.position.set(Math.sin(a) * 1.02, FAN_Y, -0.42 - Math.cos(a) * 0.46);
+      // ── Facing DOWN, which is the opposite of the floor convention ──────
+      // A plane's normal is +Z, and A-Frame's floor rotation of -90° about X
+      // swings that to +Y — correct for a rug, wrong for a ceiling, because it
+      // points the face away from the only person who can see it. The first
+      // render caught it: the caption came out mirrored, which is exactly what
+      // the BACK of a text plane looks like. +90° puts the normal at -Y.
+      leaf.rotation.set(Math.PI / 2 - 0.55, 0, a * 0.5);
+      fan.object3D.add(leaf);
+    }
+    var cap = document.createElement('a-entity');
+    cap.setAttribute('troika-text', {
+      value: n + (n === 1 ? ' page' : ' pages') + '. All read.',
+      align: 'center', anchor: 'center', baseline: 'top',
+      color: '#f5f5f0', fillOpacity: 0.9, font: VRFonts.body(), fontSize: VRType.body(), maxWidth: 1.4
+    });
+    cap.object3D.position.set(0, FAN_Y - 0.30, -0.86);
+    cap.object3D.rotation.set(Math.PI / 2 - 0.55, 0, 0);
+    fan.appendChild(cap);
+    fan.object3D.visible = false;
+    state.root.appendChild(fan);
+    egg.fanEl = fan;
+  }
+
+  function fanOpacity(k) {
+    if (!egg.fanEl) return;
+    egg.fanEl.object3D.visible = k > 0.001;
+    egg.fanEl.object3D.traverse(function (o) {
+      if (o.isMesh && o.material) o.material.opacity = k;
+      if (o.el && o.el.components && o.el.components['troika-text']) {
+        o.el.setAttribute('troika-text', 'fillOpacity', 0.9 * k);
+      }
+    });
+  }
+
+  function headPitchDeg() {
+    var head = document.querySelector('#head');
+    if (!head) return 0;
+    var q = new THREE.Quaternion();
+    head.object3D.getWorldQuaternion(q);
+    var f = new THREE.Vector3(0, 0, -1).applyQuaternion(q);
+    return THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(f.y, -1, 1)));
+  }
+
+  AFRAME.registerComponent('reader-endnote', {
+    init: function () { this.k = 0; },
+    tick: function (time, dt) {
+      if (!state.open) return;
+      var atEnd = state.maxScroll > 0 && state.scroll >= state.maxScroll - END_EPS;
+      if (atEnd && !egg.reached) { egg.reached = true; eggPrompt(true); buildFan(); }
+      if (!egg.reached) return;
+      var pitch = headPitchDeg();
+      // Hysteresis, for the same reason the reading ruler has it: a head held
+      // still still drifts, and a fan that blinks at the boundary is worse than
+      // no fan.
+      if (pitch >= LOOKUP_DEG) egg.shown = true;
+      else if (pitch <= LOOKUP_HIDE_DEG) egg.shown = false;
+      var want = egg.shown ? 1 : 0;
+      if (egg.shown && !this._wasShown) refreshFan();   // pick up any page demoted since the build
+      this._wasShown = egg.shown;
+      if (reducedMotion) this.k = want;
+      else this.k += (want - this.k) * Math.min(1, (dt || 16) / 280);
+      if (Math.abs(this.k - (this._last || 0)) < 0.004 && this.k !== want) return;
+      this._last = this.k;
+      fanOpacity(this.k);
+      dimStrip(this.k);
+      // The prompt has done its job once you have looked up once.
+      if (egg.shown && egg.promptEl) eggPrompt(false);
+    }
+  });
+
+  function resetEgg() {
+    dimStrip(0);
+    eggPrompt(false);
+    if (egg.fanEl && egg.fanEl.parentNode) egg.fanEl.parentNode.removeChild(egg.fanEl);
+    egg.fanEl = null;
+    egg.reached = false;
+    egg.shown = false;
+  }
+
   function updateScrollIndicator() {
     if (!state.rail) return;
     var frac = state.maxScroll > 0 ? state.scroll / state.maxScroll : 0;
@@ -662,6 +969,10 @@
     // values (trap §3.4).
     root.setAttribute('position', { x: READING_SITE.x, y: 0, z: READING_SITE.z });
     root.setAttribute('rotation', { x: 0, y: currentHeadYawDeg(), z: 0 });
+    // Gaze/pointer scrolling and the end-of-piece fan. On the ROOT, so both die
+    // with the reader and neither is one more thing close() has to remember.
+    root.setAttribute('reader-autoscroll', '');
+    root.setAttribute('reader-endnote', '');
 
     // Geometry was resolved in open() from the manifest — one size for every
     // page in the document, which the generator refuses to produce otherwise.
@@ -1243,6 +1554,10 @@
       // geometry and one compiled shader per piece read.
       var rl = readingLine();
       if (rl) rl.end();
+      // Before the pages go, and before disposables are drained: the fan holds
+      // meshes whose geometry/material are in that list, and its entity is
+      // under state.root.
+      resetEgg();
       state.pages.forEach(disposePage);
       state.pages = [];
       if (state.root && state.root.parentNode) state.root.parentNode.removeChild(state.root);

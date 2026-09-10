@@ -647,20 +647,11 @@
     };
   }
 
-  function placeStation(container, station, index, total, angleDeg, radius, accent) {
-    var images = (station.images || []).slice(0, 4);
-    if (!images.length) return null;
-
-    var outer = document.createElement('a-entity');
-    outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
-    var inner = document.createElement('a-entity');
-    inner.setAttribute('position', { x: 0, y: ST_Y, z: -radius });
-    // Same tilt-to-the-seated-eye as everything else in here: these are aimed
-    // once, not sunflower-tracked (that is hub panels only).
-    inner.setAttribute('rotation', {
-      x: THREE.MathUtils.radToDeg(Math.atan2(ST_Y - EYE_Y, radius)), y: 0, z: 0
-    });
-
+  // Everything a station IS, once something has decided WHERE it goes. Shared
+  // by the ring placement and the ceiling one so the two can never drift —
+  // the easter egg overhead is the same object as every other stop, which is
+  // the point of it counting in the same "n / total".
+  function buildStationBody(inner, station, images, index, total, accent, radius) {
     // Backing plate for the whole station, so a mosaic reads as one object.
     var plate = new THREE.Mesh(
       new THREE.PlaneGeometry(ST_W, ST_H),
@@ -744,11 +735,72 @@
       inner.appendChild(body);
     }
 
+    // Attaching is the CALLER's job — placeStation and placeCeilingStation
+    // each build their own outer/inner pair and add it to the room before
+    // handing `inner` here. This function only fills one in.
+    //
+    // The plate material goes back to the caller so room-walk can drive its
+    // uHover for the direction wave. `el` is the outer entity, which is what
+    // disposal and the walk both want.
+    return { el: inner.parentEl || inner, at: inner, material: plate.material };
+  }
+
+  // ── The last stop is on the CEILING ─────────────────────────────────────
+  // Sebastian, 2026-09-09: *"let's put the 4/4 at the top of the dome as a
+  // sort of easter egg."*
+  //
+  // It rhymes with the reader's own end-of-piece fan (§9.26.7): finish the
+  // thing and the last of it is above you. It works here for the same reason
+  // it works there — the walk is a circle, so by the time you have come all
+  // the way round there is nowhere left on the ring to put a finale, and the
+  // ceiling is the one surface in a room with nothing on it.
+  //
+  // Deliberately NOT signposted. The heading still counts it ("4 / 4"), so a
+  // visitor who has walked the circle knows there is one more and has to find
+  // it; a visitor who does not look up simply leaves having seen the process,
+  // which is the whole story anyway. That is the difference between an easter
+  // egg and a broken layout.
+  var CEIL_Y = 3.05;        // above the key rack's own 3.3 would be inside the lights
+  var CEIL_AHEAD = 0.85;    // horizontal offset; straight up is a neck-breaker
+  function placeCeilingStation(container, station, index, total, accent) {
+    var images = (station.images || []).slice(0, 4);
+    if (!images.length) return null;
+    var outer = document.createElement('a-entity');
+    var inner = document.createElement('a-entity');
+    // Slightly forward of dead overhead: straight up means craning your neck
+    // to its limit, and it also puts the panel where the head's own rotation
+    // is least stable. 62deg of pitch reads as "up" from any seat in the room.
+    inner.setAttribute('position', { x: 0, y: CEIL_Y, z: -CEIL_AHEAD });
+    // The SAME aim every other station uses — atan2(rise, run) from the seated
+    // eye — which happens to come out positive here because the panel is above
+    // rather than below, and so tips its face down at you. Getting this by
+    // hand first (a fixed "pitch - 90") put the panel edge-on and the easter
+    // egg was a bright sliver: rendered, looked at, and replaced with the
+    // formula that was already right two functions up.
+    inner.setAttribute('rotation', {
+      x: THREE.MathUtils.radToDeg(Math.atan2(CEIL_Y - EYE_Y, CEIL_AHEAD)), y: 0, z: 0
+    });
     outer.appendChild(inner);
     container.appendChild(outer);
-    // The plate material goes back to the caller so room-walk can drive its
-    // uHover for the direction wave.
-    return { el: outer, at: inner, material: plate.material };
+    return buildStationBody(inner, station, images, index, total, accent, 2.6);
+  }
+
+  function placeStation(container, station, index, total, angleDeg, radius, accent) {
+    var images = (station.images || []).slice(0, 4);
+    if (!images.length) return null;
+
+    var outer = document.createElement('a-entity');
+    outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
+    var inner = document.createElement('a-entity');
+    inner.setAttribute('position', { x: 0, y: ST_Y, z: -radius });
+    // Same tilt-to-the-seated-eye as everything else in here: these are aimed
+    // once, not sunflower-tracked (that is hub panels only).
+    inner.setAttribute('rotation', {
+      x: THREE.MathUtils.radToDeg(Math.atan2(ST_Y - EYE_Y, radius)), y: 0, z: 0
+    });
+    outer.appendChild(inner);
+    container.appendChild(outer);
+    return buildStationBody(inner, station, images, index, total, accent, radius);
   }
 
   // A decorative generated panel for text-forward rooms (the PDF write-ups
@@ -1074,12 +1126,31 @@
     var hasDoc = !!pageManifest(project.pdf);
     if (stations.length) {
       var total = stations.length + (hasDoc ? 1 : 0);
-      var step = 360 / (total + 1);
+      // ── Which stop goes overhead ────────────────────────────────────────
+      // The LAST one, and only when the room has no document and there is a
+      // walk to finish first. Two exclusions, both deliberate:
+      //   • never the PDF station. It is a page of text you page through, and
+      //     a document on the ceiling is unreadable — the easter egg would be
+      //     a punishment.
+      //   • never the only station. A room with one photograph would then have
+      //     nothing at eye level at all, and the walk would be a joke.
+      // Time Collector has a document, so it keeps all six on the ring; Chess
+      // and Bastón each send their final shot up.
+      var ceilIdx = (!hasDoc && stations.length > 1) ? stations.length - 1 : -1;
+      var ringCount = stations.length - (ceilIdx >= 0 ? 1 : 0) + (hasDoc ? 1 : 0);
+      var step = 360 / (ringCount + 1);
+      var slot = 0;
       stations.forEach(function (st, i) {
-        placed.push(placeStation(room, st, i, total, CW * (i + 1) * step, g.radius, accent));
+        if (i === ceilIdx) {
+          placed.push(placeCeilingStation(room, st, i, total, accent));
+          return;
+        }
+        slot++;
+        placed.push(placeStation(room, st, i, total, CW * slot * step, g.radius, accent));
       });
       if (hasDoc) {
-        placed.push(placePdfStation(room, project, total - 1, total, CW * total * step, g.radius, accent));
+        slot++;
+        placed.push(placePdfStation(room, project, total - 1, total, CW * slot * step, g.radius, accent));
       }
     } else if ((project.roomImages || []).length) {
       // Images but no grouping (a page whose markup this pass has not seen):

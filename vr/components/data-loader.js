@@ -332,7 +332,29 @@
       groups.splice(big + 1, 0, { label: groups[big].label, body: groups[big].body, images: tail });
     }
 
-    return groups;
+    // ── 3. NAMED PHASES FIRST, in document order ──────────────────────────
+    // Sebastian on the Chess room, 2026-09-09: *"the chess room's order is
+    // wrong too — ideation, prototyping, then the current 1/4."*
+    //
+    // The walk was in pure document order, and a project page does not open
+    // with its process: it opens with the finished thing. chess.html's first
+    // image slots are the hero and a game in progress, so the room's first
+    // stop was the OUTCOME and "Ideation" was third. The page can do that
+    // because you scroll it; the room is a one-directional walk that is
+    // explicitly about the making of the thing, so it has to start at the
+    // start.
+    //
+    // The rule is not "reorder to taste" — it is that a group the page gave a
+    // PHASE NAME to is part of the sequence, and a group it left unlabelled is
+    // a photograph of the result. Named ones keep their document order among
+    // themselves, unnamed ones keep theirs, and the named ones go first.
+    // Measured against the five rooms: Chess becomes Ideation, Prototyping,
+    // the game, the panel held up; Bastón moves its two hero shots after the
+    // four process cards; Time Collector moves one; Pendant and Slip Door are
+    // entirely named and do not move at all.
+    var named = groups.filter(function (g) { return !!g.label; });
+    var rest = groups.filter(function (g) { return !g.label; });
+    return named.concat(rest);
   }
 
   function fetchRoomContent(project) {

@@ -33,6 +33,18 @@
     // ── Arrival veil ── fade the dark wash away once the scene is up, so the
     // dome eases in. Wait for the scene's 'loaded' (assets/renderer ready) so
     // the fade reveals a painted dome, not a blank frame.
+    // ── wake.js owns the arrival now (2026-09-09) ─────────────────────────
+    // This used to fade the veil on the scene's own 'loaded', which fires
+    // before the site has been scraped, before the constellations exist and
+    // before any photograph has decoded — so the reveal happened while the
+    // scene was still assembling itself and the hero portrait, being in the
+    // markup, always won the race. wake.js holds the view behind the comfort
+    // vignette until the texture queue drains and then opens it from the
+    // centre out, and it removes this veil itself at the hand-off.
+    //
+    // The dismissal below stays as a BACKSTOP only, on a long timer: if
+    // wake.js is not loaded at all (a dev harness), or throws, a DOM overlay
+    // that never leaves is a black screen with no way back.
     var veil = document.getElementById('arrivalVeil');
     function dismissVeil() {
       if (!veil) return;
@@ -42,11 +54,10 @@
       setTimeout(function () { veil.parentNode && veil.parentNode.removeChild(veil); }, 700);
     }
     if (veil) {
-      if (scene && scene.hasLoaded) setTimeout(dismissVeil, 100);
+      if (window.VRWake) setTimeout(dismissVeil, 12000);   // backstop only
+      else if (scene && scene.hasLoaded) setTimeout(dismissVeil, 100);
       else if (scene) scene.addEventListener('loaded', function () { setTimeout(dismissVeil, 100); });
       else dismissVeil();
-      // Safety net: never let the veil get stuck if 'loaded' doesn't fire.
-      setTimeout(dismissVeil, 4000);
     }
     // One flag governs every sound in the scene (index.html). While it's off:
     // the clip is never fetched or played, VRSound.enabled stays false so

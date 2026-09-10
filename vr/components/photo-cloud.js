@@ -65,7 +65,9 @@
 
   // ── Coming and going are deliberately not the same speed ──────────────────
   // Sebastian: *"slow down the deselection, but not too slow."* Arriving should
-  // feel answered — you held a ring for 0.9 s to ask for it — so IN stays quick.
+  // feel answered — you held a ring to ask for it — so IN stays quick. (Both
+  // the ring and this flight came down 20% on 2026-09-09; the ASYMMETRY below
+  // is the point, not the absolute numbers.)
   // Going away is not an answer to anything the visitor just did (a reach is
   // dismissed by picking something ELSE), so at 0.6 s the old photo whipped out
   // of frame at the same moment the new one arrived and both movements
@@ -73,7 +75,7 @@
   // exchange instead of two events. Past about a second it stops reading as
   // "leaving" and starts reading as "stuck", which is the other failure — hence
   // "not too slow".
-  var IN_S = 0.5;          // reach in (unchanged)
+  var IN_S = 0.4;          // reach in — 0.5 x 0.8, see dwell.js's DEFAULT_MS
   var OUT_S = 0.95;        // reach out / deselect / cloud returning from recede
   var RECEDE_S = 0.55;     // the cloud pushing BACK is a background move, stays brisk
 

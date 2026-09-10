@@ -83,7 +83,20 @@
   // at a full second the last third feels like the scene has stopped responding.
   // Under 700 ms it stops reading as a deliberate hold and you are back to
   // photos flying at a sweeping gaze, which is the whole thing being fixed.
-  var DEFAULT_MS = 900;
+  //
+  // 900 -> 720, on Sebastian's *"the time it takes to summon an image from the
+  // cloud is a bit too long, make it ~20% faster"* (2026-09-09). The whole
+  // summon is this gate plus photo-cloud's reach flight, 900 + 500 = 1400 ms,
+  // and 20% off the whole thing means 20% off both: 720 here and IN_S 0.5 ->
+  // 0.4 there, for 1120 ms end to end. Taking it all out of one or the other
+  // would change what the pair FEELS like rather than just its length — a
+  // 400 ms gate stops reading as deliberate, and a 300 ms flight stops reading
+  // as a thing travelling toward you.
+  //
+  // The reasoning above still holds at 720: it is comfortably clear of a
+  // glance, and the ring still visibly fills. What it gives up is the margin
+  // over "roughly one second" that the note above was buying.
+  var DEFAULT_MS = 720;
 
   // Ring size at REF_DIST, in metres, and the fill's stroke. Scaled by
   // distance/REF_DIST every frame so the ring keeps a CONSTANT APPARENT SIZE

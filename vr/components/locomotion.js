@@ -65,6 +65,14 @@
       // change it without a recompile. 0 = radial vignette (walking), 1 = flat
       // blackout (a room transition, which has to actually COVER the swap).
       this._flat = { value: 0 };
+      // The radial edges, as uniforms rather than shader literals, so the mask
+      // can be OPENED from the centre outward. wake.js drives these: starting
+      // at (0.995, 1.0) the view is black but for a pinhole dead ahead, and
+      // easing them down to the resting (0.38, 0.90) grows that hole out to the
+      // edges — which is the whole arrival, "awareness branching out from the
+      // centre". Shared by reference like _flat, so no recompile per frame.
+      this._lo = { value: 0.38 };
+      this._hi = { value: 0.90 };
       this.el.addEventListener('flash', this.flash.bind(this));
       this._harden();
     },
@@ -118,11 +126,13 @@
       var self2 = this;
       m.onBeforeCompile = function (shader) {
         shader.uniforms.uVigFlat = self2._flat;
+        shader.uniforms.uVigLo = self2._lo;
+        shader.uniforms.uVigHi = self2._hi;
         shader.vertexShader = 'varying vec3 vVigView;\n' + shader.vertexShader.replace(
           '#include <project_vertex>',
           '#include <project_vertex>\n  vVigView = mvPosition.xyz;'
         );
-        shader.fragmentShader = 'varying vec3 vVigView;\nuniform float uVigFlat;\n' + shader.fragmentShader.replace(
+        shader.fragmentShader = 'varying vec3 vVigView;\nuniform float uVigFlat;\nuniform float uVigLo;\nuniform float uVigHi;\n' + shader.fragmentShader.replace(
           '#include <alphamap_fragment>',
           '#include <alphamap_fragment>\n'
           // vigC = cos(angle off the view axis): 1 dead ahead, ~0.5 in the
@@ -141,7 +151,11 @@
           // term was added for walking they were swapping the world in plain
           // view. Anything that needs real cover calls setFlat(true) first.
           + '  float vigC = -normalize(vVigView).z;\n'
-          + '  diffuseColor.a *= mix(1.0 - smoothstep(0.38, 0.90, vigC), 1.0, uVigFlat);'
+          // uVigLo/uVigHi were the literals 0.38 and 0.90. GLSL leaves
+          // smoothstep undefined for edge0 >= edge1, and an animated pair can
+          // cross, so they are clamped into order here rather than trusted.
+          + '  float vLo = min(uVigLo, uVigHi - 0.001);\n'
+          + '  diffuseColor.a *= mix(1.0 - smoothstep(vLo, uVigHi, vigC), 1.0, uVigFlat);'
         );
       };
       m.needsUpdate = true;
@@ -152,6 +166,15 @@
     // Still dimmer than the flash's 0.55: this one is on the whole time you're
     // moving. Now that the radial term in _harden() confines it to the edges,
     // it can be stronger than the old flat 0.30 without darkening the view.
+    // Open or close the clear hole in the middle of the mask. (1.0, 1.0) is
+    // effectively shut; the resting vignette is (0.38, 0.90).
+    setRadius: function (lo, hi) {
+      this._harden();
+      this._lo.value = lo;
+      this._hi.value = hi;
+    },
+    resetRadius: function () { this.setRadius(0.38, 0.90); },
+
     hold: function (on) {
       var el = this.el;
       if (reducedMotion) return;

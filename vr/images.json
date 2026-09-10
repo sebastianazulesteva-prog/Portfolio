@@ -10,7 +10,8 @@
       "$why": "The same photograph as contact-photo-professional.jpg, cropped and registered to line up with the mosaic underneath it. It exists only as the top layer of the flat site's hero dissolve, and its alt describes the COMPOSITE ('with a digital mosaic and VR headset illustration overlaid on one eye'), which is a caption for an effect the cloud does not run. In the cloud it showed up as a second, identical portrait carrying a description of something not in the picture."
     },
     "contact-photo-mosaic.jpg": {
-      "caption": "My mosaic portrait, each tile shows some of my interests"
+      "caption": "My mosaic portrait, each tile shows some of my interests",
+      "$why": "The mosaic was GENERATED WITH GEMINI. Sebastian, 2026-09-09: he does not want that emphasised and does not want it hidden. So the credit lives in the hero image's alt attribute on index.html — the standard place for a fact about an image, available to a screen reader, to view-source and to a crawler, and on screen to nobody. It is deliberately NOT in this caption: a floating tile label is a headline, not a credit line. What matters more is the other half — nothing anywhere may call it hand-made, physical, ceramic, tiled or crafted. It never has (checked across every page and component), and the first draft of this caption said 'every tile a small object out of his work', which was already drifting that way before Sebastian replaced it with his own wording. Keep it as he wrote it."
     },
     "contact-photo-fun-1.jpg": {
       "caption": "Paper and tape only \u2014 a tower-building night I ran as an RA"

@@ -1173,16 +1173,42 @@
     v.setAttribute('visible', true);
     mat.opacity = 0;
     state.transTween = gsap.to(mat, {
-      opacity: 0.92, duration: half, ease: 'power2.inOut',
+      opacity: 1, duration: half, ease: 'power2.inOut',
       onComplete: function () {
         applyChanges(); // swap at peak darkness
-        state.transTween = gsap.to(mat, {
-          opacity: 0, duration: half, ease: 'power2.inOut',
-          onComplete: function () {
-            v.setAttribute('visible', false);
-            if (flash && flash.setFlat) flash.setFlat(false);
-            state.transTween = null;
+
+        // ── HOLD THE DARK UNTIL THE ROOM HAS ITS PICTURES ─────────────────
+        // Sebastian: *"same thing goes for the project rooms."* The emerge
+        // used to start the instant the swap happened, so a room opened onto
+        // its own title over an empty floor and the photographs arrived one
+        // by one over the next second or two — the same "it accumulates"
+        // complaint as the arrival, for the same reason.
+        //
+        // applyChanges() has just BUILT the room, so every station has queued
+        // its textures by the time this runs. Waiting on that queue is
+        // therefore the whole fix. Bounded at 2.5 s: a room that opens a
+        // little early is fine, a room that never opens is not.
+        //
+        // Then it emerges the way the arrival does — a clear hole growing
+        // from the centre out (wake.js) rather than a flat fade — so entering
+        // a room and entering the dome feel like the same gesture.
+        var settle = (window.VRWake && VRWake.texturesSettled)
+          ? VRWake.texturesSettled(2500)
+          : Promise.resolve('no VRWake');
+        settle.then(function () {
+          if (window.VRWake && VRWake.open) {
+            return VRWake.open({ ms: 1500 }).then(function () {
+              state.transTween = null;
+            });
           }
+          state.transTween = gsap.to(mat, {
+            opacity: 0, duration: half, ease: 'power2.inOut',
+            onComplete: function () {
+              v.setAttribute('visible', false);
+              if (flash && flash.setFlat) flash.setFlat(false);
+              state.transTween = null;
+            }
+          });
         });
       }
     });

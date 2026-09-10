@@ -849,6 +849,11 @@
     // things a second call site has to remember.
     texUrl: texUrl,
     loadTexture: loadTexture,
+    // How much texture work is outstanding. wake.js waits on this so the scene
+    // is revealed WHOLE rather than in the order things happened to finish —
+    // see its header. Counts both the queue and what is in flight, because a
+    // queue of zero with four still decoding is not done.
+    texturesPending: function () { return texQueue.length + inflight; },
     // photo-cloud.js calls this when a tile is selected — see prioritise().
     prioritiseTexture: prioritise
   };

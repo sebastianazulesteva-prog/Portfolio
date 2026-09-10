@@ -224,7 +224,7 @@
   <script src="components/fonts.js?v=5"></script>
   <script src="components/themes.js?v=8"></script>
   <script src="components/dome.js?v=8"></script>
-  <script src="components/glass-material.js?v=19"></script>
+  <script src="components/glass-material.js?v=20"></script>
   <script src="components/text-flow.js?v=3"></script>
   <script src="components/ui-button.js?v=16"></script>
   <!-- Shared controls, loaded before every consumer: the one exit button
@@ -251,13 +251,13 @@
        pulling every photo it crosses. Above its callers; depends on nothing
        but THREE, and deliberately NOT on reticle.js — see the note in the file
        about why the ring is anchored in the world rather than on the cursor. -->
-  <script src="components/dwell.js?v=3"></script>
+  <script src="components/dwell.js?v=4"></script>
   <script src="components/reticle.js?v=4"></script>
   <script src="components/name-scatter-3d.js?v=16"></script>
   <script src="components/hub-panel.js?v=38"></script>
   <script src="components/focus-stage.js?v=23"></script>
   <script src="components/card-flip.js?v=10"></script>
-  <script src="components/photo-cloud.js?v=24"></script>
+  <script src="components/photo-cloud.js?v=25"></script>
   <script src="components/mosaic-reveal.js?v=23"></script>
   <!-- Inert unless ?portrait=splat asks for it: the component only builds when
        the entity carries the attribute, and nothing carries it by default. The
@@ -272,7 +272,7 @@
   <script src="components/spatial-photo.js?v=6"></script>
   <script src="components/portrait-lab.js?v=9"></script>
   <script src="components/bio-card.js?v=36"></script>
-  <script src="components/project-room.js?v=45"></script>
+  <script src="components/project-room.js?v=46"></script>
   <!-- The reading ruler inside pdf-reader: finds the text lines in each
        pre-rendered page IMAGE and highlights the one you are looking at.
        Above pdf-reader, which begins and ends it. -->
@@ -285,7 +285,12 @@
        than registered and unused — arrival weight is a real budget here (§9.16).
        Same treatment as portrait-layout.js further down. Uncomment to re-attach.
   <script src="components/carousel-drag.js?v=1"></script> -->
-  <script src="components/locomotion.js?v=7"></script>
+  <script src="components/locomotion.js?v=8"></script>
+  <!-- Arrival. Holds the view behind the comfort vignette until the scene,
+       the scraped content AND the texture queue are all done, then opens a
+       clear hole from the centre of vision outward. wake.js's header has the
+       measurement of why the portrait used to arrive seconds before the rest. -->
+  <script src="components/wake.js?v=2"></script>
   <script src="components/walk-controls.js?v=5"></script>
   <script src="components/column-scroll.js?v=2"></script>
   <script src="components/onboarding.js?v=6"></script>
@@ -296,7 +301,7 @@
        without the flag: nothing is built and no sampler runs. -->
   <script src="components/xr-diag.js?v=2"></script>
   <script src="components/fallback.js?v=4"></script>
-  <script src="components/hud.js?v=11"></script>
+  <script src="components/hud.js?v=12"></script>
   <!-- Portrait-phone recomposition of the home view (narrow horizontal fov).
        Loads after hud.js; only acts below a 0.70 aspect ratio. -->
   <!-- portrait-layout.js is RETIRED by decision (VR_AI_BUILD_GUIDE.md §9.4):
@@ -493,6 +498,30 @@
 
       <!-- Shifted left, bio card to its right (VR_BUGFIX_NOTES.md item 8) —
            both sit in front of the viewer on load, no turning required. -->
+      <!-- ── NO SUNFLOWER ON THE PORTRAIT ────────────────────────────────
+           Added 2026-09-08 and turned off 2026-09-09 after Sebastian saw it:
+           *"turn off sunflower on the portrait of me."*
+
+           Do not put it back without reading this. It was not decoration — a
+           stereo pair is only strictly valid seen SQUARE ON, because the
+           disparity is baked along the image's own horizontal axis for a head
+           at 1.5 m dead ahead (vr/assets/portrait-eye.json). Seen obliquely
+           that axis stops being parallel to the line between the eyes and the
+           depth shears, which is the *"background moves too much when looking
+           sideways"* report. Keeping the panel normal to the viewer is the
+           textbook fix for that, and it is why this was tried.
+
+           It reads badly anyway. Every other sunflower panel is a card off at
+           the edge of vision; this one is 1.5 m away, directly ahead, and is a
+           PORTRAIT — a face that turns to follow you across the room is not a
+           photograph on a wall, it is being watched. The cure was worse.
+
+           The stereo half of that report is handled instead by
+           spatial-photo.js's `converge`, which slides the zero-disparity plane
+           onto the backdrop so the deepest, least stable thing in the frame
+           sits still. That is a fix to the DISPARITY rather than to the
+           geometry, so it costs nothing in how the portrait behaves.
+           `?sunflower=1` is not a thing; re-add the attribute to A/B it. -->
       <!-- ── SUNFLOWER ON THE PORTRAIT (2026-09-08) ─────────────────────
            Sebastian: *"apply the sunflower effect to the main portrait depth
            photo as a test"* and, separately, *"the background moves too much
@@ -520,7 +549,6 @@
            `?sunflower=0` turns it off with everything else, for A/B. -->
       <a-entity id="homePortrait"
                  spatial-photo="width: 0.72; height: 1.08"
-                 sunflower="rate: 12; maxTurnDeg: 34"
                  position="-0.5 1.42 0" class="clickable"></a-entity>
       <!-- ?portrait= — overrides for the hero portrait ─────────────────────
            The relief window is now the DEFAULT (it is in the markup above), on
@@ -600,6 +628,9 @@
     <!-- "Leave VR" — at your feet, revealed by looking down. No .hub-cluster
          class: this is the one control that has to survive a project room, the
          reader and the lab, all of which put the hub away. -->
+    <!-- Arrival sequencer; see wake.js. -->
+    <a-entity id="wake" wake></a-entity>
+
     <a-entity id="leaveVr" leave-vr></a-entity>
 
     <!-- Focus stage — the single reusable "pulled closer" detail view
@@ -1267,6 +1298,16 @@
 
       phaseNote.remove();
 
+      // ── Everything is placed. Tell wake.js. ─────────────────────────────
+      // Not "the data arrived" — that is several seconds earlier and the
+      // clusters do not exist yet. This is the last statement in the wiring
+      // block, so by here every constellation, the bio card and the photo
+      // cloud have been built and have QUEUED their textures. wake.js then
+      // waits for that queue to drain before it opens the view, which is what
+      // makes the scene arrive whole instead of a piece at a time.
+      var sceneEl = document.querySelector('a-scene');
+      if (sceneEl) sceneEl.emit('vr-content-ready', null, false);
+
       // The reader used to be warmed here — pdf.min.js + pdf.worker.min.js
       // pulled on idle so the first tap didn't pay 1.41 MB. pdf.js is gone
       // (VR_AI_BUILD_GUIDE.md §9.18: its rasteriser needs window rAF, which
@@ -1276,6 +1317,11 @@
     }).catch(function (err) {
       console.error('[vr] data load failed:', err);
       phaseNote.textContent = "couldn't load projects/experience — check console";
+      // Open anyway. wake.js has its own timeout, but making the failure path
+      // say so explicitly means a visitor sees the dome in the usual beat
+      // rather than staring at black for the full budget.
+      var sceneEl = document.querySelector('a-scene');
+      if (sceneEl) sceneEl.emit('vr-content-ready', null, false);
     });
   </script>
 

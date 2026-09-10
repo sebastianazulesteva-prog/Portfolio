@@ -1,5 +1,5 @@
 {
-  "$comment": "VR-only image enrichment, keyed by BARE FILE NAME. Same contract as projects.json: enrichment, never content. The flat site's alt attribute is still the primary label and is used whenever there is no entry here — this file exists because an alt is written for a screen reader reading a page in order ('Sebastian Esteva — candid photo 1' is fine there, since the surrounding page says what the carousel is) while a photo-cloud tile floats alone in a dome with nothing around it to supply the context. CAPTIONS ARE FIRST PERSON — 'a night I ran', never 'a night he ran'. Sebastian's call, 2026-09-09: the site speaks as him, and a caption that slips into the third person reads as a museum label about someone else. `caption` replaces the alt for the cloud; `exclude` drops the image from the cloud entirely; `project` is an href override for the handful of files whose name does not start with their project's stem, which is how the catalog normally infers it. Nothing here changes the flat site.",
+  "$comment": "VR-only image enrichment, keyed by BARE FILE NAME. Same contract as projects.json: enrichment, never content. The flat site's alt attribute is still the primary label and is used whenever there is no entry here — this file exists because an alt is written for a screen reader reading a page in order ('Sebastian Esteva — candid photo 1' is fine there, since the surrounding page says what the carousel is) while a photo-cloud tile floats alone in a dome with nothing around it to supply the context. A CAPTION MAY NOT SAY MORE THAN THE SITE KNOWS. Sebastian, 2026-09-09: it is fine for a beta to be visibly rough, but not to state things that are not true. These captions are written by LOOKING at each photograph, which is exactly how a confident wrong fact gets in — the first pass called a wax casting pattern 'castable resin', gave the Bastón shafts a wood species nobody had named, invented a 'folding wrist joint', and reported the chess FEA's BEFORE numbers as its result (1.75 mm / FS 4.5 is the state that prompted the fillets; after them it is 5.05). Anything a caption asserts must come from the image's own alt text, from the project page, or be unmistakable in the picture. Where it is only a good guess, leave it out: a caption that says less is not a worse caption. CAPTIONS ARE FIRST PERSON — 'a night I ran', never 'a night he ran'. Sebastian's call, 2026-09-09: the site speaks as him, and a caption that slips into the third person reads as a museum label about someone else. `caption` replaces the alt for the cloud; `exclude` drops the image from the cloud entirely; `project` is an href override for the handful of files whose name does not start with their project's stem, which is how the catalog normally infers it. Nothing here changes the flat site.",
 
   "images": {
     "contact-photo-professional.jpg": {
@@ -26,19 +26,19 @@
     },
 
     "baston-hero.jpg": {
-      "caption": "Folded into three and tucked under a striped Mexican bag"
+      "caption": "Folded down and tucked into a striped Mexican bag"
     },
     "baston-final.jpg": {
-      "caption": "The finished cane — burl handle, ash shaft — against a garden bench"
+      "caption": "The finished cane, burl handle and all, against a bench outdoors"
     },
     "baston-3dprint.jpg": {
-      "caption": "A printed test of the folding wrist joint, held in the hand"
+      "caption": "A printed test of the folding mechanism, held in the hand"
     },
     "baston-parts.jpg": {
-      "caption": "Ash shafts, aluminium tube and machined fittings, laid out before assembly"
+      "caption": "Wood, aluminium and brass, laid out before the build"
     },
     "baston-sketch.jpg": {
-      "caption": "The first pencil sketches of the folding mechanism, beside the wooden mock-up"
+      "caption": "Hand sketches for the folding mechanism, beside the cardboard prototype"
     },
     "baston-working.jpg": {
       "caption": "Turning the cane shaft down on the lathe"
@@ -51,7 +51,7 @@
       "caption": "Straight out of the investment mould, before any finishing"
     },
     "pendant-wax-print.jpg": {
-      "caption": "The pattern printed in castable resin, waiting to be invested"
+      "caption": "The pendant pattern, 3D-printed in wax, before investment casting"
     },
     "pendant-worn.jpg": {
       "caption": "Worn — silver against a striped shirt"
@@ -61,7 +61,7 @@
       "caption": "The panel on the wall, its ranks folding out from flat"
     },
     "chess-fea.jpg": {
-      "caption": "Simulation: 1.75 mm max displacement, safety factor 4.5 once fillets went in"
+      "caption": "Before the fillets: 1.75 mm displacement, safety factor 4.5 — after, 5.05"
     },
     "chess-final-AI-Pieces.jpg": {
       "caption": "A game in progress on the finished set, a pawn mid-move"
@@ -73,33 +73,33 @@
       "caption": "Reference boards and the first concept sketches — keep the rows thin"
     },
     "chess-mechanism-prototype.jpg": {
-      "caption": "A printed rack-and-swivel prototype of the row mechanism"
+      "caption": "A printed swivel mechanism prototype for a piece"
     },
     "chess-press-insert.jpg": {
-      "caption": "Press-fit magnet inserts and joining blocks, tested by hand"
+      "caption": "Printed inserts and joining pieces, tested by hand"
     },
     "chess-prototyping.jpg": {
-      "caption": "Printed frame corners dry-fitted on the cutting mat"
+      "caption": "Printed connector and hinge parts, laid out for testing"
     },
 
     "slipdoor-hero.jpg": {
       "caption": "The rig under its Volkswagen ‘Future of Entry’ banner"
     },
     "slipdoor-process-1.jpg": {
-      "caption": "Bolting the plywood floor onto the frame"
+      "caption": "Assembling the wooden prototype frame"
     },
     "slipdoor-process-2.jpg": {
-      "caption": "The team around the half-built frame, late in the shop"
+      "caption": "The team around the half-built frame"
     },
 
     "timecollector-hero-front.png": {
-      "caption": "Head-on — gear train, marble wheel and the hanging weight that drives it"
+      "caption": "Head-on — the gear train, the marble wheel and the hanging weight"
     },
     "timecollector-hero-side.png": {
       "caption": "From the side: the marble chute and the funnel it empties into"
     },
     "timecollector-cardboard-real.png": {
-      "caption": "The first cardboard prototype of the gear train and escapement"
+      "caption": "The cardboard prototype of the gear and pulley mechanism"
     },
     "timecollector-fbd-full.png": {
       "caption": "The whole force analysis by hand — power source, gear train, pulley, escapement"

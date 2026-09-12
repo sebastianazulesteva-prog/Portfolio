@@ -21,8 +21,40 @@
     atkinsonBold: BASE + '/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-700-normal.woff',
     atkinsonRegular: BASE + '/atkinson-hyperlegible@5.3.0/files/atkinson-hyperlegible-latin-400-normal.woff',
 
+    // ── Per-project title faces (Sebastian, 2026-09-11: "different pages use
+    // different text styles for projects, can we have that reflected in
+    // project rooms") ──
+    // Only the TITLE face varies, and only because that is the only thing that
+    // actually varies on the flat site. Read off each page's own `.hero-title`
+    // rule rather than its :root, which is what makes this faithful instead of
+    // decorative — three of the five pages set `font-family:var(--serif)`
+    // (Playfair, already the default here), so only two rooms change:
+    //
+    //   baston / pendant / chess   var(--serif)   Playfair Display 700
+    //   timecollector              var(--script)  Fredericka the Great
+    //   slipdoor                   (none set)     Poppins 900, -0.02em
+    //
+    // slipdoor declares no family at all on .hero-title, so it inherits the
+    // body stack — Poppins — at weight 900. That absence IS its style: it is
+    // the one project page with no display face, and the room should read that
+    // way too rather than borrowing a serif it never had.
+    fredericka: BASE + '/fredericka-the-great@5.3.0/files/fredericka-the-great-latin-400-normal.woff',
+    poppinsBlack: BASE + '/poppins@5.3.0/files/poppins-latin-900-normal.woff',
+
     isA11y: function () { return document.body.classList.contains('accessible'); },
     title: function () { return this.isA11y() ? this.atkinsonBold : this.playfair; },
+
+    // Resolve a theme's `titleFont` key (themes.js) to a file. Accessible mode
+    // wins over the project's own face for the same reason it overrides
+    // everywhere else — and it matters MORE here, because Fredericka the Great
+    // is a rough decorative display face, which is exactly the kind of type
+    // a11y mode exists to replace. An unknown or absent key falls back to
+    // Playfair, so a new theme with no `titleFont` behaves as before.
+    titleFor: function (key) {
+      if (this.isA11y()) return this.atkinsonBold;
+      return ({ serif: this.playfair, script: this.fredericka,
+                sans: this.poppinsBlack })[key] || this.playfair;
+    },
     body: function () { return this.isA11y() ? this.atkinsonRegular : this.syneRegular; },
     bodyBold: function () { return this.isA11y() ? this.atkinsonBold : this.syneBold; }
   };

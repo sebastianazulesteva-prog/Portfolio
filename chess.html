@@ -375,6 +375,24 @@
     .collage-item .img-slot-label{ aspect-ratio:4/3; border-radius:6px; padding:1rem; font-size:0.65rem; }
     .collage-item .img-slot-label strong{ font-size:0.72rem; }
 
+    /* Per-image prose for the collage. Same role as .collage-caption, one
+       level down in specificity: the caption names the step, this says what
+       happened. It is also the VR room's station text — data-loader.js's
+       bodyFor() takes the first <p> inside the group box, and .collage-item is
+       in GROUP_SEL for exactly this. Under 260 characters each (BODY_MAX), or
+       the room trims at the last sentence end. */
+    .collage-note{
+      margin:0.4rem 0 0;
+      font-size:0.78rem;
+      line-height:1.5;
+      /* --white-soft, not the --white-faint the caption above uses: that is
+         pitched for three uppercase words, and this is a sentence. Matches
+         `.a11y-note p`, the page's own precedent for faint PROSE. Sizes are in
+         rem throughout so `html.accessible` (root font-size x 1.15) scales
+         them with everything else. */
+      color:var(--white-soft);
+      text-align:left;
+    }
     .collage-caption{
       margin-top:0.5rem;
       font-size:0.7rem;
@@ -761,6 +779,7 @@
     <div class="story">
       <p>The chess board is designed to be <strong>displayed proudly on a wall</strong> between games.</p>
       <p>The biggest design challenge was scale: the full board needed to be roughly <strong>20 inches by 20 inches</strong>, which was too large for a single print bed. That meant breaking the entire board and every piece into printable sections, then reassembling them with <strong>96 embedded magnets</strong>.</p>
+      <p>The ranks have to stay thin to rotate, so the real pieces are flat and laser cut — they slot into magnetic holders sitting on each square. The pieces in the photo above were <strong>generated with AI</strong>: part of what I was playing with on this project was how you hand your design intent to a new set of tools.</p>
     </div>
 
     <div class="divider-row">
@@ -798,25 +817,29 @@
         <div class="step-badge">2</div>
         <div class="step-body">
           <h3>Prototyping</h3>
-          <p>Testing every connector, hinge, and mechanism individually before committing to a full print run.</p>
+          <p>Testing every connector, hinge, and mechanism individually before committing to a full print run. The first idea was to need no mechanism at all: keep each row bottom-heavy and let it self-align to gravity. Time, materials and the rest of the budget said otherwise, so I pivoted to a <strong>rack and pinion</strong> that rotates each rank ninety degrees. The FEA paid for itself — adding fillets at the joints took the minimum safety factor from 4.5 to <strong>5.05</strong> and pulled max displacement from 1.75&nbsp;mm down to 1.68&nbsp;mm.</p>
 
           <div class="collage-box">
             <div class="collage-grid">
               <div class="collage-item">
                 <img src="images/chess-prototyping.jpg" alt="3D-printed frame rails and a row strip from the early prototype, whose rows were meant to self-align to gravity" width="4284" height="5712" loading="lazy">
-                <div class="collage-caption">Connector & Hinge Testing</div>
+                <div class="collage-caption">Gravity-Aligned Rows — The Approach I Dropped</div>
+                <p class="collage-note">Frame rails and a row strip from the first approach, where each row was meant to be bottom-heavy enough to find level on its own. Time and materials ended it.</p>
               </div>
               <div class="collage-item">
                 <img src="images/chess-fea.jpg" alt="Simulation results slide: adding fillets at the joints raised the minimum safety factor from 4.5 to 5.05 and cut max displacement from 1.75 mm to 1.68 mm" width="1920" height="1080" loading="lazy">
                 <div class="collage-caption">FEA & Load Analysis</div>
+                <p class="collage-note">Adding fillets at the joints took the minimum safety factor from 4.5 to 5.05 and pulled max displacement from 1.75&nbsp;mm down to 1.68&nbsp;mm.</p>
               </div>
               <div class="collage-item">
                 <img src="images/chess-mechanism-prototype.jpg" alt="3D-printed rack-and-pinion prototype that rotates each rank of the chess set 90 degrees" width="1216" height="706" loading="lazy">
-                <div class="collage-caption">Swivel Mechanism Prototype</div>
+                <div class="collage-caption">Rack &amp; Pinion Mechanism</div>
+                <p class="collage-note">The mechanism I pivoted to: a printed spur gear on a brass bushing driving a rack, which rotates each rank ninety degrees.</p>
               </div>
               <div class="collage-item">
                 <img src="images/chess-press-insert.jpg" alt="A magnet press-fit into a printed board tile, a brass bushing pressed into its block, and the joining pieces" width="768" height="1024" loading="lazy">
                 <div class="collage-caption">Insert, Joining Method, & Mid-Print Insert Testing</div>
+                <p class="collage-note">Press-fit tests — a magnet into a board tile, a brass bushing into its block. Ninety-six magnets in the finished set keep every piece oriented.</p>
               </div>
             </div>
           </div>

@@ -422,6 +422,22 @@
     }
 
     .process-card img{ width:100%; height:auto; display:block; }
+    /* Per-card prose. The .story block above describes the piece as a whole;
+       these say what each STEP was. They are also what the VR project room
+       reads for its station text — data-loader.js's bodyFor() takes the first
+       <p> inside the .process-card — which is why this page's room used to
+       show headings and nothing else: all its prose lived in .story, and
+       BODY_SEL only looks at `.step-body p,.block-body p`. Keep each under 260
+       characters (BODY_MAX), or the room trims at the last sentence end. */
+    .process-note{
+      margin:0;
+      padding:0.85rem 1rem;
+      background:var(--cream-light);
+      border-top:2px solid var(--brass);
+      font-size:0.84rem;
+      line-height:1.55;
+      color:var(--ink);
+    }
 
     .process-tag{
       position:absolute;
@@ -720,21 +736,25 @@
       <div class="process-card">
         <span class="process-tag">Sketching & Ideation</span>
         <img src="images/slide-1-sketch.png" alt="Hand-drawn gestalting sketch of the Time Collector: the escapement, the actuator pin, and time indicated by the number of marbles collected in the disc" width="750" height="712" loading="lazy">
+        <p class="process-note">Gestalting the whole mechanism on one sheet — the escapement regulating the circular motion, the actuator pin that starts and stops it, and the core idea: time read from the number of marbles collected in the disc, not from hands.</p>
       </div>
 
       <div class="process-card">
         <span class="process-tag">Cardboard Prototype</span>
         <img src="images/timecollector-cardboard-real.png" alt="Cardboard prototype of the Time Collector's escapement, belt drive and marble wheel" width="838" height="946" loading="lazy">
+        <p class="process-note">The first working version, cut from cardboard — escapement, belt drive, marble wheel and chute — to prove the motion before anything was printed.</p>
       </div>
 
       <div class="process-card">
         <span class="process-tag">Refined Prototype</span>
         <img src="images/timecollector-refined-real.png" alt="Refined 3D-printed prototype of the Time Collector mechanism" width="868" height="828" loading="lazy">
+        <p class="process-note">The second round, 3D printed on a laser-cut backboard: a spoked marble wheel, a bevel gear pair, and the chute the marbles run down.</p>
       </div>
 
       <div class="process-card">
         <span class="process-tag">Force Analysis</span>
         <img src="images/timecollector-fbd-full.png" alt="Hand-written force analysis for the Time Collector: the 0.68 kg driving weight's 6.66 N becomes 91.88 N of output force through the gear train, roughly a fourteen-fold increase" width="1758" height="1324" loading="lazy">
+        <p class="process-note">Free body diagrams for every stage, by hand — power source, actuator, a 40:12 gear train, escapement, pulley, and the marble receptacle. The driving weight’s 6.66&nbsp;N leaves the train as 91.88&nbsp;N, about fourteen times over.</p>
         <a href="Sebastian_Esteva_TimeCollector_FEA_Analysis.pdf" class="process-link" target="_blank" rel="noopener">Also See FEA Analysis <span class="process-link-arrow" aria-hidden="true">↗</span></a>
       </div>
 

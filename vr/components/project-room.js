@@ -1017,8 +1017,16 @@
       Object.keys(ROOM_HALO).forEach(function (k) { spec[k] = ROOM_HALO[k]; });
       return spec;
     }
+    // The TITLE wears the project's own face (themes.js `titleFont`, resolved
+    // by VRFonts.titleFor) — Sebastian, 2026-09-11, wanting the rooms to carry
+    // the pages' different text styles. Only the title: the blurb and tags stay
+    // on the shared body face, because on the flat site they are Poppins on all
+    // five pages, so varying them would be inventing a difference rather than
+    // reflecting one. §5's three-size scale is untouched — this changes the
+    // FACE at a given size, never the number of sizes.
     var titleSpec = withHalo({
-      value: project.title, align: 'center', font: VRFonts.title(),
+      value: project.title, align: 'center',
+      font: VRFonts.titleFor(VRThemes.get(project.theme).titleFont),
       fontSize: VRType.title(), maxWidth: 2.2, lineHeight: 1.15, gapAfter: 0.05
     });
     var belowSpecs = [];

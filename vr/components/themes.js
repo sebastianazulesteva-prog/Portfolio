@@ -107,7 +107,8 @@
       // floor is still derived: captions go 1.02 -> 16.4, and the near-white
       // horizon band now has something to glow AGAINST, which is what makes
       // this room read as a bright gallery in the first place.
-      sky: '#3a3a38', horizon: '#f7f6f3', accent: '#d8c9a0', panel: '#161513', ink: '#161513'
+      sky: '#3a3a38', horizon: '#f7f6f3', accent: '#d8c9a0', panel: '#161513', ink: '#161513',
+      titleFont: 'serif'   // pendant.html .hero-title -> var(--serif), Playfair 700
     },
     slipdoor: { // The Slip Door — clean automotive/accessible (slipdoor.html --vwblue/--gold/--ink)
       // accent was --vwblue #cdeffa, which is the page's BACKGROUND wash, not
@@ -116,10 +117,14 @@
       // that page's :root, it's the VW blue) is the colour the page itself
       // accents with, and it's the only fully-saturated candidate of the three
       // — chroma 1.00 against 0.82, so it actually colours the light.
-      sky: '#18323c', horizon: '#0091c8', accent: '#0091c8', panel: '#141414', ink: '#e3f6fc'
+      sky: '#18323c', horizon: '#0091c8', accent: '#0091c8', panel: '#141414', ink: '#e3f6fc',
+      // slipdoor.html's .hero-title sets NO font-family — it inherits Poppins
+      // at weight 900. The only project page with no display face.
+      titleFont: 'sans'
     },
     baston: { // Bastón — warm personal craft (baston.html --pink/--pink-deep/--cream)
-      sky: '#472337', horizon: '#b8066c', accent: '#e30887', panel: '#221018', ink: '#f4efe9'
+      sky: '#472337', horizon: '#b8066c', accent: '#e30887', panel: '#221018', ink: '#f4efe9',
+      titleFont: 'serif'   // baston.html .hero-title -> var(--serif), Playfair 700
     },
     timecollector: { // Time Collector — warm brass/marble/timekeeping (timecollector.html --brass/--copper/--ink)
       // accent was --brass #b8863b — which is ALSO _default's accent and the
@@ -130,7 +135,8 @@
       // more luminous: accent-on-floor contrast goes 5.67 → 7.59. Chose it
       // over --highlight-gold #f4c95d, which at chroma 0.87 reads gold-leaf
       // rather than brass mechanism.
-      sky: '#3a2d12', horizon: '#a15c3e', accent: '#d69c47', panel: '#1a1408', ink: '#f6e3bd'
+      sky: '#3a2d12', horizon: '#a15c3e', accent: '#d69c47', panel: '#1a1408', ink: '#f6e3bd',
+      titleFont: 'script'   // timecollector.html .hero-title -> var(--script), Fredericka the Great
     },
     chess: { // Poser Chess Set — stark monochrome (chess.html --bg/--white)
       // --white, and now the card rims and tags too. They used to take
@@ -156,7 +162,8 @@
       // like a gallery wall rather than outdoors. #20201f sits between the
       // page's own --bg-panel (#0e0e0e) and --line (#252524), lands at L 0.014
       // — half the other rooms — and stays below the band's own tone.
-      sky: '#20201f', horizon: '#252524', accent: '#f7f5f0', panel: '#0e0e0e', ink: '#f7f5f0'
+      sky: '#20201f', horizon: '#252524', accent: '#f7f5f0', panel: '#0e0e0e', ink: '#f7f5f0',
+      titleFont: 'serif'   // chess.html .hero-title -> var(--serif), Playfair 700
     },
     // Shared by the four PDF write-up pages (glasses, HP's Reckoning,
     // Algorithmic Modeling, Social Engineering) — checked their real :root

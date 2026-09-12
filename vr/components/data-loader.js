@@ -213,7 +213,15 @@
   // "Sketching & Ideation"), so the card — not the grid — is the labelled unit.
   // Grouping by the grid instead produced one anonymous 4-image blob and threw
   // those captions away, which is the opposite of a narrative walk.
-  var GROUP_SEL = '.process-card,.idea-imgs,.process-grid,.collage-grid,.img-grid,' +
+  // `.collage-item` is here for the same reason `.process-card` is, and it was
+  // added the same way — by noticing what the page labels. Chess's four
+  // prototyping images each sit in their own .collage-item with their own
+  // .collage-caption ("Rack & Pinion Mechanism", "FEA & Load Analysis"), so the
+  // item is the labelled unit. Without it, closest() resolved to .collage-grid
+  // and all four stations shared the Prototyping section's paragraph, trimmed
+  // to 206 characters — which cut the rack-and-pinion pivot and every FEA
+  // number out of the room while leaving them on the page.
+  var GROUP_SEL = '.process-card,.collage-item,.idea-imgs,.process-grid,.collage-grid,.img-grid,' +
                   '.photo-grid,.frame,.hero-img-wrap,.result-gif-wrap,.img-slot,figure';
   var SECTION_SEL = '.block,.step,.journey-step,section';
   // Checked INSIDE the group box first, then the enclosing section. The pages

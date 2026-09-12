@@ -371,6 +371,21 @@
     }
 
     .process-card img{ width:100%; height:auto; display:block; }
+    /* Per-card prose. The .story block above covers the build as a whole;
+       these say what each step was. They are also the VR project room's
+       station text — data-loader.js's bodyFor() takes the first <p> inside the
+       .process-card — which is why this page's room showed headings and
+       nothing else: all its prose lived in .story, and BODY_SEL only looks at
+       `.step-body p,.block-body p`. Under 260 characters each (BODY_MAX). */
+    .process-note{
+      margin:0;
+      padding:0.85rem 1rem;
+      background:var(--cream);
+      border-top:2px solid var(--ink);
+      font-size:0.84rem;
+      line-height:1.55;
+      color:var(--ink-soft);
+    }
 
     .process-tag{
       position:absolute;
@@ -628,6 +643,7 @@
       <div class="process-card">
         <span class="process-tag">Rapid prototype & sketches</span>
         <img src="images/baston-sketch.jpg" alt="Cardboard rapid prototype and hand sketches for the Bastón folding mechanism" width="4284" height="5712" loading="lazy">
+        <p class="process-note">Hand sketches of the folding mechanism beside a cardboard prototype of the same joint. Cardboard first, because it costs nothing to cut it again.</p>
       </div>
 
       <!-- ═══ IMAGE SLOT 3 — 3D-PRINT PROTOTYPE ═══
@@ -636,6 +652,7 @@
       <div class="process-card">
         <span class="process-tag pink">3D prints of mechanism</span>
         <img src="images/baston-3dprint.jpg" alt="3D-printed folding mechanism parts for the Bastón cane" width="2920" height="3839" loading="lazy">
+        <p class="process-note">The same joint printed, so I could feel the fit before committing it to metal — the slotted arm and the stepped barrel it pivots into.</p>
       </div>
 
       <!-- ═══ IMAGE SLOT 4 — WORKING SHOT ═══
@@ -645,6 +662,7 @@
       <div class="process-card">
         <span class="process-tag">Me on the lathe</span>
         <img src="images/baston-working.jpg" alt="Sebastian Esteva turning aluminum on a lathe for the Bastón's custom joint" width="1410" height="1062" loading="lazy">
+        <p class="process-note">Turning aluminum for the custom joint. The wooden shafts were hand-turned on this same lathe.</p>
       </div>
 
       <!-- ═══ IMAGE SLOT 5 — PARTS LIST ═══
@@ -654,6 +672,7 @@
       <div class="process-card">
         <span class="process-tag pink">Selection of parts in the cane</span>
         <img src="images/baston-parts.jpg" alt="Wood, aluminum, and brass parts laid out for the Bastón cane build — hand-turned shafts, water-jet-cut joiners, and the machined folding joints" width="4284" height="3894" loading="lazy">
+        <p class="process-note">Everything that goes inside: two turned shaft sections, a brass tube, water-jet-cut links, steel pins, and the two machined aluminum joints.</p>
       </div>
 
     </div>

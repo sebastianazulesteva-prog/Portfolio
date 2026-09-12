@@ -52,8 +52,24 @@ in practice. Breaking any of them is a regression.
    VR_TEST_REPORT.md G9. Re-add super-hands, plus the
    `delete AFRAME.components.grabbable` shim it needs, only alongside the first
    real grabbable target.)
-3. **Don't touch the rest of the site.** Two sanctioned touchpoints, both by
-   explicit ask. The second, added 2026-09-09: the **alt text on the contact
+3. **Don't touch the rest of the site.** THREE sanctioned touchpoints now, all
+   by explicit ask. The third, added 2026-09-11, is the widest and the one most
+   likely to be over-read: **body copy on the project pages.** Sebastian asked
+   for it in as many words after reading the audit ("yes, write both of those"),
+   because the VR room's station text is scraped from the page and two rooms had
+   nothing to scrape. What was written, and nothing beyond it: a `<p
+   class="process-note">` in each `.process-card` on `baston.html` and
+   `timecollector.html`; a `<p class="collage-note">` in each `.collage-item` on
+   `chess.html`; the Prototyping paragraph on `chess.html` extended with the
+   rack-and-pinion pivot; and one paragraph in chess's `.story` disclosing that
+   the hero photo's pieces were AI-generated. Every sentence traces to the page
+   itself, to a legible annotation in one of its own images, or to something
+   Sebastian said in that session — see the `$why` fields in `vr/images.json`,
+   which is where the provenance lives. This is still not licence for anything
+   else: the rule is that a room may not invent content, and the fix for an
+   empty room is to ask him and then write it down ONCE, on the page, where both
+   surfaces read it.
+   The second, added 2026-09-09: the **alt text on the contact
    photos and the hero** in `index.html`. Writing the VR captions meant working
    out what is actually in each photograph, and at that point leaving
    `alt="Sebastian Esteva — candid photo 1"` on the live site was knowingly
@@ -3115,6 +3131,96 @@ Note this was NOT 9.26.1's invisible-clickable bug, which was the standing
 theory. Worth remembering as a method point: the reported phrase was a garbled
 quotation of on-screen copy, and grepping the copy (`grep -i builder`) is what
 cracked it after grepping the paraphrase found nothing.
+
+#### 9.26.10 Two rooms had no station text, and chess's four shared one paragraph
+
+**Audited by porting `bodyFor()` into the page and running it over all five room
+pages, 2026-09-11.** Measured, not eyeballed: for every non-cross-link `<img>`,
+what the room would actually show.
+
+The first finding corrects something I had said out loud and got wrong.
+`timecollector.html` does NOT lack prose — it has a good two-paragraph `.story`
+block. I reported it as having none because my grep was
+`<p[^>]*>[^<]{30,320}</p>`, and both paragraphs contain `<strong>`, so the
+character class never matched. **Don't audit HTML with a regex that assumes
+paragraphs have no inline tags.** What those pages actually lack is per-card
+prose: `baston.html` and `timecollector.html` label with `.process-card` +
+`.process-tag` and hold no `<p>` at all, and `BODY_SEL` is
+`.step-body p,.block-body p`, so `bodyFor` returned `''` for every one of their
+stations. Four each. `chess`/`pendant` (`.step-body`) and `slipdoor`
+(`.block-body`) were always fine.
+
+The second finding was self-inflicted and is the more useful lesson. After
+extending chess's Prototyping paragraph with the rack-and-pinion pivot, all four
+of that section's stations still shared ONE text, trimmed to 206 characters —
+which cut the pivot and every FEA number out of the room while leaving them
+perfectly visible on the page. The cause: `closest(GROUP_SEL)` resolved to
+`.collage-grid`, because `.collage-item` was not in the list. It is now, for
+exactly the reason `.process-card` already was — the item carries its own
+`.collage-caption`, so the item is the labelled unit. **Writing page copy for a
+room is not done until you have re-measured what the room takes**, because the
+room reads only the HEAD of the text.
+
+After: baston 4/6, timecollector 4/6, chess 5/8, pendant 3/4, slipdoor 3/3
+stations with text (the zeros are hero frames, not process cards), **nothing
+ellipsised on any page**, and chess's four are now 158/134/122/143 characters of
+their own rather than four identical 206s. One text is still shared —
+slipdoor-process-1 and -2 sit in one `.block-body` with no per-image container.
+Left alone: they are two photos of the same build session.
+
+Which also closes the standing "the 260-char cap truncates Slip Door" worry.
+`trimTo` prefers the last sentence end and only ellipsises when there isn't one
+past 50% of max, so that cut was the function working. Zero ellipses across all
+five pages now.
+
+Both new classes are `rem`-sized so `html.accessible` (root x 1.15) scales them.
+`.collage-note` uses `--white-soft` (0.72 alpha) and NOT the `--white-faint`
+(0.4) of the caption above it: that value is pitched for three uppercase words,
+and this is a sentence. `.a11y-note p` is the page's own precedent for faint
+prose.
+
+#### 9.26.11 The rooms now wear each project's own title face
+
+Sebastian, 2026-09-11: *"different pages use different text styles for
+projects, can we have that reflected in project rooms?"*
+
+Read off each page's own `.hero-title` rule, NOT its `:root` block — that
+distinction is the whole reason this is faithful rather than decorative. The
+`:root` of every project page defines two values for each token (the real one,
+then an `html.accessible` override to Atkinson Hyperlegible), and the display
+faces sitting in those tokens are not all used by the titles. What the titles
+actually use:
+
+    baston / pendant / chess   font-family:var(--serif)    Playfair Display 700
+    timecollector              font-family:var(--script)    Fredericka the Great
+    slipdoor                   (no font-family at all)      Poppins 900, -0.02em
+
+So only TWO rooms change. Note `timecollector.html` also defines `--display`
+(Cinzel) and it would have been the obvious guess — it is used elsewhere on the
+page, but its title is the script face. And slipdoor's title declares no family,
+inheriting Poppins at weight 900: that ABSENCE is its style. It is the one
+project page with no display face, and the room reads that way rather than
+borrowing a serif it never had.
+
+Mechanism: `titleFont` on each theme (themes.js, which already owns the
+per-project look), resolved to a file by `VRFonts.titleFor(key)`. An unknown or
+absent key falls back to Playfair, so `signatureDark` and `_default` are
+unchanged and a new theme needs nothing. `isA11y()` wins over the project face —
+which matters MORE here than elsewhere, because Fredericka the Great is a rough
+decorative display face and that is precisely the kind of type accessible mode
+exists to replace.
+
+ONLY the title varies. The blurb and tags stay on the shared body face because
+on the flat site they are Poppins on all five pages — varying them would be
+inventing a difference rather than reflecting one. §5's three-size scale is
+untouched: this changes the FACE at a given size, never the number of sizes.
+
+Verified in-browser: all seven themes resolve correctly, accessible mode returns
+Atkinson for all seven, unknown and missing keys fall back to Playfair, and all
+three faces fetch 200 with `access-control-allow-origin: *` and a real `wOFF`
+magic. Not verified: how they LOOK, which needs a headset. Two things to judge
+there — Fredericka's legibility at title size, and its weight: 248 KB against
+Playfair's 28 KB, fetched on first entry to that room.
 
 ---
 

@@ -152,7 +152,32 @@
     // Hide/show every `.hub-cluster` at once — the call all three places were
     // hand-rolling identically, now in the file that owns "one place at a
     // time" and with the hit-testing half included.
+    //
+    // AND dismiss the focus stage, which is the bug Sebastian reported as
+    // "engineering communication builder content appearing incorrectly in the
+    // Time Collector room" (2026-09-11). #focusStage is deliberately not a
+    // `.hub-cluster` — it is the transient detail view, not part of the hub —
+    // so hiding the clusters left a focused card floating inside whatever place
+    // you entered next. That card is how you enter a room in the first place:
+    // focus the Time Collector card, press its button, and the big panel you
+    // pressed stays hanging in the room you just walked into. pdf-reader.js had
+    // spotted this and hid #focusStage in its own wrapper; project-room.js and
+    // portrait-lab.js both `return` out of this function early, so they never
+    // did, and the reader's is the only path that was ever covered.
+    //
+    // DISMISS rather than hide: hiding only defers it, because the matching
+    // setHubVisible(true) on the way out would bring a stale detail view back
+    // with the hub. close(true) is the instant path — synchronous, no tween —
+    // and it restores the origin card's own visibility, which is exactly why it
+    // has to run BEFORE the clusters are hidden, so the card it un-hides is
+    // hidden again on the very next line.
     setHubVisible: function (visible) {
+      if (!visible && window.VRFocusStage && VRFocusStage.close) {
+        // A detail view that refuses to close must not stop a room opening.
+        try { VRFocusStage.close(true); } catch (e) {
+          console.warn('[vr] place: VRFocusStage.close(true) threw', e);
+        }
+      }
       [].slice.call(document.querySelectorAll('.hub-cluster')).forEach(function (el) {
         setBranchVisible(el, visible);
       });

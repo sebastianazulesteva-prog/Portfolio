@@ -3073,18 +3073,48 @@ untouched, fill inverted — because white is invisible on the plate. The naming
 convention is unchanged and is still the whole mechanism: `<hostname>.png`, no
 table anywhere.
 
-#### 9.26.8 Not resolved
+#### 9.26.8 "Engineering communication builder content in the Time Collector room" — FOUND
 
-**"Engineering communication builder content appearing incorrectly in the Time
-Collector room."** Not reproduced. The phrase appears nowhere in the repo; the
-Time Collector room's blurb, its five station headings, its FEA document and the
-pages behind it were all checked against the live page and are correct. The
-nearest thing on the site is the bio card's Skills row — "Engineering ·
-Communication · Strategy · VR" — and the expanded panel's "Community Building",
-which is why 9.26.1 is the leading theory: until this pass a click on empty room
-floor could land on an invisible hub card and open another project's content
-inside the room. If it recurs after 9.26.1, it is something else and needs a
-screenshot.
+**Root cause: `#focusStage` was never hidden when you entered a room.** The
+phrase is `index.html:1401` read aloud — `<h2 class="section-title">Engineer.<br>
+<em>Communicator.</em><br>Builder.</h2>` — and it is hardcoded a second time at
+`bio-card.js:184` as the bio card's heading. So it is hub content, appearing
+inside a room, exactly as reported.
+
+How it got there. `#focusStage` is deliberately NOT a `.hub-cluster` (see the
+markup note at `vr/index.html:474`) because it is the transient detail view, not
+part of the hub. `VRPlace.setHubVisible()` only walks `.hub-cluster`. So the
+stage and whatever card was on it survived every room entry — and the focused
+card is *how you enter a room*: focus the Time Collector card, press its button,
+and the panel you just pressed is still hanging there in the room you walked
+into. `pdf-reader.js` had already noticed and hid `#focusStage` in its own
+wrapper (`pdf-reader.js:217`); `project-room.js:122` and `portrait-lab.js:96`
+both `return VRPlace.setHubVisible(visible)` early, so neither ever did. The
+reader was the only covered path, and rooms are the ones you actually enter this
+way.
+
+The fix is in `place.js`'s `setHubVisible`, which all three already route
+through, and it DISMISSES rather than hides: `VRFocusStage.close(true)`. Hiding
+would only defer the problem, because the matching `setHubVisible(true)` on the
+way out would bring a stale detail view back with the hub. `close(true)` is the
+instant path — synchronous, no tween — and it restores the origin card's own
+visibility, so it must run BEFORE the clusters are hidden, which is why the call
+sits above the forEach rather than below it.
+
+Measured in-browser, 2026-09-11: `close` called once with `instant === true`
+while all 6 clusters were still visible (the ordering claim); after the hide, 0
+clusters visible and the stage invisible; after `setHubVisible(true)`, 6 clusters
+back, stage STILL invisible, `close` not called a second time — no ghost detail
+view on the way out. The one link not driven in-browser is an actually-open
+stage, because `open()` waits on a troika measure that never completes with
+`document.hidden: true` (§3.1, §3.2) — it is sound by inspection instead:
+`close`'s instant path sets `visible:false` unconditionally and early-returns
+only when the stage is already invisible.
+
+Note this was NOT 9.26.1's invisible-clickable bug, which was the standing
+theory. Worth remembering as a method point: the reported phrase was a garbled
+quotation of on-screen copy, and grepping the copy (`grep -i builder`) is what
+cracked it after grepping the paraphrase found nothing.
 
 ---
 

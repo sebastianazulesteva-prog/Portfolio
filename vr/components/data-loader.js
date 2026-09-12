@@ -82,11 +82,12 @@
       // on the pendant means cropping the chain off it.
       imageW: Number((img || video || {}).getAttribute && (img || video).getAttribute('width')) || null,
       imageH: Number((img || video || {}).getAttribute && (img || video).getAttribute('height')) || null,
-      // A card whose hero is a <video> rather than an <img> — Slip Door's is
-      // the door actually sliding open, which is the entire point of the
-      // project and the one thing a still cannot show. Every source is kept so
-      // the room can hand the browser the same list the flat page does (webm
-      // first, mp4 fallback) instead of guessing a codec.
+      // A card whose hero is a <video> rather than an <img> — Slip Door's is a
+      // slow orbit around a static CAD frame. It does NOT show the door sliding
+      // (checked frame by frame, 2026-09-11); it is a turntable, so a still of
+      // it loses the orbit and nothing else. Every source is kept so the room
+      // can hand the browser the same list the flat page does (webm first, mp4
+      // fallback) instead of guessing a codec.
       video: video ? {
         sources: Array.prototype.slice.call(video.querySelectorAll('source')).map(function (s) {
           return { src: rootHref(s.getAttribute('src')), type: s.getAttribute('type') || '' };

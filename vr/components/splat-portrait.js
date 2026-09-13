@@ -23,11 +23,21 @@
        map, on a scene that fought its arrival payload down from 50.9 MB,
      • the library's peer range is three >= 0.160 and A-Frame 1.5.0 bundles
        super-three 0.158 — see the version note in load() below,
-     • the mosaic gaze-reveal (the flat site's signature hero effect) cannot
-       follow onto gaussians. This component has no reveal. That is a real
-       feature loss, not an oversight.
+     • the shader that draws the gaussians belongs to the library, so anything
+       this component wants to do per-fragment it has to inject into someone
+       else's source — see _armReveal.
 
-   Usage: <a-entity splat-portrait="src: assets/portrait-lod.splat"></a-entity>
+   THE COST THAT TURNED OUT NOT TO BE ONE. This block used to end with "the
+   mosaic gaze-reveal cannot follow onto gaussians. This component has no
+   reveal. That is a real feature loss, not an oversight." It was an
+   oversight. The bust is a reconstruction of ONE PHOTOGRAPH, so every
+   gaussian can be projected back into that frame and the mosaic — a
+   repainting of the same frame — sampled where it lands. See the `mosaic`
+   option; it is six multiplies in the fragment shader and no extra per-splat
+   data at all.
+
+   Usage: <a-entity splat-portrait="src: assets/portrait-lod.splat;
+                                    mosaic: ../images/contact-photo-mosaic.jpg">
 */
 
 (function () {
@@ -36,6 +46,15 @@
   // `global.THREE`, which is the very super-three instance A-Frame is already
   // running, so the splats share one WebGL context and one scene graph.
   var LIB_URL = 'https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.umd.cjs';
+
+  // The subject's half-extents in the splat's OWN units, before splatScale.
+  // Measured off portrait.splat at the 0.5th/99.5th percentile per axis rather
+  // than the raw min/max, which a handful of silhouette stragglers set — the
+  // same choice export_assets.py makes when it centres him. Used only to turn
+  // a gaze hit into a 0..1 position across him, so the reveal's edge margin
+  // means the same thing here as it does on a panel.
+  var BUST_HALF_W = 0.2235;
+  var BUST_HALF_H = 0.2965;
 
   var libState = 'idle'; // idle → loading → ready → failed
   var libWaiters = [];
@@ -241,7 +260,52 @@
       antialiased: { type: 'boolean', default: false },
       // Progressive reveal looks like a glitch on a face — it assembles from
       // the middle out. Off by default: show nothing, then show him whole.
-      progressive: { type: 'boolean', default: false }
+      progressive: { type: 'boolean', default: false },
+
+      // ══ The mosaic reveal, on gaussians ═════════════════════════════════
+      // The docblock at the top of this file used to say the reveal "cannot
+      // follow onto gaussians. This component has no reveal. That is a real
+      // feature loss, not an oversight." That was wrong, and the thing that
+      // makes it wrong is the one fact this whole component rests on: the bust
+      // is a reconstruction of ONE PHOTOGRAPH. So every gaussian has a
+      // well-defined position in that photograph — recoverable by projecting
+      // it back through the camera SHARP assumed — and the mosaic is a
+      // repainting of the same frame. Project, sample, done. No per-gaussian
+      // mosaic colour has to be stored, and no second data texture: the
+      // mapping is six multiplies in the fragment shader.
+      //
+      // Verified before any shader was written, by painting the sampled mosaic
+      // colour at each gaussian's own (x, y) offline: the raw pinhole model
+      // lands his mosaic eyes on his eyes, the DNA helix on his nose and the
+      // icon row on his collar. (A luminance-correlation fit "improved" 0.807
+      // to 0.892 by zooming 29% into the face and throwing the shoulders off
+      // the image — the picture caught that instantly and the number never
+      // would. Look at it.)
+      //
+      // Empty = no reveal, which is the default so nothing else that mounts
+      // this component grows a texture download it did not ask for.
+      mosaic: { type: 'string', default: '' },
+      // Reveal radius in METRES and the solid-core fraction, both the same
+      // numbers the flat site's hero uses and the other three lab panels
+      // carry (mosaic-reveal.js / spatial-photo.js: 0.23 and 0.55). 0.23 m is
+      // 32% of a 0.72 m panel; the bust renders 0.70 m across, so the lens is
+      // the same proportion of the subject here as it is there.
+      radius: { type: 'number', default: 0.23 },
+      // Kept strictly below 1: `smoothstep(radius * core, radius, d)` is
+      // UNDEFINED when edge0 >= edge1 (trap §3.11), and it fails silently.
+      revealCore: { type: 'number', default: 0.55 },
+      gaze: { type: 'boolean', default: true },
+      gazeMargin: { type: 'number', default: 0.12 },
+
+      // ── The camera SHARP assumed, from vr/assets/portrait-bake.json ──────
+      // Hardcoded rather than fetched, for parallax-photo.js's reason: these
+      // change only when the portrait is re-baked, and a fetch would make the
+      // shader wait on a round trip. `fit.f_px` and `fit.image_wh` are the
+      // focal and frame SHARP predicted against; `splat.centre` is what
+      // export_assets.py subtracted to put the origin at the head.
+      bakeFocal: { type: 'number', default: 2480 },
+      bakeImage: { type: 'vec2', default: { x: 1984, y: 2976 } },
+      bakeCentre: { type: 'vec3', default: { x: -0.0048078, y: -0.0691534, z: -0.5061702 } }
     },
 
     init: function () {
@@ -388,6 +452,7 @@
         self.ready = true;
         self.el.setObject3D('splat', self.viewer);
         self._armStereo();
+        self._armReveal();
         self._done();
         self.el.emit('splat-portrait-ready', {
           count: self.viewer.splatMesh ? self.viewer.splatMesh.getSplatCount() : 0
@@ -622,6 +687,221 @@
       if (this._blobUrl) { URL.revokeObjectURL(this._blobUrl); this._blobUrl = null; }
     },
 
+    // ── Patching the library's own shader ─────────────────────────────────
+    // The reveal has to happen in the SplatMesh's material, because that is
+    // the only shader that draws a gaussian. So this injects into the source
+    // the library generated, after the mesh exists, and re-compiles.
+    //
+    // Three things make that safe enough to do:
+    //   • LIB_URL is pinned to an exact version, so the anchor strings cannot
+    //     move without somebody editing this file's own constant;
+    //   • the anchors are declarations and assignments that have to exist for
+    //     the shader to work at all (`varying vec2 vPosition;`,
+    //     `vPosition = position.xy;`, `vec3 color = vColor.rgb;`);
+    //   • if any anchor is missing it BAILS, and bailing leaves a grayscale
+    //     bust with no reveal. That is a missing feature, not a broken panel,
+    //     and not the colour-vs-grayscale confound the lab had before — which
+    //     is exactly why the desaturation stays in the BYTES (_condition) and
+    //     the mosaic comes from a texture. The failure mode had to be the
+    //     boring one.
+    // `diag().reveal` reports which of those happened, because in a headset
+    // there is no console to ask (§3.16).
+    _armReveal: function () {
+      this._reveal = null;
+      if (!this.data.mosaic) { this._revealState = 'off'; return; }
+      var mesh = this.viewer && this.viewer.splatMesh;
+      var mat = mesh && mesh.material;
+      if (!mat || !mat.uniforms) { this._revealState = 'no material'; return; }
+
+      var V_DECL = 'varying vec2 vPosition;';
+      var V_ASSIGN = 'vPosition = position.xy;';
+      var F_BASE = 'vec3 color = vColor.rgb;';
+      var vs = mat.vertexShader, fs = mat.fragmentShader;
+      if (vs.indexOf(V_DECL) < 0 || vs.indexOf(V_ASSIGN) < 0 ||
+          fs.indexOf(V_DECL) < 0 || fs.indexOf(F_BASE) < 0) {
+        this._revealState = 'shader anchors not found';
+        console.warn('[vr] splat-portrait: reveal not armed,', this._revealState);
+        return;
+      }
+
+      // NoColorSpace on purpose (trap §3.5). The library writes vColor
+      // straight to gl_FragColor with no conversion, so the splat's stored
+      // sRGB bytes ARE the output values. An sRGB-tagged texture would be
+      // decoded to linear on sample and the mosaic would mix in dark against
+      // them. Raw in, raw out, one space.
+      var tex = VRGlass.loadTexture(this.data.mosaic, function (t) {
+        t.colorSpace = THREE.NoColorSpace;
+        t.needsUpdate = true;
+      });
+      tex.colorSpace = THREE.NoColorSpace;
+
+      // The scene scale is baked into the stored centres (dynamicScene is
+      // false), so `splatCenter` arrives already multiplied by splatScale. It
+      // cancels out of X/Z and Y/Z, so the ONLY place it has to be applied is
+      // the bake centre — which is why there is no divide in the shader.
+      var S = this.data.splatScale;
+      var c = this.data.bakeCentre;
+      var core = Math.min(0.98, Math.max(0, this.data.revealCore));
+      var u = mat.uniforms;
+      u.uMosaic = { value: tex };
+      u.uRevealOn = { value: 0 };
+      u.uRevealCentre = { value: new THREE.Vector3(0, 0, 0) };
+      u.uRevealRadius = { value: Math.max(0.001, this.data.radius) };
+      u.uRevealCore = { value: core };
+      u.uBakeCentre = { value: new THREE.Vector3(c.x * S, c.y * S, c.z * S) };
+      u.uBakeFocal = { value: this.data.bakeFocal };
+      u.uBakeImage = { value: new THREE.Vector2(this.data.bakeImage.x, this.data.bakeImage.y) };
+
+      mat.vertexShader = vs
+        .replace(V_DECL, V_DECL + '\n        varying vec3 vSplatLocal;')
+        .replace(V_ASSIGN, V_ASSIGN + '\n            vSplatLocal = splatCenter;');
+
+      // `varying` and `texture2D` are the GLSL1 spellings, and they are what
+      // the library itself uses here. three.js compiles this material as
+      // `#version 300 es` on WebGL2 and supplies the `#define varying in` /
+      // `#define texture2D texture` shims, so matching the surrounding code is
+      // both correct and the only thing that will still compile beside it.
+      mat.fragmentShader = fs
+        .replace(V_DECL, V_DECL + [
+          '',
+          '            varying vec3 vSplatLocal;',
+          '            uniform sampler2D uMosaic;',
+          '            uniform float uRevealOn;',
+          '            uniform vec3 uRevealCentre;',
+          '            uniform float uRevealRadius;',
+          '            uniform float uRevealCore;',
+          '            uniform vec3 uBakeCentre;',
+          '            uniform float uBakeFocal;',
+          '            uniform vec2 uBakeImage;'
+        ].join('\n'))
+        .replace(F_BASE, F_BASE + [
+          '',
+          '                // Project this gaussian back into the photograph it',
+          '                // came from, and sample the mosaic painted over the',
+          '                // same frame. OpenCV axes: export_assets.py stored',
+          '                // (X, -Y, -Z) - centre, so this undoes that.',
+          '                if (uRevealOn > 0.002) {',
+          '                    float bX =  vSplatLocal.x + uBakeCentre.x;',
+          '                    float bY = -(vSplatLocal.y + uBakeCentre.y);',
+          '                    float bZ = -(vSplatLocal.z + uBakeCentre.z);',
+          '                    if (bZ > 0.01) {',
+          '                        vec2 muv = vec2(0.5 + (uBakeFocal * bX / bZ) / uBakeImage.x,',
+          '                                        0.5 + (uBakeFocal * bY / bZ) / uBakeImage.y);',
+          '                        // v was solved from the top of the frame and',
+          '                        // three.js flips images on upload.',
+          '                        muv.y = 1.0 - muv.y;',
+          '                        if (muv.x > 0.0 && muv.x < 1.0 && muv.y > 0.0 && muv.y < 1.0) {',
+          '                            // Distance in the picture plane only, so',
+          '                            // the lens is a circle on him rather than',
+          '                            // a sphere that shrinks over his nose.',
+          '                            float dRev = length(vSplatLocal.xy - uRevealCentre.xy);',
+          '                            float k = 1.0 - smoothstep(uRevealRadius * uRevealCore, uRevealRadius, dRev);',
+          '                            color = mix(color, texture2D(uMosaic, muv).rgb, k * uRevealOn);',
+          '                        }',
+          '                    }',
+          '                }'
+        ].join('\n'));
+      mat.needsUpdate = true;
+
+      this._reveal = { mat: mat, tex: tex, on: 0 };
+      this._revealState = 'armed';
+    },
+
+    // Where the viewer is aiming, as a point on the bust's facing plane in its
+    // own local space — or null if they are not looking at him.
+    //
+    // ONE ray source, not the pointer-then-gaze pair the photo panels use, and
+    // it is the head cursor's own raycaster. index.html builds it as
+    // `cursor="rayOrigin: mouse"`, so on a desktop that ray follows the MOUSE
+    // and in a session nothing ever moves a mouse, leaving it the head's
+    // forward. Both behaviours, one path.
+    //
+    // The panels' other half — reading `raycaster.intersections` for a real
+    // hit on themselves — cannot work here and would be dead code: the rays
+    // are `objects: .clickable` and this bust is deliberately not clickable,
+    // so it is never in any raycaster's target list. Solving the ray against a
+    // plane costs a divide and does not need one.
+    _revealHit: function () {
+      var obj = this.el.object3D;
+      if (!this._rv) {
+        this._rv = { o: new THREE.Vector3(), d: new THREE.Vector3(), q: new THREE.Quaternion(),
+                     inv: new THREE.Matrix4(), p: new THREE.Vector3() };
+      }
+      var r = this._rv;
+      var cam = this.el.sceneEl && this.el.sceneEl.camera;
+      if (!cam) return null;
+      if (!r.cam) r.cam = new THREE.Vector3();
+      cam.getWorldPosition(r.cam);
+
+      var got = false;
+      var cur = document.querySelector('#head [cursor]');
+      var rc = cur && cur.components && cur.components.raycaster;
+      var ray = rc && rc.raycaster && rc.raycaster.ray;
+      // A usable ray from the head cursor STARTS AT THE CAMERA — that is true
+      // whether the mouse aimed it or the raycaster left it as the head's own
+      // forward. One that starts anywhere else has simply never been updated
+      // (A-Frame's raycaster sets its ray in its own tick, and before the
+      // first one it is the identity: origin 0,0,0 pointing down world -Z).
+      // Following that would aim the reveal from the floor, past his knees,
+      // and the effect would look broken for reasons nothing on screen
+      // explains. Checked rather than assumed, because the default is
+      // plausible enough to survive a desktop test.
+      if (ray && ray.direction.lengthSq() > 0.5 && ray.origin.distanceTo(r.cam) < 0.25) {
+        r.o.copy(ray.origin);
+        r.d.copy(ray.direction);
+        got = true;
+      }
+      if (!got) {
+        if (!this.data.gaze) return null;
+        r.o.copy(r.cam);
+        r.d.set(0, 0, -1).applyQuaternion(cam.getWorldQuaternion(r.q)).normalize();
+      }
+
+      // Into the bust's own space, then against the plane it faces (z = 0).
+      r.inv.copy(obj.matrixWorld).invert();
+      r.o.applyMatrix4(r.inv);
+      r.d.transformDirection(r.inv);
+      if (Math.abs(r.d.z) < 1e-5) return null;
+      var t = -r.o.z / r.d.z;
+      if (t <= 0) return null;                       // he is behind the viewer
+      r.p.copy(r.d).multiplyScalar(t).add(r.o);
+
+      // Same margin convention as the panels — a fraction of the subject's own
+      // span, so the wash eases off his edge instead of snapping out.
+      var S = this.data.splatScale;
+      var hw = BUST_HALF_W * S, hh = BUST_HALF_H * S;
+      var m = this.data.gazeMargin;
+      var uu = (r.p.x + hw) / (2 * hw), vv = (r.p.y + hh) / (2 * hh);
+      if (uu < -m || uu > 1 + m || vv < -m || vv > 1 + m) return null;
+      return r.p;
+    },
+
+    _tickReveal: function (delta) {
+      var rv = this._reveal;
+      if (!rv) return;
+      var u = rv.mat.uniforms;
+      if (!u.uRevealOn) { this._reveal = null; return; }   // material was rebuilt under us
+      var hit = this._revealHit();
+      var wasHidden = rv.on < 0.06;
+      // Same ramps as mosaic-reveal: 220 ms for strength so it never snaps,
+      // 90 ms for position so it glides, and a SNAP on first contact so the
+      // mosaic blooms where you are actually looking rather than sliding in
+      // from wherever it was left.
+      rv.on += ((hit ? 1 : 0) - rv.on) * Math.min(1, (delta || 16) / 220);
+      u.uRevealOn.value = rv.on;
+      if (hit) {
+        var cv = u.uRevealCentre.value;
+        if (wasHidden) {
+          cv.copy(hit);
+        } else {
+          var f = Math.min(1, (delta || 16) / 90);
+          cv.x += (hit.x - cv.x) * f;
+          cv.y += (hit.y - cv.y) * f;
+          cv.z += (hit.z - cv.z) * f;
+        }
+      }
+    },
+
     // ── Why this component sorts the splats itself ───────────────────────
     // Gaussians must be drawn back-to-front, so the library re-sorts whenever
     // the camera moves enough. Its own trigger (Viewer.runSplatSort) tests
@@ -647,8 +927,13 @@
       return this.viewer.viewer.runSplatSort(true, false);
     },
 
-    tick: function () {
+    tick: function (time, delta) {
       if (!this.ready || !this.viewer) return;
+      // FIRST, because everything below it is allowed to return early — the
+      // watchdog bails out of the whole tick while nothing is being drawn, and
+      // the sort gate bails out whenever the head has not moved far enough.
+      // Either one would have quietly frozen the reveal.
+      this._tickReveal(delta);
       var cam = this.el.sceneEl && this.el.sceneEl.camera;
       if (!cam) return;
       cam.getWorldPosition(this._camPos);
@@ -752,6 +1037,12 @@
         // "why does he look like that" and they differ per asset.
         splatWidth: mesh ? mesh.splatScale : d.splatWidth,
         fadeBottom: d.fadeBottom,
+        // 'armed' means the shader patch took. Anything else means a grayscale
+        // bust with no mosaic, and says why — the one thing you cannot see
+        // from inside a headset is the difference between "not looking at him"
+        // and "the reveal never loaded".
+        reveal: this._revealState || 'off',
+        revealOn: this._reveal ? +this._reveal.on.toFixed(2) : 0,
         // What the SERVER said versus what actually arrived. `encoding` other
         // than identity with `bytes` != `contentLength` is the normal, healthy
         // reading on GitHub Pages — and it is the state that used to break the
@@ -831,6 +1122,11 @@
         this._onSessionStart = this._onSessionEnd = null;
         this._stereoArmed = false;
       }
+      // §3.17 again: the mosaic is a VRGlass-owned texture, so it is this
+      // component's to free. disposeSubtree cannot find it — it is on a
+      // uniform of a material the library owns, not on a mesh we built.
+      if (this._reveal && this._reveal.tex) this._reveal.tex.dispose();
+      this._reveal = null;
       if (this.viewer) {
         this.el.removeObject3D('splat');
         try {

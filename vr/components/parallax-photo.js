@@ -69,6 +69,11 @@
     'uniform float uEdgeFeather;',
     'uniform float uDesaturate;',
     'uniform float uSteps;',
+    'uniform sampler2D tMosaic;',
+    'uniform float revealOn;',
+    'uniform vec2 revealUv;',
+    'uniform float uRevealRadius;',
+    'uniform float uRevealCore;',
     'varying vec2 vUv;',
     'varying vec3 vViewTan;',
     'float sdRoundRect(vec2 p, vec2 b, float r){',
@@ -138,6 +143,21 @@
     '  vec3 photo = texture2D(tPhoto, hitUv).rgb;',
     '  float lum = dot(photo, vec3(0.299, 0.587, 0.114));',
     '  vec3 col = mix(photo, vec3(lum * 0.84), uDesaturate);',
+    // ── The reveal ────────────────────────────────────────────────────────
+    // Two different uvs on purpose, and the difference is the whole point of
+    // putting the effect on THIS panel:
+    //   • the LENS is measured at vUv — the fragment's own place on the
+    //     panel — so it is a circle on the glass, the same shape and size the
+    //     other three panels draw;
+    //   • the CONTENT is sampled at hitUv, the same parallaxed coordinate the
+    //     photograph is sampled at. So the tiles are not a decal floating on
+    //     the surface: they march with the depth map. Lean, and the mosaic
+    //     slides across his cheek exactly as the photo underneath it does.
+    '  if (revealOn > 0.002) {',
+    '    float dRev = length((vUv - revealUv) * uSize);',
+    '    float k = 1.0 - smoothstep(uRevealRadius * uRevealCore, uRevealRadius, dRev);',
+    '    col = mix(col, texture2D(tMosaic, hitUv).rgb, k * revealOn);',
+    '  }',
     // Same "fall off rather than stop" treatment the spatial photo uses, so
     // the four panels in the lab share one edge language.
     '  col *= mix(1.0, aperture, 0.45);',
@@ -147,6 +167,18 @@
     '  #include <colorspace_fragment>',
     '}'
   ].join('\n');
+
+  // One shared 1x1 white texel for every panel with no mosaic, made on first
+  // use. Not VRGlass-owned, so disposeSubtree leaves it alone — which is right:
+  // it is shared, so no single panel may free it.
+  var blank = null;
+  function blankTexture() {
+    if (!blank) {
+      blank = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+      blank.needsUpdate = true;
+    }
+    return blank;
+  }
 
   AFRAME.registerComponent('parallax-photo', {
     schema: {
@@ -183,7 +215,28 @@
       steps: { type: 'number', default: 20 },
       cornerFraction: { type: 'number', default: 0.06 },
       edgeFeather: { type: 'number', default: 0.012 },
-      desaturate: { type: 'number', default: 1 }
+      desaturate: { type: 'number', default: 1 },
+
+      // ── The mosaic reveal ────────────────────────────────────────────────
+      // Added 2026-09-13. This was the last panel in the lab without it, and
+      // being the only grey one while the other three bloomed was exactly the
+      // inconsistency that made the room look unfinished. The numbers are the
+      // flat site's own (mosaic-reveal.js / spatial-photo.js: 0.23 m and 0.55)
+      // so the lens is the same object on all four.
+      //
+      // Empty = no reveal, which stays the default: nothing outside the lab
+      // mounts this component yet, and a panel should not grow a texture
+      // download because a sibling wanted one.
+      mosaic: { type: 'string', default: '' },
+      radius: { type: 'number', default: 0.23 },
+      // Strictly below 1 — `smoothstep(r * core, r, d)` is UNDEFINED when
+      // edge0 >= edge1 and fails silently (trap §3.11).
+      revealCore: { type: 'number', default: 0.55 },
+      // Same reasoning as every other panel: a Vision Pro has no hover and a
+      // pinch is a one-frame pointer (§3.13), so without the head-pose
+      // fallback the effect is dead on the hardware it was built for.
+      gaze: { type: 'boolean', default: true },
+      gazeMargin: { type: 'number', default: 0.12 }
     },
 
     init: function () {
@@ -215,7 +268,15 @@
           uCornerRadius: { value: radius },
           uEdgeFeather: { value: d.edgeFeather },
           uDesaturate: { value: d.desaturate },
-          uSteps: { value: Math.max(1, Math.min(24, d.steps)) }
+          uSteps: { value: Math.max(1, Math.min(24, d.steps)) },
+          // A 1x1 white texel when there is no mosaic, rather than null: an
+          // unbound sampler2D is undefined behaviour and warns on some
+          // drivers even though `revealOn` never leaves 0 to sample it.
+          tMosaic: { value: d.mosaic ? this._loadMosaic(d.mosaic) : blankTexture() },
+          revealOn: { value: 0 },
+          revealUv: { value: new THREE.Vector2(0.5, 0.5) },
+          uRevealRadius: { value: Math.max(0.001, d.radius) },
+          uRevealCore: { value: Math.min(0.98, Math.max(0, d.revealCore)) }
         },
         vertexShader: VERT,
         fragmentShader: FRAG,
@@ -227,6 +288,85 @@
       this.mesh = new THREE.Mesh(this.geometry, this.material);
       this.el.setObject3D('parallax', this.mesh);
       this.el.classList.add('clickable');
+
+      this._revealOn = 0;
+      this._hasMosaic = !!d.mosaic;
+    },
+
+    // sRGB, unlike the depth map beside it and unlike the splat's mosaic. This
+    // shader ends with `#include <colorspace_fragment>`, so it works in LINEAR
+    // and three.js decodes an sRGB-tagged texture on sample — the photograph
+    // is loaded the same way, and the two have to agree or the mosaic mixes in
+    // at a different gamma than the picture it is replacing (trap §3.5).
+    _loadMosaic: function (url) {
+      var t = VRGlass.loadTexture(url, function (tex) { tex.anisotropy = 8; });
+      t.anisotropy = 8;
+      return t;
+    },
+
+    // Where the viewer is aiming, as a uv on this panel, or null.
+    //
+    // Through VRPointer for the pointer half: it is the shared answer and it
+    // GATES THE PHANTOM HAND RAYS. Both hand raycasters sit at the rig origin
+    // firing along -Z whenever no controller is attached, which on a Vision
+    // Pro is permanently — so asking the raycasters directly (which is what
+    // mosaic-reveal still does) can hand back a hit from a ray nobody is
+    // holding.
+    _hitUv: function () {
+      var self = this;
+      if (window.VRPointer && VRPointer.nearest) {
+        var hit = VRPointer.nearest(function (h) {
+          return h.object && h.object.el === self.el && h.uv;
+        });
+        if (hit && hit.uv) return hit.uv;
+      }
+      if (!this.data.gaze) return null;
+
+      // No pointer on the panel. In a headset that means nothing at all
+      // (§3.13), so fall back to the head pose, solved against this panel's
+      // own plane in its local space — a divide, not a raycast.
+      var cam = this.el.sceneEl && this.el.sceneEl.camera;
+      if (!cam) return null;
+      if (!this._g) {
+        this._g = { o: new THREE.Vector3(), d: new THREE.Vector3(), q: new THREE.Quaternion(),
+                    inv: new THREE.Matrix4(), uv: new THREE.Vector2() };
+      }
+      var g = this._g;
+      cam.getWorldPosition(g.o);
+      g.d.set(0, 0, -1).applyQuaternion(cam.getWorldQuaternion(g.q)).normalize();
+      g.inv.copy(this.el.object3D.matrixWorld).invert();
+      g.o.applyMatrix4(g.inv);
+      g.d.transformDirection(g.inv);
+      if (Math.abs(g.d.z) < 1e-5) return null;
+      var t = -g.o.z / g.d.z;
+      if (t <= 0) return null;
+      var px = g.o.x + g.d.x * t, py = g.o.y + g.d.y * t;
+      var u = px / this.data.width + 0.5, v = py / this.data.height + 0.5;
+      var m = this.data.gazeMargin;
+      if (u < -m || u > 1 + m || v < -m || v > 1 + m) return null;
+      return g.uv.set(u, v);
+    },
+
+    tick: function (time, delta) {
+      if (!this._hasMosaic || !this.material) return;
+      var u = this.material.uniforms;
+      var hit = this._hitUv();
+      var wasHidden = this._revealOn < 0.06;
+      // The same two ramps every other panel uses — 220 ms for strength, 90 ms
+      // for position, and a snap on first contact so the mosaic blooms where
+      // you are looking rather than sliding in from where it was left.
+      this._revealOn += ((hit ? 1 : 0) - this._revealOn) * Math.min(1, (delta || 16) / 220);
+      u.revealOn.value = this._revealOn;
+      if (hit) {
+        var uv = u.revealUv.value;
+        if (wasHidden) {
+          uv.set(hit.x, hit.y);
+        } else {
+          var f = Math.min(1, (delta || 16) / 90);
+          uv.x += (hit.x - uv.x) * f;
+          uv.y += (hit.y - uv.y) * f;
+        }
+      }
     },
 
     remove: function () {
@@ -237,6 +377,9 @@
         var u = this.material.uniforms;
         if (u.tPhoto.value) u.tPhoto.value.dispose();
         if (u.tDepth.value) u.tDepth.value.dispose();
+        // Only our own: blankTexture() is shared between panels, so freeing it
+        // here would blank the sampler of every other one.
+        if (u.tMosaic.value && u.tMosaic.value.__vrOwned) u.tMosaic.value.dispose();
         this.material.dispose();
       }
     }

@@ -65,35 +65,48 @@
   // are for.
   var SITE_WALK_RADIUS = 1.35;
 
-  // ── One photograph, four techniques: the reveal has to be OFF in here ─────
-  // Sebastian: *"make all the panels look as good as possible at representing
-  // the style they are showing off."* The first thing in the way of that was
-  // not a quality setting, it was this room contradicting its own premise.
+  // ── One photograph, four techniques — and now the reveal on ALL FOUR ─────
+  // This went the wrong way once, so the reasoning is worth keeping whole.
   //
   // `spatial-photo` and `mosaic-reveal` both carry the flat site's signature
-  // gaze-driven mosaic reveal, and both default it ON. So two of the four
-  // panels bloomed COLOUR wherever you happened to be looking while the other
-  // two stayed grey — and the colour they bloomed was the mosaic bake, which
-  // renders his hair ginger. A viewer comparing four depth treatments was
-  // being shown, at the same time, a colour wash on half of them and an
-  // inaccurate one at that. That is exactly the confound the docblock at the
-  // top of this file says must not exist: *the only thing that differs between
-  // them is the depth technique.*
+  // gaze-driven mosaic reveal and both default it ON, so two of the four
+  // panels bloomed colour wherever you looked while the other two stayed
+  // grey — and his hair came out GINGER. Reading that as one problem, I turned
+  // the reveal off in here and cited this file's own docblock: *the only thing
+  // that differs between them is the depth technique.*
   //
-  // The reveal is not being removed from the site — it is the hub portrait's
-  // effect and it stays there, where the panel is alone and a wash of colour
-  // over one eye is the point. It just has no business in a controlled
-  // comparison. Both panels get `gaze: false` and the relief panel gets the
-  // grey image for BOTH of its layers, so nothing can bloom.
+  // It was two problems. The ginger was never the mosaic: it was
+  // mosaic-reveal's `litAmt`, an ADDITIVE sheen that is invisible on a lit
+  // face and enormous on dark hair (its own shader documents 0 as "untouched
+  // image"). The mosaic's hair is navy. Turning the reveal off fixed the
+  // ginger by accident and cost the room the best thing on the site.
   //
-  // The image itself is the flat site's framed contact photo, which is what
-  // parallax-photo already defaulted to and what the relief panel already
-  // used as its grey. Naming it once here is what makes "the same picture in
-  // all four" a thing this file states rather than a coincidence of three
-  // separate defaults. The spatial panel is the exception it has to be: a
-  // stereo pair is a different asset by definition (assets/portrait-eye-*),
-  // baked from this same photograph.
+  // Sebastian: *"the reveal effect (or the mosaic) is no longer working on the
+  // relief panel. can you get that working again? and, can you see if you can
+  // get the effect to work on the 3d gaussian too?"*
+  //
+  // So: `litAmt: 0` STAYS — that is the actual fix, and it is what makes the
+  // grey state of all four panels identical. The reveal comes back on both
+  // photo panels, and the splat gets one too (splat-portrait.js projects each
+  // gaussian back into the photograph and samples the mosaic there). The
+  // premise survives intact and is in fact better served: four techniques,
+  // one grey photograph, one mosaic, and the only difference between them is
+  // still the depth.
+  //
+  // Which leaves the relief panel as the only one WITHOUT a reveal-capable
+  // partner... no: all four have it now. The parallax panel is the exception,
+  // and it is a real one — parallax-photo.js has no second texture and no
+  // reveal shader, so it stays grey. Noted rather than hidden.
+  //
+  // The image is named once here because "the same picture in all four" should
+  // be something this file states rather than a coincidence of three separate
+  // defaults. `VRGlass.loadTexture` rewrites `../images/` to the downscaled
+  // `assets/tex/` derivative, so these paths cost 50 KB and 347 KB, not 88 KB
+  // and 2.9 MB. The spatial panel is the exception it has to be: a stereo pair
+  // is a different asset by definition (assets/portrait-eye-*, and its own
+  // mosaic pair), baked from this same photograph.
   var SHOW_PHOTO = '../images/contact-photo-framed-for-mosaic.jpg';
+  var SHOW_MOSAIC = '../images/contact-photo-mosaic.jpg';
   // The relief panel builds its interior for one reference viewpoint, and that
   // has to be where the panel actually is or the box does not fill its opening.
   // The home portrait's default is 1.5 m; in here they hang at 1.85 m — but
@@ -270,21 +283,17 @@
         var art = document.createElement('a-entity');
         if (v.key === 'spatial') {
           art.setAttribute('spatial-photo', {
-            width: PANEL_W, height: PANEL_H,
-            // ── No mosaic reveal in here. See the note above SHOW_PHOTO ──────
-            gaze: false
+            width: PANEL_W, height: PANEL_H
+            // Reveal left at its default (on), with its own stereo mosaic
+            // pair. See the note above SHOW_PHOTO.
           });
         } else if (v.key === 'relief') {
           art.setAttribute('mosaic-reveal', {
             gray: SHOW_PHOTO,
-            // The SAME image as `gray`, so there is nothing for a reveal to
-            // reveal even if a pointer lands on the panel. `gaze: false` alone
-            // would leave the hover path live on a desktop.
-            color: SHOW_PHOTO,
-            gaze: false,
-            // ── And no amber sheen either ───────────────────────────────────
-            // This was the actual reason his hair came out GINGER in here, and
-            // it survived turning the reveal off, which is what gave it away.
+            color: SHOW_MOSAIC,
+            // ── The amber sheen stays OFF ──────────────────────────────────
+            // THIS is what made his hair ginger, not the mosaic — proved by
+            // the fact that it survived turning the reveal off.
             // mosaic-reveal's own shader documents the uniform as "0 =
             // untouched image; >0 dials in the shared light rig, FOR
             // COMPARISON" — and the term is ADDITIVE (`col += spec * ... *
@@ -307,7 +316,11 @@
           // it (parallax-photo.js's depthM defaults to the bake's relief_m), so
           // the only thing differing between those two is the technique.
           art.setAttribute('parallax-photo', {
-            width: PANEL_W, height: PANEL_H, photo: SHOW_PHOTO
+            width: PANEL_W, height: PANEL_H, photo: SHOW_PHOTO,
+            // The mosaic marches with the depth map here, because it is
+            // sampled at the same parallaxed uv as the photograph. That makes
+            // this the one panel where you can watch the reveal itself move.
+            mosaic: SHOW_MOSAIC
           });
         } else {
           // The splat is a free-standing bust, not something behind an opening —
@@ -322,7 +335,12 @@
           var hi = this.quality !== 'low';
           art.setAttribute('splat-portrait', {
             src: hi ? 'assets/portrait.splat' : this.data.splat,
-            splatWidth: hi ? 1.3 : 1.4
+            splatWidth: hi ? 1.3 : 1.4,
+            // The same mosaic the relief panel reveals, projected back onto
+            // the gaussians through the camera SHARP assumed. It is the one
+            // panel in here where the reveal happens on real 3D: the lens
+            // wraps his cheek and stays put on him as you lean.
+            mosaic: SHOW_MOSAIC
           });
         }
         slot.appendChild(art);

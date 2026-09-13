@@ -65,8 +65,8 @@
   // are for.
   var SITE_WALK_RADIUS = 1.35;
 
-  // ── One photograph, four techniques — and now the reveal on ALL FOUR ─────
-  // This went the wrong way once, so the reasoning is worth keeping whole.
+  // ── One photograph, four techniques, and the reveal on three of them ─────
+  // This went back and forth, so the reasoning is worth keeping whole.
   //
   // `spatial-photo` and `mosaic-reveal` both carry the flat site's signature
   // gaze-driven mosaic reveal and both default it ON, so two of the four
@@ -81,22 +81,22 @@
   // image"). The mosaic's hair is navy. Turning the reveal off fixed the
   // ginger by accident and cost the room the best thing on the site.
   //
-  // Sebastian: *"the reveal effect (or the mosaic) is no longer working on the
-  // relief panel. can you get that working again? and, can you see if you can
-  // get the effect to work on the 3d gaussian too?"*
+  // So `litAmt: 0` STAYS — that is the actual fix, and it is what makes the
+  // grey state of every panel identical. The reveal is back on both photo
+  // panels, and parallax-photo.js gained one (its mosaic is sampled at the
+  // PARALLAXED uv, so the tiles march with the depth map instead of sitting
+  // on the glass).
   //
-  // So: `litAmt: 0` STAYS — that is the actual fix, and it is what makes the
-  // grey state of all four panels identical. The reveal comes back on both
-  // photo panels, and the splat gets one too (splat-portrait.js projects each
-  // gaussian back into the photograph and samples the mosaic there). The
-  // premise survives intact and is in fact better served: four techniques,
-  // one grey photograph, one mosaic, and the only difference between them is
-  // still the depth.
-  //
-  // Which leaves the relief panel as the only one WITHOUT a reveal-capable
-  // partner... no: all four have it now. The parallax panel is the exception,
-  // and it is a real one — parallax-photo.js has no second texture and no
-  // reveal shader, so it stays grey. Noted rather than hidden.
+  // THE SPLAT IS THE EXCEPTION, and it is a measured one rather than an
+  // omission. Projecting the mosaic back through the camera SHARP assumed
+  // registers exactly head-on — and this is a room whose own hint tells you to
+  // lean side to side, which is where it turns to per-splat colour noise. A
+  // front-surface depth guard, a graze fade derived off that map, and explicit
+  // mip sampling each improved it and none was enough; the long note in
+  // splat-portrait.js has the numbers and the reason it is not a filtering
+  // problem. Sebastian, after four angles: *"if you can't — just remove the
+  // feature."* So three panels bloom and the gaussians stay grey, which at
+  // least leaves that panel making exactly one claim: depth.
   //
   // The image is named once here because "the same picture in all four" should
   // be something this file states rather than a coincidence of three separate
@@ -335,12 +335,15 @@
           var hi = this.quality !== 'low';
           art.setAttribute('splat-portrait', {
             src: hi ? 'assets/portrait.splat' : this.data.splat,
-            splatWidth: hi ? 1.3 : 1.4,
-            // The same mosaic the relief panel reveals, projected back onto
-            // the gaussians through the camera SHARP assumed. It is the one
-            // panel in here where the reveal happens on real 3D: the lens
-            // wraps his cheek and stays put on him as you lean.
-            mosaic: SHOW_MOSAIC
+            splatWidth: hi ? 1.3 : 1.4
+            // No mosaic here, and it is the one panel without one. Tried and
+            // measured from four angles: projecting the mosaic back through
+            // SHARP's camera registers beautifully head-on and turns to
+            // per-splat colour noise the moment you lean, which is the one
+            // thing this room asks you to do. A front-surface depth guard, a
+            // derived graze fade and explicit mip sampling each helped and
+            // none was enough — see the long note in splat-portrait.js. The
+            // panel's own claim is depth, and depth is what it shows.
           });
         }
         slot.appendChild(art);

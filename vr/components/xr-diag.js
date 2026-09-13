@@ -294,8 +294,7 @@
   //                             which is always identity in A-Frame)
   //   bytes != contentLength    the server compressed it; this is NORMAL on
   //                             GitHub Pages and used to be fatal (§3.18)
-  //   reveal not 'armed'        the shader patch missed; grayscale, no mosaic
-  //   webXRActive false while presenting
+    //   webXRActive false while presenting
   //                             the stereo correction is off and the splats
   //                             are sized against the whole canvas, not an eye
   function splatFmt(d) {
@@ -306,7 +305,6 @@
       'gaussians         ' + d.splats + ' loaded, ' + d.drawn + ' drawn',
       'sorts             ' + d.sorts + (d.lastSortMs == null ? '' : '   (last ' + Math.round(d.lastSortMs) + ' ms)'),
       'splat width       ' + (d.splatWidth == null ? '—' : d.splatWidth),
-      'reveal            ' + d.reveal + (d.reveal === 'armed' ? '   (' + d.revealOn + ')' : ''),
       'stereo fix        ' + (d.webXRActive == null ? '—' : d.webXRActive) +
         (d.presenting ? '   (presenting)' : '   (flat)')
     ];
@@ -358,10 +356,6 @@
     if (d.presenting && d.webXRActive === false) {
       out.push('In a session with the stereo correction OFF: the splats are being sized ' +
         'against the whole canvas instead of one eye, so they will look stretched.');
-    }
-    if (d.reveal && d.reveal !== 'armed' && d.reveal !== 'off') {
-      out.push('The mosaic reveal did not arm (' + d.reveal + '), so he is grayscale with ' +
-        'no mosaic. The rest of the panel is unaffected.');
     }
     return out;
   }

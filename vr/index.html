@@ -283,14 +283,14 @@
        the entity carries the attribute, and nothing carries it by default. The
        665 KB renderer is fetched lazily from inside the component, so an
        unflagged visit does not pay for this tag. -->
-  <script src="components/splat-portrait.js?v=15"></script>
+  <script src="components/splat-portrait.js?v=19"></script>
   <!-- The lab's fourth depth treatment: parallax occlusion mapping over the
        relief panel's own depth map. Two triangles, no new asset. -->
   <script src="components/parallax-photo.js?v=3"></script>
   <!-- Both inert until the lab is opened: spatial-photo builds nothing unless
        an entity carries it, and portrait-lab builds only its button up front. -->
   <script src="components/spatial-photo.js?v=6"></script>
-  <script src="components/portrait-lab.js?v=15"></script>
+  <script src="components/portrait-lab.js?v=16"></script>
   <script src="components/bio-card.js?v=36"></script>
   <script src="components/project-room.js?v=50"></script>
   <!-- The reading ruler inside pdf-reader: finds the text lines in each
@@ -319,7 +319,7 @@
   <!-- ?xrdiag=1 only. There is no console in a Vision Pro, so this samples the
        clocks in-session and prints the answer on a card in the scene. Inert
        without the flag: nothing is built and no sampler runs. -->
-  <script src="components/xr-diag.js?v=3"></script>
+  <script src="components/xr-diag.js?v=4"></script>
   <script src="components/fallback.js?v=5"></script>
   <script src="components/hud.js?v=13"></script>
   <!-- Portrait-phone recomposition of the home view (narrow horizontal fov).

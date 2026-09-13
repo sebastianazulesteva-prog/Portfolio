@@ -145,7 +145,7 @@
       entered = false;
       console.warn('[vr] enterVR failed', err);
       if (status) {
-        status.textContent = 'Couldn’t start the headset session — the flat view still works.';
+        status.textContent = 'Couldn’t start the headset session. The flat view still works.';
         status.classList.add('shown');
       }
     }
@@ -257,7 +257,7 @@
           // Declined is not an error and must not block entry: drag-to-look
           // still works, you just don't get tilt.
           if (state !== 'granted' && status) {
-            status.textContent = 'No problem — you can still look around by dragging.';
+            status.textContent = 'No problem. You can still look around by dragging.';
             status.classList.add('shown');
             setTimeout(dismiss, 1400);
             return;

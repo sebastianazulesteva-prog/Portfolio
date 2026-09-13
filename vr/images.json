@@ -13,13 +13,13 @@
       "$why": "The mosaic was GENERATED WITH GEMINI. Sebastian, 2026-09-09: he does not want that emphasised and does not want it hidden. So the credit lives in the hero image's alt attribute on index.html — the standard place for a fact about an image, available to a screen reader, to view-source and to a crawler, and on screen to nobody. It is deliberately NOT in this caption: a floating tile label is a headline, not a credit line. What matters more is the other half — nothing anywhere may call it hand-made, physical, ceramic, tiled or crafted. It never has (checked across every page and component), and the first draft of this caption said 'every tile a small object out of his work', which was already drifting that way before Sebastian replaced it with his own wording. Keep it as he wrote it."
     },
     "contact-photo-fun-1.jpg": {
-      "caption": "Paper and tape only — a tower-building night I ran as an RA"
+      "caption": "Paper and tape only. A tower-building night I ran as an RA"
     },
     "contact-photo-fun-2.jpg": {
       "caption": "The Hot Ones challenge, at an Explore Energy community night I ran"
     },
     "contact-photo-fun-3.jpg": {
-      "caption": "Most Innovative Solution at the d.school — a mirrored robotic arm, for Craig"
+      "caption": "Most Innovative Solution at the d.school: a mirrored robotic arm, for Craig"
     },
     "contact-photo-fun-4.jpg": {
       "caption": "Pizza with my visiting grad students; building community was the job"
@@ -28,13 +28,13 @@
       "caption": "Folded down and tucked into a striped Mexican bag"
     },
     "baston-final.jpg": {
-      "caption": "The finished cane — the burl handle and turned shaft, against a garden bench"
+      "caption": "The finished cane: the burl handle and turned shaft, against a garden bench"
     },
     "baston-3dprint.jpg": {
       "caption": "A 3D-printed prototype of the folding mechanism, in hand"
     },
     "baston-parts.jpg": {
-      "caption": "Every part laid out — shafts I turned by hand, water-jet-cut joiners, and the aluminum joints I machined"
+      "caption": "Every part laid out: shafts I turned by hand, water-jet-cut joiners, and the aluminum joints I machined"
     },
     "baston-sketch.jpg": {
       "caption": "Hand sketches for the folding mechanism, beside the cardboard prototype"
@@ -43,7 +43,7 @@
       "caption": "Turning aluminum on the lathe for the custom joint"
     },
     "pendant-hero.jpg": {
-      "caption": "Two orbs, then six — 26, my graduation year. My name runs down the edge."
+      "caption": "Two orbs, then six: 26, my graduation year. My name runs down the edge."
     },
     "pendant-cast-raw.jpg": {
       "caption": "Straight out of the investment mold, before any finishing"
@@ -52,29 +52,29 @@
       "caption": "Both patterns, printed in castable wax, still on their supports"
     },
     "pendant-worn.jpg": {
-      "caption": "Worn — silver against a striped shirt"
+      "caption": "Worn: silver against a striped shirt"
     },
     "chess-hero.jpg": {
-      "caption": "On the wall, ranks rotated out — the game stays on display and still plays",
+      "caption": "On the wall, ranks rotated out. The game stays on display and still plays",
       "$why": "The ranks ROTATE IN PLACE — they do not slide and do not fold. The point is that the set can be displayed on a wall and still played. Ten pages carried 'sliding panels', which was simply wrong. From Sebastian, 2026-09-11."
     },
     "chess-fea.jpg": {
-      "caption": "Fillets at the joints made it stronger — safety factor 4.5 to 5.05, less stress at the pins",
+      "caption": "Fillets at the joints made it stronger: safety factor 4.5 to 5.05, less stress at the pins",
       "$why": "The slide's real numbers: displacement 1.75 -> 1.684 mm, minimum safety factor 4.5 -> 5.053, both after adding fillets. That is about +12% on FS, NOT a doubling — do not write 'doubles', which is what an earlier draft of this caption nearly said."
     },
     "chess-final-AI-Pieces.jpg": {
-      "caption": "Pieces generated with AI — I was testing how to hand design intent to new tools. I laser cut the real ones later.",
+      "caption": "Pieces generated with AI. I was testing how to hand design intent to new tools. I laser cut the real ones later.",
       "$why": "The pieces in this photo were GENERATED WITH AI. That is what the file name has been saying all along. He did it deliberately — the project was partly about how you hand design intent to a new set of tools — and he laser cut the real pieces later. Disclose it plainly, do not dress it up and do not bury it; same handling as contact-photo-mosaic.jpg. The disclosure is also in the alt on chess.html. Nothing may imply these are the printed or laser-cut pieces. From Sebastian, 2026-09-11. Note the tell: the AI pieces are ordinary 3D Staunton pieces, and those could never work in this set — the real ones are flat and laser-cut because the ranks have to stay thin to rotate. See chess-final-success.png for the holders they slot into."
     },
     "chess-final-success.png": {
-      "caption": "Thrilled, and holding it up for scale — those magnet-stuck bases are what the flat laser-cut pieces slot into",
+      "caption": "Thrilled, and holding it up for scale. Those magnet-stuck bases are what the flat laser-cut pieces slot into",
       "$why": "Sebastian, 2026-09-11, on what this photo is FOR: scale (the board is next to his face, and chess.html gives it as roughly 20 x 20 inches) and how excited he was. The small tabs on the light squares are not decoration — they are the piece HOLDERS, stuck on and held by the magnets, and the laser-cut pieces slot into them. The pieces had to be SKINNY for the mechanism to work at all, which is the same constraint the ideation slide writes down as 'keep y (thickness of row) small'. The board is FLAT here, not posed out; an earlier draft of this caption said 'fully deployed', which is not what the photo shows."
     },
     "chess-ideation.jpg": {
-      "caption": "Reference boards and the first concept sketches — keep the rows thin"
+      "caption": "Reference boards and the first concept sketches: keep the rows thin"
     },
     "chess-mechanism-prototype.jpg": {
-      "caption": "The rack and pinion I pivoted to — it rotates each rank 90 degrees",
+      "caption": "The rack and pinion I pivoted to. It rotates each rank 90 degrees",
       "$why": "The rack and pinion is the design he pivoted TO, and it rotates each rank 90 degrees. The page never names the mechanism and its old alt called it a 'swivel mechanism for the chess piece', which the photo contradicts outright. From Sebastian, 2026-09-11."
     },
     "chess-press-insert.jpg": {
@@ -94,20 +94,20 @@
       "caption": "A selfie with two teammates around the half-built frame"
     },
     "timecollector-hero-front.png": {
-      "caption": "Head-on — the gear train, the marble wheel, the hanging weight, and the bag the marbles drop into"
+      "caption": "Head-on: the gear train, the marble wheel, the hanging weight, and the bag the marbles drop into"
     },
     "timecollector-hero-side.png": {
       "caption": "From the side: the chute, and the receptacle the marbles collect in"
     },
     "timecollector-cardboard-real.png": {
-      "caption": "The cardboard prototype — escapement, belt drive, the marble wheel and the chute"
+      "caption": "The cardboard prototype: escapement, belt drive, the marble wheel and the chute"
     },
     "timecollector-fbd-full.png": {
-      "caption": "All worked by hand — the 0.68 kg weight ends up pushing like 9.4 kg, about fourteen times over",
+      "caption": "All worked by hand: the 0.68 kg weight ends up pushing like 9.4 kg, about fourteen times over",
       "$why": "The sheet's own bottom line: F_input = mg = 6.664 N (a 0.68 kg weight), F_output = 91.88 N, so ~13.8x through the train. The caption states it as weight-equivalents because Sebastian asked for it human (2026-09-11): 6.664 N is what 0.68 kg pulls with, 91.88 N is what ~9.4 kg would. Six panels on the sheet: power source, actuator, gear train (40:12), escapement, pulley system, marble receptacle + bevel gear train."
     },
     "timecollector-refined-real.png": {
-      "caption": "The refined printed prototype — spoked wheel, pinion and marble track"
+      "caption": "The refined printed prototype: spoked wheel, pinion and marble track"
     },
     "vr-hero-hub.jpg": {
       "exclude": true,
@@ -142,7 +142,7 @@
       "$why": "See vr-hero-hub.jpg."
     },
     "slide-1-sketch.png": {
-      "caption": "Gestalting 2 — time shown by the number of marbles collected in the disc",
+      "caption": "Gestalting 2: time shown by the number of marbles collected in the disc",
       "$why": "The only image on the site whose file name does not start with its project's href stem, so the catalog's stem match cannot tag it and it was the one Time Collector photo in the cloud with no project on its caption and no way into the room. CONTENT RULE for this sheet: it is titled 'Gestalting 2' and it is the single most informative image on the project, because timecollector.html has no prose at all — only a title, the four-person byline and 'The Journey'. Its handwriting also reads 'NETWORK: CHILDREN LEARNING TO UNDERSTAND THE CONCEPT OF TIME'. Sebastian, 2026-09-11: use the MECHANISM (time shown by the number of marbles in the disc) but NOT the children audience — that was a gestalting-stage framing, not a claim about the finished piece. Do not add it back.",
       "project": "timecollector.html"
     }

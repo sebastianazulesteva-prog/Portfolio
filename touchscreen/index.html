@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>50 Years of Touch — An Interactive History</title>
+<title>50 Years of Touch: An Interactive History</title>
 
-<meta name="description" content="An interactive walk through five eras of touchscreen technology. One task — fit the red rectangle into the slot — across D-pads, infrared bezels, early capacitive glass, and modern multi-touch." />
+<meta name="description" content="An interactive walk through five eras of touchscreen technology. One task, fitting the red rectangle into the slot, across D-pads, infrared bezels, early capacitive glass, and modern multi-touch." />
 <meta name="robots" content="noindex, nofollow" />
 <meta name="theme-color" content="#f3efe3" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -630,7 +630,7 @@ body{
       <div class="eyebrow">Experience Complete</div>
       <h1>🎉 Fifty Years, One Rectangle</h1>
       <p>You just moved the <b>same shape</b> across <b>five decades</b>.</p>
-      <p>What required <b>physical buttons</b>, <b>flickering light beams</b>, and <b>plastic styluses</b> in 1983 now happens in <b>milliseconds</b> — effortless, instant, and weightless.</p>
+      <p>What required <b>physical buttons</b>, <b>flickering light beams</b>, and <b>plastic styluses</b> in 1983 now happens in <b>milliseconds</b>: effortless, instant, and weightless.</p>
       <div class="finale-stat">
         <div><div class="n">1970s</div><div class="l">Buttons</div></div>
         <div><div class="n">1983</div><div class="l">Lasers</div></div>
@@ -661,7 +661,7 @@ const ERAS = [
     accentBold:'#16a34a',
     eyebrow:'Pre-Touch (1965–1970s)',
     title:'E.A. Johnson, 1965',
-    body:'The <b>first capacitive touch display</b> was built for air traffic control. Yet for decades, computer monitors remained <b>strictly visual</b> — requiring <b>physical buttons</b> for every action.',
+    body:'The <b>first capacitive touch display</b> was built for air traffic control. Yet for decades, computer monitors remained <b>strictly visual</b>, requiring <b>physical buttons</b> for every action.',
     cta:'[ Start Experience ]',
     hud:'Pre-touch'
   },
@@ -688,7 +688,7 @@ const ERAS = [
     accentBold:'#3f7a3f',
     eyebrow:'Resistive Touch (1994)',
     title:'IBM Simon, 1994',
-    body:'The IBM Simon — the <b>first true smartphone</b> — used <b>resistive touch</b>: two flexible conductive layers that register a touch when they\'re physically <b>bent into touching each other</b>.',
+    body:'The IBM Simon, the <b>first true smartphone</b>, used <b>resistive touch</b>: two flexible conductive layers that register a touch when they\'re physically <b>bent into touching each other</b>.',
     cta:'[ Test Resistive Touch ]',
     hud:'Resistive touch'
   },
@@ -697,7 +697,7 @@ const ERAS = [
     accentBold:'#7c3aed',
     eyebrow:'Multi-Touch (2007–Present)',
     title:'The Grid Under the Glass',
-    body:'An <b>invisible grid</b> under the glass senses the <b>tiny electrical charge in your skin</b>. It tracks <b>multiple fingers at once</b>—making swipes, pinches, and twists feel like <b>second nature</b>.',
+    body:'An <b>invisible grid</b> under the glass senses the <b>tiny electrical charge in your skin</b>. It tracks <b>multiple fingers at once</b>, making swipes, pinches, and twists feel like <b>second nature</b>.',
     cta:'[Return to the Current Era]',
     hud:'Modern glass'
   }
@@ -1058,7 +1058,7 @@ function sceneTwo(done){
     bounds:{ x0:56, y0:56, x1:ir.SW-56, y1:ir.SH-56 },
     start:{ x:86, y:470, rot:0 },
     slot:{ x:236, y:124, rot:0 },
-    slotLabel:'TARGET · 0° — NO ROTATION',
+    slotLabel:'TARGET · 0° · NO ROTATION',
     posTol:36, rotTol:10,
     onSolve: done
   });
@@ -1200,7 +1200,7 @@ function sceneThree(done){
       { x: field.state.x + rand(-50,50), y: field.state.y + rand(-50,50) },
       { x: rand(b.x0, b.x1), y: rand(b.y0, b.y1) }
     ];
-    const gb = banner(ir.screen, 'GHOST TOUCH — SENSOR MISFIRE', 'err', 12, 0);
+    const gb = banner(ir.screen, 'GHOST TOUCH: SENSOR MISFIRE', 'err', 12, 0);
     field.block.classList.remove('smooth');
     let k = 0;
     const jt = setInterval(() => { const p = pts[k++ % pts.length]; field.set(p.x, p.y); }, 90);
@@ -1275,7 +1275,7 @@ function sceneThree(done){
     setTimeout(() => {
       stopPhantom();
       modal(device, 'Controller fault',
-        'Optical infrared grids cannot handle multi-touch — two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
+        'Optical infrared grids cannot handle multi-touch: two fingers produce four possible coordinates and the controller has no way to choose. Reverting to single-touch button input.',
         'Use the rotate button', unlockFallback, GATE_MS);
     }, 700);
   }
@@ -1361,7 +1361,7 @@ function sceneThree(done){
   /* never soft-lock: if two fingers are never tried, hand over the fallback anyway */
   const rescue = setTimeout(() => {
     if (!fallbackUnlocked && !field.done){
-      banner(ir.screen, 'MULTI-TOUCH UNAVAILABLE — SWITCHING TO BUTTON INPUT', 'warn', 12, 2600);
+      banner(ir.screen, 'MULTI-TOUCH UNAVAILABLE: SWITCHING TO BUTTON INPUT', 'warn', 12, 2600);
       unlockFallback();
     }
   }, 20000);

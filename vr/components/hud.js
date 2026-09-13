@@ -250,7 +250,7 @@
       // nobody is told about is a control nobody uses. The desktop copy is
       // authored in index.html; only the touch rewrite lives here.
       var base = TOUCH
-        ? 'Tap a panel to open it — drag or tilt to look, joystick to move.'
+        ? 'Tap a panel to open it. Drag or tilt to look, joystick to move.'
         : hint.textContent.trim();
       function set(text) { if (hint && hint.parentNode && !hintFaded) hint.textContent = text; }
       set(base);

@@ -428,7 +428,7 @@
 
     var text = info.stage || '';
     if (info.total) {
-      text += (text ? ' — ' : '') + fmtBytes(info.loaded || 0) + ' of ' + fmtBytes(info.total);
+      text += (text ? ' · ' : '') + fmtBytes(info.loaded || 0) + ' of ' + fmtBytes(info.total);
       setFraction((info.loaded || 0) / info.total);
     } else if (info.fraction != null) {
       setFraction(info.fraction);

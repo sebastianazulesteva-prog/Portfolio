@@ -26,15 +26,15 @@
 */
 
 (function () {
-  // Drop a trailing editorial aside (" — Stanford's Biomechanical Engineering
+  // Drop a trailing editorial aside (". Stanford's Biomechanical Engineering
   // program is essentially its Biomedical Engineering degree.") from an
   // over-long stat value so it fits the compact card in a line or two. The
-  // primary content before the em-dash is kept verbatim; the full text still
+  // primary content before that sentence break is kept verbatim; the full text still
   // lives on the flat site's About section. Only trims genuinely long values,
-  // so short em-dash values (a date range, say) are left intact.
+  // so short values (a date range, say) are left intact.
   function compactStat(value) {
     value = value || '';
-    var i = value.indexOf(' — ');
+    var i = value.indexOf('. ');
     return (i > 0 && value.length > 80) ? value.slice(0, i) : value;
   }
 

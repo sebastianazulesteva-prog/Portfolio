@@ -159,7 +159,7 @@
       // than ended immediately — the whole point is that someone wearing a
       // headset gets to see the reason.
       var self = this;
-      this._say('unavailable — ' + String(why).slice(0, 90));
+      this._say('unavailable: ' + String(why).slice(0, 90));
       setTimeout(function () { self._done(); }, 5200);
       this.el.emit('splat-portrait-failed', { reason: why }, false);
     },

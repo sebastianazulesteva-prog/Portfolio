@@ -153,6 +153,27 @@ a-scene {
 .hud-btn.muted { color: var(--muted); }
 .hud-btn.recenter-btn { font-size: 1.2rem; }
 
+/* ─── Open/close the roof (skylight.js) ───────────────────────────────────
+   The glyph is U+2600 followed by U+FE0E in the markup. The variation
+   selector is load-bearing: without it Apple's emoji font wins the fallback
+   on macOS and iOS and the button renders a full-colour cartoon sun in a row
+   of thin monochrome glyphs. VS-15 asks for the text presentation instead.
+   (Syne's latin subset has no sun either way — same per-glyph fallback that
+   already carries the ♪ next to it; guide §3.7 is the in-scene version of
+   this problem.)
+
+   The ON state is colour, not a different glyph: --ember is the dome's own
+   gold, the same value vr.css and dome.js share and the same one the flat
+   site's nav uses for the one link that leaves it. aria-pressed carries the
+   state for anyone who is not looking at the colour. */
+.hud-btn.sky-btn { font-size: 1.2rem; }
+.hud-btn.sky-btn.sky-open {
+  color: var(--ember);
+  border-color: rgba(184, 134, 59, 0.55);
+  background: rgba(34, 24, 10, 0.72);
+}
+.hud-btn.sky-btn.sky-open:hover { background: rgba(46, 33, 14, 0.82); }
+
 
 
 /* Onboarding hint — one line, centered near the bottom, fades after the
@@ -582,6 +603,29 @@ a-scene {
   }
 
   .hud-btn.recenter-btn { font-size: 1.7rem; }
+  .hud-btn.sky-btn { font-size: 1.6rem; }
+
+  /* ─── Four controls do not fit on one phone row ─────────────────────────
+     Measured at 375 px, the narrowest target: four 3.4rem buttons with
+     0.7rem gaps are 251 px, so the row starts at x=108 — and .move-controls
+     (a 5.75rem joystick plus the recenter pill) already reaches x=172. A 64 px
+     overlap, right where a thumb goes.
+     Three buttons cleared it by 1 px, which is to say the old row was already
+     at its limit and the fourth is what broke it.
+
+     So the row wraps. `wrap-reverse` puts the FIRST line at the bottom, which
+     keeps ‹ › — the only way to look around on a phone, §9.5 — in the easiest
+     place for a thumb and pushes ♪ ☀ to a second row above it. max-width is
+     what forces the break: 9.5rem (152 px) fits two 3.4rem buttons and a gap
+     (120 px) and cannot fit three (185 px).
+     The second row sits 73–128 px off the bottom, above .onboard-hint's line,
+     so the hint's clearance (see the note at the end of this file) is
+     unchanged. */
+  .hud-controls {
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+    max-width: 9.5rem;
+  }
 
   /* The joystick is the phone's movement control, so it appears here and only
      here. Sized for a thumb resting at the bottom-left corner of the frame. */
@@ -600,11 +644,16 @@ a-scene {
    it's transient copy that fades on the first interaction, and the controls are
    permanent. */
 @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
-  /* Above BOTH bottom clusters: the joystick is the tall one (92px at a 1.15rem
-     inset reaches y=702 on an 812px-tall phone), so 8.5rem puts the hint's
-     bottom edge at y=676 — clear by 26px. Landscape leaves the hint at the very
-     bottom, where the joystick is off to one side and never meets it. */
-  .onboard-hint { bottom: 8.5rem; }
+  /* Above BOTH bottom clusters. The joystick used to be the tall one (92px at
+     a 1.15rem inset reaches y=702 on an 812px-tall phone) and 8.5rem put the
+     hint's bottom edge at y=676, clear by 26px.
+     The control row is TWO rows tall now that it wraps (see the block above):
+     120px at the same 1.15rem inset, so its top edge is y=674 and 8.5rem
+     overlapped it by 2px — measured at 375x812, 298px². 9.25rem puts the
+     hint's bottom edge at y=664 and clears the row by 10px.
+     Landscape leaves the hint at the very bottom, where the joystick is off to
+     one side and never meets it. */
+  .onboard-hint { bottom: 9.25rem; }
 }
 
 

@@ -12,7 +12,8 @@
    the horizon, with a slow horizon-only hue drift.
 
    Registers:
-     dusk-sky   — the gradient skybox with a slow horizon hue drift
+     dusk-sky   — the gradient skybox with a slow horizon hue drift, and the
+                  skylight aperture cut into it (skylight.js drives it)
      dusk-floor — a plain, solid-color matte floor
      dusk-rug   — a subtly lighter "carpet" circle under the visitor, for groundedness
 */
@@ -103,7 +104,36 @@
   var BLOOM_NEAR = 0.55;   // shoulder brightness, toward the horizon colour
   var BLOOM_FAR = 0.22;    // plateau brightness
 
-  function paintDomeTexture(canvas, topColor, horizonColor) {
+  // ── The skylight aperture (skylight.js) ──────────────────────────────────
+  // Sebastian asked for a button that "cuts the top 3rd of the dome" and
+  // reveals a sunny sky behind it. Taken literally, the top third of the dome's
+  // HEIGHT is the cap above y = R·2/3, which is elevation asin(2/3) = 41.81°,
+  // which is (90 − 41.81)/180 = 0.2678 of this texture's height measured down
+  // from the zenith. Three things fall out of that number, and all three are
+  // luck worth writing down because they are what make the cut cheap:
+  //
+  //   • 0.2678 sits INSIDE ZENITH_PLATEAU (0.222 → 40° of elevation), where
+  //     the sky is flat ZENITH. So the cut only ever removes uniform colour:
+  //     the ember band, its bloom, the feather and the entire gradient below
+  //     are untouched, the band still measures exactly as recorded, and the
+  //     rim of the hole is one clean colour instead of a slice through a ramp.
+  //   • Nothing in the scene lives that high. Cards sit at radius 2 m and top
+  //     out around 27° of elevation, so the hole cannot expose content to a
+  //     bright sky. The highest things in the room are the light rack's
+  //     housings at ~41°, right on the rim, which is where a lamp hanging at
+  //     the edge of an opening belongs.
+  //   • It is painted into the ALPHA of a canvas that is already repainted for
+  //     the horizon drift, so the cut costs one extra gradient fill on a 2×512
+  //     canvas and no new geometry at all. Feathering is free, which a
+  //     geometric cut (thetaStart on the sphere) would not have been.
+  //
+  // The material below is transparent and depth-free for this: it is now the
+  // MASK over skylight.js's daylight layer, not an opaque backdrop. See the
+  // paint-order note in skylight.js's build() for the full chain.
+  var CUT_FRAC = 0.2678;
+  var CUT_FEATHER = 0.013;   // ×180° = 2.4° of softness on the cut edge
+
+  function paintDomeTexture(canvas, topColor, horizonColor, aperture) {
     var ctx = canvas.getContext('2d');
     var h = canvas.height;
     var near = lerpColor(FEATHER, horizonColor, BLOOM_NEAR);
@@ -133,6 +163,50 @@
     grad.addColorStop(1, topColor);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, h);
+
+    // ── Punch the aperture ──────────────────────────────────────────────────
+    // The fill above is fully opaque and source-over, so it restores any hole
+    // a previous frame punched — every repaint starts from a whole dome and
+    // re-cuts it. That is what keeps this idempotent while the horizon drift,
+    // a room's retint and the iris tween all repaint the same canvas.
+    //
+    // `destination-out` with an alpha ramp erases rather than draws, which is
+    // the only way to get a feathered edge; a hard clip would alias along a
+    // 60-metre circle.
+    if (aperture > 0) {
+      var cut = aperture * CUT_FRAC;
+      var solid = cut - CUT_FEATHER;
+      ctx.globalCompositeOperation = 'destination-out';
+      var punch = ctx.createLinearGradient(0, 0, 0, h);
+      punch.addColorStop(0, 'rgba(0,0,0,1)');
+      // Early in the iris the hole is narrower than the feather itself, so the
+      // feather has to collapse into it rather than push the stops out of
+      // order — addColorStop offsets must be non-decreasing.
+      if (solid > 0) punch.addColorStop(solid, 'rgba(0,0,0,1)');
+      punch.addColorStop(cut, 'rgba(0,0,0,0)');
+      punch.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = punch;
+      ctx.fillRect(0, 0, canvas.width, h);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+
+  // ── The dome brightens while the roof is open ─────────────────────────────
+  // Daylight pouring through a 60-metre hole lands on the inside of the dome,
+  // so leaving the walls at their dusk value would read as a lit sky pasted
+  // into an unlit room. Only a partial lift, and the number is not a taste
+  // call: the relationship that has to hold is that a card's own glass stays
+  // LIGHTER than the sky behind it (see the ZENITH note above, which matches
+  // themes.js's 0.028 luminance target). #242f44 is Y = 0.0283; mixing 30% of
+  // the way to #4a5f7e gives #2f3b53 at Y = 0.042 — half again as bright,
+  // plainly lit, and still well under the glass. 55% was tried first and
+  // measured 0.065, which is 2.3× and starts eating the cards' contrast.
+  var SUNLIT_TOP = '#4a5f7e';
+  var SUNLIT_MIX = 0.30;
+
+  function litTop(topColor, aperture) {
+    if (!aperture) return topColor;
+    return lerpColor(topColor, SUNLIT_TOP, SUNLIT_MIX * aperture);
   }
 
   // Published so nothing has to hand-copy these. project-room.js keeps its
@@ -144,7 +218,12 @@
   window.VRDome = {
     BAND_CORE_DEG: CORE_HALF * 180,
     BAND_RAMP_DEG: RAMP_HALF * 180,
-    BAND_BLOOM_DEG: EDGE_HALF * 180
+    BAND_BLOOM_DEG: EDGE_HALF * 180,
+    // Elevation above which the skylight cuts away. Published so skylight.js
+    // can size its cloud decks against the real number instead of keeping a
+    // second copy of it — the visible ground radius of a deck at altitude H is
+    // H / tan(CUT_ELEV_DEG), and that is what decides where the drift may wrap.
+    CUT_ELEV_DEG: 90 - CUT_FRAC * 180
   };
 
   AFRAME.registerComponent('dusk-sky', {
@@ -160,27 +239,64 @@
       this.texture.colorSpace = THREE.SRGBColorSpace;
 
       var geometry = new THREE.SphereGeometry(DOME_RADIUS, 64, 48);
-      var material = new THREE.MeshBasicMaterial({ map: this.texture, side: THREE.BackSide, fog: false });
+      // Transparent, depth-free, and first in the transparent pass — see the
+      // CUT_FRAC block above. This used to be an opaque backdrop; it is now the
+      // mask that hides skylight.js's daylight layer everywhere except the
+      // hole, which is what lets a cloud deck hang at 30 m INSIDE this 40 m
+      // sphere without showing through the walls. Where the alpha is 1 the
+      // blend is src·1 + dst·0, i.e. identical to the opaque version, so the
+      // closed dome renders exactly as before.
+      //
+      // depthWrite off because nothing in the scene is farther than this and
+      // nothing should depth-test against it; renderOrder −1 because with
+      // A-Frame's sortTransparentObjects:false (guide §3.6) renderOrder is the
+      // only lever that reliably orders transparent draws.
+      var material = new THREE.MeshBasicMaterial({
+        map: this.texture, side: THREE.BackSide, fog: false,
+        transparent: true, depthWrite: false
+      });
       this.mesh = new THREE.Mesh(geometry, material);
+      this.mesh.renderOrder = -1;
       this.el.setObject3D('dusk-sky', this.mesh);
 
       this._themeOverride = null; // set via setTheme() when a project room is open
+      this._aperture = 0;         // set via setAperture() by skylight.js
       this._startTime = performance.now();
-      paintDomeTexture(canvas, ZENITH, HORIZON_HUES[0]);
+      this.repaint();
+    },
+
+    // Every repaint goes through here so the three things that own a piece of
+    // this canvas — the horizon drift, a room's theme, and the skylight cut —
+    // can never clobber each other's contribution. Each one sets its own field
+    // and calls this.
+    repaint: function () {
+      var top = this._themeOverride ? this._themeOverride.top : ZENITH;
+      var horizon = this._themeOverride ? this._themeOverride.horizon : this._driftHue;
+      paintDomeTexture(this.canvas, litTop(top, this._aperture),
+                       horizon || HORIZON_HUES[0], this._aperture);
       this.texture.needsUpdate = true;
+    },
+
+    // Driven by skylight.js's iris tween: 0 = whole dome, 1 = top third cut
+    // away. Cheap enough to call every frame (one 2×512 canvas fill and a
+    // 1 KB texture upload — the horizon drift already does the same thing five
+    // times a second).
+    setAperture: function (a) {
+      a = Math.max(0, Math.min(1, a || 0));
+      if (a === this._aperture) return;
+      this._aperture = a;
+      this.repaint();
     },
     // Project-room world-transform (§7): retint the whole dome to that
     // project's palette. No drift while a theme is active — a themed room
     // should read as calm and settled, not still cycling the dusk hue.
     setTheme: function (topColor, horizonColor) {
       this._themeOverride = { top: topColor, horizon: horizonColor };
-      paintDomeTexture(this.canvas, topColor, horizonColor);
-      this.texture.needsUpdate = true;
+      this.repaint();
     },
     clearTheme: function () {
       this._themeOverride = null;
-      paintDomeTexture(this.canvas, ZENITH, HORIZON_HUES[0]);
-      this.texture.needsUpdate = true;
+      this.repaint();
     },
     tick: function () {
       if (reducedMotion || this._themeOverride) return;
@@ -192,9 +308,8 @@
       var segment = elapsed / DRIFT_DURATION_MS;
       var i = Math.floor(segment);
       var t = segment - i;
-      var color = lerpColor(HORIZON_HUES[i], HORIZON_HUES[i + 1], t);
-      paintDomeTexture(this.canvas, ZENITH, color);
-      this.texture.needsUpdate = true;
+      this._driftHue = lerpColor(HORIZON_HUES[i], HORIZON_HUES[i + 1], t);
+      this.repaint();
     },
     remove: function () {
       this.el.removeObject3D('dusk-sky');

@@ -662,7 +662,8 @@ there is no network tab either (§3.16).
 | `data-loader.js` | Scrapes bio, stats, skill groups, projects, experience, images, per-project blurb/room images, and each writing project's `pdf`. |
 | `constellation.js` | `place()` / `layout()` — positions panels at (angle, radius, height) using an outer-rotates / inner-translates pattern. |
 | `themes.js` | Per-project palettes pulled from each project page's real CSS tokens. |
-| `dome.js` | `dusk-sky` (canvas-gradient skybox; ember band at the equator, y=0), `dusk-floor`, `dusk-rug`. Dome and floor **must** share radius. |
+| `dome.js` | `dusk-sky` (canvas-gradient skybox; ember band at the equator, y=0), `dusk-floor`, `dusk-rug`. Dome and floor **must** share radius. `dusk-sky` also owns the skylight's `setAperture()` — the cut is painted into the alpha of its own canvas (§9.29), which makes it the transparent MASK over skylight.js's daylight layer rather than an opaque backdrop. |
+| `skylight.js` | `open-sky` — the button that cuts the top third of the dome away and reveals a daylight sky behind it (§9.29): sky cap, a sun, two drifting decks of billboard cumulus in one draw call, a pool of daylight on the floor, and the whole lighting shift. Built on first press, never at load. Publishes `VRSkylight`. |
 | `xr-frame.js` | **Loaded first, and load-bearing.** TIME in a headset. Drives `gsap.ticker` from A-Frame's own loop while presenting, because the window's rAF is not serviced in an immersive session and every tween in the scene rides it (trap §3.14). Also publishes `VRPoll` (trap §3.15). `?pump=0` disables it. |
 
 ### Cards & content
@@ -771,6 +772,8 @@ the shown section has an interaction. Keep its light rack in sync with
                     # flips are frozen in a headset exactly as they were before
                     # §9.18. Run it first, while the bug still reproduces.
 ?forcexr=1|0        # pin the headset or the flat arrival gate (onboarding.js)
+?sky=1              # land with the skylight already OPEN, with no tween
+                    # (skylight.js). A 1.8s iris and a screenshot are a race.
 ```
 
 ### `.tools/vr-phone.sh` — open /vr on a real iPhone
@@ -928,6 +931,11 @@ decays within a frame or two.
   the same size as a portrait page instead of 3.46 m wide.
 - Projects grid row/column gap raised to 0.42 to clear caption + button
   footprint; carousel snap angle now derived instead of hand-copied
+- **Skylight** (§9.29): a toggle cuts the top third of the dome away and reveals
+  a daylight sky — sun, two drifting decks of 3D cumulus in one draw call, the
+  whole room relit from the opening. Built on first press (+6 draw calls,
+  +4.3k tris when open; nothing at all when closed), and a full round trip
+  restores every authored light value
 
 ### In progress / needs review
 - **The photo cloud's zone is stated as a GAP, not as raw angles.** `EDGE_MIN_DEG`
@@ -3702,6 +3710,213 @@ with the reasoning on the first one. Cloud measured back at **33**.
 change to the dome, not just to the flat site. Regenerate `vr/assets/tex` and
 its manifest (`.tools/vr-make-textures.py`) or exclude the file, but do not
 leave it untuned and visible.
+
+---
+
+### 9.29 The roof opens (2026-09-13)
+
+*"Can you try and add a button which essentially cuts the top 3rd of the dome,
+and then reveals a beautiful, sunny, blue sky with clouds — like the image, but
+it's a beautifully 3D rendering. And that's where the light will be coming
+from."* (With a reference photograph: cumulus on rich blue.)
+
+New file **`vr/components/skylight.js`** (`open-sky`), one change to
+**`dome.js`**, one `<a-light>` and one HUD pill in **`index.html`**, and a
+wrap rule in **`vr.css`**. Nothing else was touched — the fifth fixture that
+was nearly added to `glass-material.js` is the interesting near-miss, below.
+
+He chose all four defaults when asked: both controls, a toggle, a full daylight
+shift, and an iris from the zenith.
+
+#### The cut is painted into the dome's ALPHA, not cut out of its geometry
+
+`dusk-sky` already repaints a 2×512 canvas five times a second for the horizon
+drift, so the aperture is one extra `destination-out` gradient on that same
+canvas. That buys three things a geometric cut (animating `thetaStart` on the
+sphere) would not: a **feathered** edge for free, no geometry churn per frame,
+and no second code path — the drift, a room's theme and the iris all go through
+one `repaint()` that reads three fields, so none of them can clobber another.
+
+**`CUT_FRAC = 0.2678`**, and the arithmetic is worth keeping because three
+things fall out of it:
+
+* "Top third of the dome" read literally is the cap above y = R·⅔, i.e.
+  elevation asin(⅔) = **41.81°**, i.e. (90 − 41.81)/180 = 0.2678 of the
+  texture's height down from the zenith.
+* That sits **inside `ZENITH_PLATEAU`** (0.222 → 40°), where the sky is flat
+  `ZENITH`. So the cut only ever removes uniform colour: the ember band, its
+  bloom, the feather and the whole gradient below are untouched, and the rim of
+  the hole is one clean colour rather than a slice through a ramp. Measured
+  after: alpha 0 at the zenith and at 20% of the texture, 155 at 26.2% (the
+  2.4° feather), **255 at 28% and at 50%** — the band is bit-identical.
+* Nothing in the room is that high. Cards top out near 27° of elevation, so the
+  hole cannot expose content to a bright sky. The highest things are the light
+  rack's housings at ~41°, *within a degree of the cut*, which matters below.
+
+The dome's material is now `transparent: true, depthWrite: false,
+renderOrder: -1`. It is the **mask**: where its alpha is 1 the blend is
+`src·1 + dst·0`, identical to the opaque version, so the closed dome renders
+exactly as before — verified by reading the floor and rug back at their
+authored `12,11,10` and `26,20,15` with the roof shut.
+
+#### Paint order is the whole trick
+
+Guide §3.6 again — transparent draw order is scene-graph order and
+`renderOrder` is the only lever. The chain, in `skylight.js`:
+
+```
+sky cap (OPAQUE, r=90) → sun disc+glare (-6) → cloud deck (-5)
+                       → sun bloom (-4) → dusk dome MASK (-1) → the room (0+)
+```
+
+Because the mask is by *alpha* and not by depth, **the cloud deck can hang at
+30 m — inside the 40 m dome — and still be invisible through the walls.** That
+is what makes a finite-altitude cloud layer possible at all, and a finite
+altitude is the entire reason the sky reads as a space: the clouds overhead are
+large and seen from underneath, the ones toward the rim are small, crowded and
+hazed. A painted cloud texture on the cap cannot do that.
+
+The bloom is after the clouds on purpose: the deck covers the sun a good part of
+the time, and *"that's where the light will be coming from"* does not survive an
+invisible light source. A dimmer additive bloom over the top is the forward
+scattering you see through thin cloud, and it gives the cloud in front a lit
+edge for free.
+
+#### The near-miss: a fifth key light would have done nothing
+
+The obvious way to make the cards respond to sunlight is a fifth `.key-light`
+fixture in the sun's direction. It would have been silently inert twice over:
+
+1. **`LIGHT_MAX` is 4.** `setLights()` loops `i < LIGHT_MAX`, so a fifth
+   fixture in DOM order is simply never read — while `perFixtureScale`'s
+   `1/√n` still drops on all five, so the four real ones would have *dimmed* by
+   10% in exchange for nothing.
+2. Even raising it would not help: the shader's `atten` is
+   `1/(1 + d²·0.55)`, so a fixture 16 m away contributes ~0.007. A "sun" only
+   reaches the cards through that shader if you put it 3 m from them, which is
+   where the rack already is.
+
+So the cards get daylight through **`uEmber`** instead, which is the right
+lever anyway: the glass shader has no ambient term at all, and `uEmber` exists
+precisely because dome.js paints its warm band all the way around the equator.
+Open the roof and the thing surrounding the cards is a blue sky, so the ember
+becomes a sky bounce — `#3a2418`'s `0.227,0.141,0.094` → `0.616,0.753,0.894`.
+Written straight into the uniform via `sharedLightUniforms()`, **not** through
+`VRGlass.setEmber()`, which runs the hex through `THREE.Color` and linearises it
+(0.227 → 0.042) — disagreeing with glass-material's own authored default,
+because `CARD_FRAG` is the one shader here that deliberately omits
+`<colorspace_fragment>`. `uEmberFall` is left alone: focus-stage saves and
+restores that one.
+
+`#sunLight` is therefore **directional**, the only directional light in the
+scene. A point light at 16 m is an inverse-square away from invisible depending
+on `useLegacyLights`; a directional has no distance term in either mode. It
+lights what actually consumes an `<a-light>` — the name letters and all troika
+text.
+
+#### Four things that only showed up in a screenshot
+
+1. **The clouds looked like soap bubbles.** Two causes, both in the puff atlas.
+   The lobe alpha fell off over more than half each lobe's radius — a cumulus
+   edge is nearly *sharp* — and a global radial mask faded every puff from 0.29
+   of its tile regardless of where its lobes sat, i.e. a circular vignette on
+   every quad. Fixed by drawing the lobes **additively** (`'lighter'`), so a
+   handful of half-strength lobes saturate to alpha 1 and the interior is one
+   solid mass with a single lumpy outer edge, and demoting the mask to a
+   tile-bleed safety clip.
+2. **Then they looked grey.** Correctly: you view a deck from underneath, so the
+   puffs you see are the base ones, low in their cluster and facing away from a
+   sun above them. Physically right, not "sunny". The fix is a 0.26 floor on the
+   lit term — the light that has bounced around inside the cloud and come out of
+   the bottom, which is why a fair-weather base is bright grey.
+3. **The fake normal is what makes a billboard a lobe of vapour.**
+   `n = (q.x, q.y, √(1−|q|²))` from the quad's own coordinate is the view-space
+   normal of a hemisphere facing the eye, so a real Lambert term per pixel gives
+   every puff a lit crescent and a shaded side. `uSunView` (SUN_DIR through the
+   camera's `matrixWorldInverse`) has to be updated per frame, so it lives in a
+   `syncSunView()` a capture harness can call — otherwise a frozen loop lights
+   every puff for wherever the camera was when the sky opened.
+4. **The lamp housings outshone the sun.** They sit within a degree of the cut,
+   so they are silhouetted right on the rim, and an *additive* glow on a bright
+   background clips to white: five bright dots in the aperture and no way to
+   tell which was the sun. Their glow sprites now fade to 14% while the roof is
+   open (found via `isSprite` on `[light-rack-housings]`'s object3D — the core
+   beads are deliberately left alone, because fading an opaque white sphere
+   means making it translucent, which rendered four grey smudges).
+
+Also: `SUN_AZ_DEG`/`SUN_EL_DEG` (38° left of forward, 54° up) is one constant
+with **four** consumers — the sprite, the cloud shader's lighting, the
+`#sunLight` fixture's position and which way the floor's pool of daylight is
+offset. `index.html` authors that light with **no position** for exactly that
+reason; four copies of one direction is the shape of the bug that drifted 10×
+in project-room.js.
+
+#### The drift wraps, and where it may wrap is a constraint
+
+Each cluster's centre wraps in the vertex shader (`mod(c.x + t·drift + span/2,
+span) − span/2`), so the deck drifts forever with no pop — **provided the wrap
+happens outside the visible cone**. A deck at altitude H is visible out to a
+ground radius of H/tan(41.81°) = 1.118·H, so `span/2` must clear that plus a
+cluster's own width. Deck A: H≈29 → visible to 32 m, span 120 wraps at 60.
+Deck B: H≈46 → visible to 51 m, span 200 wraps at 100. Change an altitude and
+you must re-check the span.
+
+Only about a third of each field is in shot, which is why there are 38 and 30
+clusters: at 24, the zenith was reliably an empty blue hole.
+
+#### Costs, measured
+
+Closed: **nothing is built** — the atlas, the ~1,200 quads and the sky cap are
+all built on first press, not at load, so a visitor who never touches the button
+pays zero (the arrival cost §9.16 spent a session removing). Same bargain
+portrait-lab strikes with its splat.
+
+Open, same view: **+6 draw calls** (sky cap, three sun sprites, the deck, the
+floor pool) and **+4,348 triangles** — 61→67 calls, 10,710→15,058 tris. The
+deck is one draw call for all 1,207 quads. The real cost is fragment overdraw
+from ~1,200 soft transparent quads, which is the thing to look at first if a
+Quest pass finds this expensive; halve `DECKS[].count` before anything else.
+
+#### The controls, and the phone row that was already full
+
+An in-scene `ui-button` under the bio card **and** the HUD's ☀ pill, both
+driving one toggle, labels kept in step by `refreshControls()`. The in-scene one
+is not optional: the DOM overlay is not composited into an immersive session at
+all, so HUD-only would have made this a flat-screen feature. It is one small
+pill anchored to an existing card rather than a floating camera-locked panel,
+because ISSUE-05 is that in-scene controls read as persistent clutter.
+
+Two details:
+
+* The glyph is **U+2600 followed by U+FE0E**. Without the variation selector
+  Apple's emoji font wins the fallback and draws a full-colour cartoon sun in a
+  row of thin monochrome glyphs. (Guide §3.7 is the in-scene version of this.)
+* **`.hud-controls` now wraps on coarse pointers.** Measured at 375 px: four
+  3.4rem buttons with 0.7rem gaps are 251 px, so the row starts at x=108 and
+  `.move-controls` already reaches x=172 — a 64 px overlap right where a thumb
+  goes. Three cleared it by 1 px, which is to say the row was *already* at its
+  limit and one more button is what broke it. `flex-wrap: wrap-reverse` with
+  `max-width: 9.5rem` puts ‹ › on the bottom row and ♪ ☀ above, and
+  `.onboard-hint` went 8.5rem → 9.25rem because the now-two-row block reached
+  2 px into it (298 px²). All three overlaps measured 0 after.
+
+#### Verified
+
+Full round trip restores **every** authored value: ambient `#2a2018` @ 0.5,
+rack @ 1.5, sun @ 0, ember `0.227,0.141,0.094`, housing glow opacity 1, alpha
+255 at the zenith, group and pool hidden. The iris eases 0 → 0.051 → 0.325 →
+0.803 → 0.981 → 1 over 1.8 s (easeInOutCubic) and lands exactly on 1. Both
+buttons drive it; `?sky=1` lands open with no tween (a tween and a screenshot
+are a race); `?reducedMotion=1` arrives instantly in the final state and freezes
+the cloud drift.
+
+**One deliberate non-behaviour:** a project room retinting the dome does **not**
+close the roof, and while the roof is open this file re-asserts the daylight rig
+twice a second — so a room's own ambient/rack retint loses to it. That is
+self-healing rather than a hook into `project-room.js` (which resets both when a
+room closes, and has every right to, knowing nothing about this). If a themed
+room with a blue skylight turns out to look wrong, closing the roof on room
+entry is the change to make, and `VRSkylight.close()` is already there for it.
 
 ---
 

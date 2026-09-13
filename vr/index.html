@@ -243,10 +243,16 @@
   <script src="components/place.js?v=3"></script>
   <script src="components/fonts.js?v=6"></script>
   <script src="components/themes.js?v=9"></script>
-  <script src="components/dome.js?v=8"></script>
-  <script src="components/glass-material.js?v=20"></script>
+  <script src="components/dome.js?v=9"></script>
+  <script src="components/glass-material.js?v=21"></script>
   <script src="components/text-flow.js?v=3"></script>
   <script src="components/ui-button.js?v=16"></script>
+  <!-- skylight.js — the button that cuts the top third of the dome away and
+       reveals a sunny sky behind it. AFTER dome.js (it drives that component's
+       new setAperture), ui-button.js (it builds one) and glass-material.js (it
+       adds a fifth fixture to the vr-key-light system while the roof is
+       open). -->
+  <script src="components/skylight.js?v=7"></script>
   <!-- Shared controls, loaded before every consumer: the one exit button
        (exit-button.js) and the one scroll bar (scroll-arrows.js). Both are used
        at build time by focus-stage, project-room, pdf-reader and the writing
@@ -369,6 +375,17 @@
     <a-entity dusk-floor position="0 0 0"></a-entity>
     <a-entity dusk-rug="radius: 1.3" position="0 0 -0.4"></a-entity>
 
+    <!-- The skylight (skylight.js). Nothing is built until the button is
+         pressed for the first time; until then this entity is a toggle and two
+         controls. It sits HERE, immediately after the dome it cuts into and
+         before the lights, because with A-Frame's sortTransparentObjects:false
+         the transparent draw order is scene-graph order — the daylight layer
+         has to be able to paint before the dusk dome masks it. renderOrder
+         does the real work (see build()), but the graph order agreeing with it
+         costs nothing and means one less thing to be surprised by.
+         ?sky=1 lands with the roof already open. -->
+    <a-entity id="skylight" open-sky></a-entity>
+
     <!-- Lighting. Until recently NOTHING in this scene consumed a light —
          every surface was either MeshBasicMaterial or a self-lit custom
          shader — so both of these entities, and project-room.js's per-room
@@ -402,6 +419,31 @@
     <a-light id="keyLight2" class="key-light" type="point" color="#ffe0bb" intensity="1.7" distance="9" position="-0.48 3.34 -1.36"></a-light>
     <a-light id="keyLight3" class="key-light" type="point" color="#ffe0bb" intensity="1.7" distance="9" position="0.48 3.34 -1.36"></a-light>
     <a-light id="keyLight4" class="key-light" type="point" color="#ffc98a" intensity="1.5" distance="9" position="1.45 3.30 -1.30"></a-light>
+
+    <!-- The sun, for when the roof is open (skylight.js). Three things about
+         it are deliberate:
+
+         • DIRECTIONAL, unlike every other fixture in this scene. The rack is
+           point lights because the glass shader reflects a light POSITION
+           toward the eye (see its note above) — but the sun is NOT in that
+           shader's array: LIGHT_MAX is 4, the rack fills it, and setLights()
+           silently drops a fifth. So the one reason to prefer a point light
+           does not apply here, and a point light would bring a real problem
+           with it: whether a 16 m fixture reaches anything at all depends on
+           `useLegacyLights`, which is an inverse-square away from invisible.
+           A directional light has no distance term in either mode, and it is
+           the textbook fixture for a sun. What it lights: the name letters and
+           all troika text, i.e. everything in the scene that consumes a real
+           <a-light> (guide §3.8). The CARDS pick the sun up through the glass
+           shader's ember term instead — see skylight.js's EMBER_DAY.
+         • intensity 0. skylight.js tweens it up with the iris.
+         • NO position. Position is direction for a directional light, and it
+           is set from skylight.js's SUN_DIR, because the sun sprite, the cloud
+           shader's lighting, this fixture and the floor's pool of daylight
+           must all agree on where the sun is. Four copies of one direction is
+           exactly the kind of hand-copied constant that drifted 10x in
+           project-room.js. One source, four consumers. -->
+    <a-light id="sunLight" type="directional" color="#fff3dd" intensity="0"></a-light>
 
     <!-- Visible housings, so the rack reads as intentional stagecraft rather
          than light arriving from nowhere. Unlit flat spheres with fog off —
@@ -806,6 +848,12 @@
       <button class="hud-btn" id="turnLeftBtn" aria-label="Turn left" title="Turn left">‹</button>
       <button class="hud-btn" id="turnRightBtn" aria-label="Turn right" title="Turn right">›</button>
       <button class="hud-btn muted" id="muteBtn" aria-label="Toggle ambient sound" title="Ambient sound" aria-pressed="false">♪</button>
+      <!-- Open/close the roof (skylight.js). The flat/phone half of that
+           control; the headset half is an in-scene ui-button under the bio
+           card, because this overlay is not composited into an immersive
+           session at all. Both drive the same toggle and skylight.js keeps
+           their labels in step. -->
+      <button class="hud-btn sky-btn" id="skyBtn" aria-label="Open the sky" title="Open the sky" aria-pressed="false">☀&#xFE0E;</button>
     </div>
 
     <!-- Movement controls, bottom LEFT — the counterpart to the turn controls

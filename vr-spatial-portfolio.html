@@ -336,6 +336,27 @@
       text-align:center;
       font-style:italic;
     }
+    /* Same pill as the nav's "Experience in VR — Beta", same ember at the same
+       weight, so the two read as one label rather than two. Sized off the h1
+       instead of the nav's 0.62rem, and lifted, because it is riding a display
+       serif here rather than a small caps nav link. */
+    .hero-beta{
+      display:inline-block;
+      margin-left:0.7rem;
+      padding:0.2em 0.5em;
+      border:1px solid rgba(184,134,59,0.5);
+      border-radius:3px;
+      color:rgba(184,134,59,0.85);
+      font-family:var(--sans);
+      font-size:0.28em;
+      font-weight:600;
+      font-style:normal;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      vertical-align:0.75em;
+      white-space:nowrap;
+    }
+
     .hero-caption a{ color:var(--ember); text-decoration:none; border-bottom:1px solid var(--ember-soft); }
     .hero-caption a:hover{ border-bottom-color:var(--ember); }
 
@@ -383,18 +404,25 @@
        The poster stays underneath rather than being replaced: if the iframe
        never arrives, or JS is off, or this is a touch device, the page is
        exactly what it was before — a screenshot wrapped in a link. */
+    /* Starts HIDDEN and is revealed by script only once it has decided to
+       load the scene. That is what keeps the no-image version honest: with JS
+       off, on a touch screen, or under reduced motion there is no live view to
+       show and no still to fall back on, so showing an empty 16:9 rectangle
+       would be worse than showing nothing. The page simply goes title → button
+       in those cases. */
     .live-dome{
+      display:none;
       position:relative;
       margin:2.5rem 0;
       border-radius:6px;
       overflow:hidden;
       border:1px solid var(--line);
-      background:var(--bg-panel);
+      /* The dome's own near-black, so the fade-in comes up out of the same
+         darkness the scene opens in rather than off a panel-grey plate. */
+      background:#050505;
       aspect-ratio:16 / 9;
     }
-
-    .live-dome-link{ display:block; width:100%; height:100%; text-decoration:none; }
-    .live-dome-poster{ width:100%; height:100%; display:block; object-fit:cover; }
+    .live-dome.is-armed{ display:block; }
 
     /* Sits above the iframe, so it is still readable once the scene is live.
        pointer-events:none — it must never eat the hover or the click. */
@@ -429,9 +457,6 @@
     }
     .live-dome.is-live .live-dome-frame{ opacity:1; }
 
-    /* Once the scene is up the poster is only a backdrop; keep it painted so a
-       transparent frame never shows the panel colour through. */
-    .live-dome.is-live .live-dome-poster{ visibility:hidden; }
 
     @media(max-width:768px){
       .live-dome-cue{ font-size:0.55rem; letter-spacing:0.08em; padding:0.4rem 0.7rem; }
@@ -966,7 +991,7 @@
   <article>
 
     <div class="hero">
-      <h1 class="hero-title">The <em>Dome</em></h1>
+      <h1 class="hero-title">The <em>Dome</em><span class="hero-beta">Beta</span></h1>
       <!-- ✎ TAGLINE. One line, what the thing IS. The sibling pages read like
            "A Chess Board That Transforms Into a Wall-Mounted Display". -->
       <p class="hero-sub"></p>
@@ -976,19 +1001,18 @@
     </div>
 
     <!-- ═══ THE LIVE HERO ═══
-         Left in place because it is a working control, not a picture: hover
-         and the real dome wakes up and you can look around, click and you are
-         in it. See the script at the end of the page.
+         No still image here on purpose: the frame IS the dome, running live.
+         It loads when it scrolls into view and fades up out of the same
+         near-black the scene opens in, so there is nothing to look at that
+         is not the real thing.
 
-         ✎ The poster below is the still it shows before hover, and the
-         fallback for touch screens, reduced motion and JS-off. Swap the src
-         for whichever frame you want to lead with — it is the one image left
-         on the page, and it is load-bearing rather than decorative. -->
-    <div class="live-dome" id="liveDome" data-embed="vr/?embed=1" data-enter="vr/">
-      <a class="live-dome-link" href="vr/">
-        <img class="live-dome-poster" src="images/vr-hero-hub.jpg" alt="The dome seen from its centre: the name Sebastian Esteva in large gold serif type, a bio panel with a portrait below it, a column of writing-sample cards angled in from the left, and experience cards angled in from the right, all floating in a near-black room" width="800" height="450">
-        <span class="live-dome-cue" id="liveDomeCue">Hover to look around · Click to enter</span>
-      </a>
+         The way IN is the button underneath, not the frame — clicking inside
+         the frame goes to the scene, so you can open a panel and look at it
+         without leaving the page. The script at the end of the page is what
+         gives the page its scroll back over the embed and hands the keyboard
+         across on hover. -->
+    <div class="live-dome" id="liveDome" data-embed="vr/?embed=1">
+      <span class="live-dome-cue" id="liveDomeCue">Drag to look around · Click below to enter</span>
     </div>
 
     <div class="enter-dome">
@@ -1230,84 +1254,61 @@
     initA11yLineHighlight('.hero-title, .hero-sub, .hero-caption, .meta-label, .meta-value, .journey-heading, .journey-sub, .step-body h3, .story p, .step-body p, .enter-dome-note');
 
     /* ═══ THE LIVE HERO ═══
-       Turns the hero screenshot into the actual dome: hover and you can look
-       around, click and you are in it.
+       The frame in the hero is the dome itself, running live. There is no
+       poster: the thing you look at is the thing.
 
-       The whole thing is progressive. The markup is a screenshot inside a link,
-       which works with no JS, on a touch screen, and if the iframe never loads.
-       Everything below is added on top of that and can fail without taking the
-       page with it. */
+       Progressive by construction. The frame is `display:none` in CSS and only
+       revealed once this decides to load it, so with JS off, on a touch screen,
+       or under reduced motion there is no empty rectangle sitting in the page —
+       it just goes title → Enter button. */
     (function () {
       var box = document.getElementById('liveDome');
       if (!box) return;
 
-      // A real mouse only. A live A-Frame scene in a small box on a phone is
-      // heavy and there is no hover to drive it — the link is the whole
-      // interaction there. And under reduced motion this stays a still image
-      // on purpose: the dome drifts continuously (sunflower, the photo cloud),
-      // which is exactly what that setting is asking us not to do unprompted.
+      // A real mouse, and no reduced-motion request. Both cases fall through to
+      // the button below: a live A-Frame scene in a small box is heavy and
+      // undriveable without hover, and the dome drifts continuously, which is
+      // what prefers-reduced-motion is asking us not to start unprompted.
       var canHover = window.matchMedia &&
         window.matchMedia('(hover: hover) and (pointer: fine)').matches;
       var reduced = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var cue = document.getElementById('liveDomeCue');
-      if (!canHover || reduced) {
-        if (cue) cue.textContent = 'Click to enter';
-        return;
-      }
+      if (!canHover || reduced) return;
 
-      var enterHref = new URL(box.dataset.enter, location.href).href;
       var frame = null, wired = false;
 
       function wireInside() {
-        // Same-origin, so the embed's own document is reachable. That is what
-        // makes the next two fixes possible at all.
         var w, d;
         try { w = frame.contentWindow; d = frame.contentDocument; } catch (e) { return; }
         if (!d || wired) return;
         wired = true;
 
-        // Standing rule: tests and embeds never make noise. VR_AUDIO is hard
-        // false upstream, so this is belt and braces rather than a fix.
+        // Standing rule: nothing embedded or under test makes noise. VR_AUDIO is
+        // hard false upstream, so this is belt and braces.
         try {
           var au = d.getElementById('ambientAudio');
           if (au) { au.muted = true; au.pause(); }
           if (w.VRSound) w.VRSound.enabled = false;
         } catch (e) {}
 
-        // ── 1. Give the page its scroll back ──
-        // The embedded document is exactly viewport-height and does not
-        // scroll, so a wheel over this box would dead-end: the visitor scrolls
-        // down the page, crosses the hero, and the page stops moving. Forward
-        // it to the parent by hand. deltaMode 1 is lines, not pixels.
+        // ── Give the page its scroll back ──
+        // The embedded document is exactly viewport-height and /vr binds no
+        // wheel handler, so a wheel over this frame would dead-end: you scroll
+        // down the page, cross the hero, and the page stops. Forward it by
+        // hand. deltaMode 1 is lines rather than pixels.
         d.addEventListener('wheel', function (e) {
-          var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-          window.scrollBy(0, dy);
+          window.scrollBy(0, e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY);
           e.preventDefault();
         }, { passive: false });
 
-        // ── 2. Tell a click apart from a look-around ──
-        // Dragging inside the dome turns the view, and a drag ends in a click.
-        // Navigating on every click would make it impossible to look at
-        // anything. So a click only counts if the pointer barely moved: 6 px,
-        // the same threshold §9.19 records for the old carousel drag.
-        var sx = 0, sy = 0, st = 0;
-        d.addEventListener('mousedown', function (e) {
-          sx = e.clientX; sy = e.clientY; st = Date.now();
-        }, true);
-        d.addEventListener('mouseup', function (e) {
-          var moved = Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy);
-          if (moved <= 6 && Date.now() - st < 500) location.assign(enterHref);
-        }, true);
-
-        // Leaving through the embed's own edge — the parent gets no pointer
-        // events from inside an iframe, so its mouseleave cannot be relied on.
+        // Leaving through the frame's own edge. The parent gets no pointer
+        // events from inside an iframe, so its mouseleave cannot be trusted.
         d.addEventListener('mouseleave', release);
       }
 
       // WASD is bound on the embedded window, so it needs DOM focus to hear a
       // key at all. preventScroll matters: focusing an element the browser
-      // considers off-centre otherwise jumps the page to it mid-hover.
+      // thinks is off-centre otherwise jumps the page to it mid-hover.
       function grab() {
         if (!frame) return;
         try { frame.contentWindow.focus({ preventScroll: true }); } catch (e) {}
@@ -1316,26 +1317,45 @@
         try { if (document.activeElement === frame) frame.blur(); } catch (e) {}
       }
 
-      function wake() {
-        if (frame) { grab(); return; }
+      function load() {
+        if (frame) return;
         frame = document.createElement('iframe');
         frame.className = 'live-dome-frame';
-        frame.title = 'A live view of the dome. Drag to look around, click to enter.';
-        // Kept out of the tab order deliberately: tabbing INTO an embedded
-        // portfolio is a trap with no visible way out. The link underneath is
-        // the keyboard path, and it goes to the real thing.
+        frame.title = 'A live view of the dome. Drag to look around; the button below enters it.';
+        // Out of the tab order deliberately: tabbing INTO an embedded portfolio
+        // is a trap with no visible way out. The Enter button below is a real
+        // link and is the keyboard path.
         frame.setAttribute('tabindex', '-1');
         frame.addEventListener('load', function () {
           box.classList.add('is-live');
-          if (cue) cue.textContent = 'Drag to look around · Click to enter';
           wireInside();
-          grab();
         });
         frame.src = box.dataset.embed;
         box.appendChild(frame);
       }
 
-      box.addEventListener('mouseenter', wake);
+      // Reveal it and load it. Two dead ends are recorded here rather than
+      // rediscovered:
+      //
+      //   • The frame is display:none until now, which is what keeps the
+      //     no-JS / touch / reduced-motion versions free of an empty
+      //     rectangle. A display:none element has no box, so an
+      //     IntersectionObserver pointed at it can never report it as
+      //     intersecting and it would never load at all.
+      //   • Revealing it first fixed that, and the observer was still the
+      //     wrong tool. It only delivers on a rendering step, so anywhere the
+      //     pipeline is paused — a backgrounded tab, the preview pane with its
+      //     window hidden (trap §3.1) — the hero silently never arrives. That
+      //     is a failure mode bought for no gain: this is the HERO, in view on
+      //     arrival, so "wait until it is visible" is always true immediately.
+      //
+      // So: no observer. The laziness that matters is already in the two
+      // matchMedia guards above, which is what stops a phone paying for any of
+      // this.
+      box.classList.add('is-armed');
+      load();
+
+      box.addEventListener('mouseenter', grab);
       box.addEventListener('mouseleave', release);
       // If the visitor scrolls away mid-look, stop holding the keyboard.
       window.addEventListener('blur', release);

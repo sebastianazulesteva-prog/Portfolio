@@ -485,7 +485,7 @@
   function mergeProjectsWithManifest(liveProjects, manifest) {
     var byHref = {};
     (manifest.projects || []).forEach(function (m) { byHref[rootHref(m.href)] = m; });
-    return liveProjects.map(function (p) {
+    var merged = liveProjects.map(function (p) {
       var m = byHref[p.href];
       if (!m) return p;
       return Object.assign({}, p, {
@@ -504,6 +504,50 @@
         manifestBlurb: m.blurb || null // manifest override, applied after the per-page blurb fetch resolves
       });
     }).filter(function (p) { return !p.hide; });
+
+    // ── The one manifest entry that is CONTENT, not enrichment ──
+    // Everything above is a map over the cards scraped from index.html's work
+    // grid, so a manifest entry with no matching card is silently ignored —
+    // which is right, because the flat page is the source of truth.
+    //
+    // `vr-spatial-portfolio.html` breaks that on purpose: it is a real project
+    // page (the story of building this room) that is deliberately kept OUT of
+    // the work grid, and the grid is the only thing the scraper reads. There is
+    // no card to enrich, so the manifest is the only place left for it.
+    //
+    // Gated on an explicit `vrOnly` flag rather than "append anything
+    // unmatched", so a typo'd href in the manifest still fails loudly by going
+    // missing instead of quietly inventing a project with no title. A vrOnly
+    // entry has to carry the fields parseCard would have read off the card.
+    var seen = {};
+    merged.forEach(function (p) { seen[p.href] = true; });
+    (manifest.projects || []).forEach(function (m) {
+      if (!m.vrOnly) return;
+      var href = rootHref(m.href);
+      if (seen[href]) return;                 // it made it into the grid after all
+      if (!m.title || !m.image) {
+        console.warn('[vr] projects.json: vrOnly entry needs its own title and image, skipping', href);
+        return;
+      }
+      merged.push({
+        href: href,
+        title: m.title,
+        image: rootHref(m.image),
+        alt: m.alt || '',
+        imageW: m.imageW || null,
+        imageH: m.imageH || null,
+        video: null,
+        tags: m.tags || [],
+        featured: !!m.featured,
+        accent: m.accent || null,
+        model: m.model || null,
+        theme: m.theme || null,
+        heroTone: m.heroTone || 0,
+        manifestBlurb: m.blurb || null
+      });
+    });
+
+    return merged;
   }
 
   function loadManifest() {

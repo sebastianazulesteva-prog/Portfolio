@@ -109,6 +109,38 @@
     "timecollector-refined-real.png": {
       "caption": "The refined printed prototype — spoked wheel, pinion and marble track"
     },
+    "vr-hero-hub.jpg": {
+      "exclude": true,
+      "$why": "Screenshots of the dome itself, added for the vr-spatial-portfolio.html write-up. Excluded from the cloud for the same reason contact-photo-framed-for-mosaic.jpg is: in the cloud they are photographs of the room you are currently standing in, which reads as a hall of mirrors rather than as work. Two of them (vr-portrait-photo / vr-portrait-mosaic) are the hero portrait's own source images, already 1.5 m in front of you, and the mosaic is already in the cloud as contact-photo-mosaic.jpg with a caption Sebastian wrote himself. There is also a weight argument: none of these are in vr/assets/tex, so the cloud would load them at full resolution \u2014 about 1.1 MB of untuned texture, which is exactly the arrival cost \u00a79.16 spent a session removing. If any of them should ever appear in the cloud, regenerate vr/assets/tex and its manifest first (.tools/vr-make-textures.py)."
+    },
+    "vr-headset-pinch.jpg": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
+    "vr-projects-grid.jpg": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
+    "vr-reader-line-guide.png": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
+    "vr-photo-cloud-dwell.jpg": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
+    "vr-return-to-dome.jpg": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
+    "vr-portrait-photo.jpg": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
+    "vr-portrait-mosaic.jpg": {
+      "exclude": true,
+      "$why": "See vr-hero-hub.jpg."
+    },
     "slide-1-sketch.png": {
       "caption": "Gestalting 2 — time shown by the number of marbles collected in the disc",
       "$why": "The only image on the site whose file name does not start with its project's href stem, so the catalog's stem match cannot tag it and it was the one Time Collector photo in the cloud with no project on its caption and no way into the room. CONTENT RULE for this sheet: it is titled 'Gestalting 2' and it is the single most informative image on the project, because timecollector.html has no prose at all — only a title, the four-person byline and 'The Journey'. Its handwriting also reads 'NETWORK: CHILDREN LEARNING TO UNDERSTAND THE CONCEPT OF TIME'. Sebastian, 2026-09-11: use the MECHANISM (time shown by the number of marbles in the disc) but NOT the children audience — that was a gestalting-stage framing, not a claim about the finished piece. Do not add it back.",

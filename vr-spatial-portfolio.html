@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
+  <title>The Dome — a portfolio you walk into — Sebastian Esteva</title>
+
+  <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
+  <meta name="description" content="The Dome: a WebXR spatial portfolio by Sebastian Esteva, built in A-Frame and three.js. A dusk-lit room you stand inside, where every project is a panel you can walk up to. Live in beta.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://sesteva.com/vr-spatial-portfolio.html" />
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="The Dome — a portfolio you walk into">
+  <meta property="og:description" content="A WebXR spatial portfolio built in A-Frame and three.js — a dusk-lit room you stand inside. Live in beta.">
+  <meta property="og:image" content="https://sesteva.com/images/vr-hero-hub.jpg">
+  <meta property="og:url" content="https://sesteva.com/vr-spatial-portfolio.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Dome — a portfolio you walk into">
+  <meta name="twitter:image" content="https://sesteva.com/images/vr-hero-hub.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="images/android-chrome-512x512.png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Poppins:wght@300;400;500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
+
+    :root{
+      --base-font-size: 17px;
+      --bg:#000000;
+      --bg-panel:#0e0e0e;
+      --white:#f7f5f0;
+      --white-soft:rgba(247,245,240,0.72);
+      --white-faint:rgba(247,245,240,0.4);
+      --line:rgba(247,245,240,0.15);
+      /* The dome's own gold. Same value as vr/vr.css's --ember and
+         index.html's: this page is about that room, so it wears its
+         colour. Keep all three in sync. */
+      --ember:#b8863b;
+      --ember-soft:rgba(184,134,59,0.5);
+      --serif:'Playfair Display', Georgia, serif;
+      --sans:'Poppins', system-ui, sans-serif;
+    }
+
+    html{font-size:var(--base-font-size);scroll-behavior:smooth}
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:0.01ms!important; animation-iteration-count:1!important; transition-duration:0.01ms!important; scroll-behavior:auto!important; }
+    }
+
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    html.accessible{ font-size:calc(var(--base-font-size) * 1.15); }
+
+    /* ── Keyboard focus ──────────────────────────────────────────────────
+       Nothing on this site defined a focus indicator, so Tab-navigation fell
+       back to whatever the browser draws. That matters more here than on most
+       sites: `cursor: none` hides the system pointer in favour of a custom dot
+       and ring, so pointing got real design attention and the keyboard got
+       none.
+
+       `:focus-visible`, not `:focus`. The browser only matches it when focus
+       arrived from the keyboard, so clicking a link with a mouse never draws a
+       ring — which is what makes this cost the mouse experience nothing.
+
+       `outline` rather than a border or box-shadow: it is painted outside the
+       box, so it can never shift layout, and it follows the element's own
+       border-radius, which the nav's pill-shaped controls rely on.
+
+       The colour is the page's own primary text colour, which is the highest
+       contrast thing in the palette — well past the 3:1 WCAG asks of a focus
+       indicator. Retune it here, in one place, per page. */
+    :root { --focus-ring: var(--white); }
+
+    :focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    /* The extra-projects grid clips to `overflow: hidden` while collapsed, so
+       an offset ring on a card inside it would be cut off at the panel edge.
+       Tuck those rings inside the card instead. */
+    .work-card:focus-visible,
+    .quick-link:focus-visible,
+    .mini-card:focus-visible,
+    .quick-link-mini:focus-visible { outline-offset: -3px; }
+
+    body.accessible{
+      /* ── Contrast, which this mode did not touch until now ──
+         Accessible mode changed the typeface, spacing and root size but no
+         COLOUR at all, so a mode called "accessible reading mode" still served
+         its secondary text at 3.44:1 — below the 4.5:1 WCAG AA floor for
+         normal-size text. Measured across the site, every page had one "faint"
+         token doing that.
+         Raised here rather than in :root on purpose: the default palette is a
+         deliberate design and is left exactly as authored. Only a visitor who
+         asks for this mode gets the brighter value, and the number is the
+         objective threshold rather than a taste call — 5.10:1 now.
+         Borders/rules are deliberately NOT raised: they are decorative
+         boundaries, not text, and 1.4.3 does not apply to them. */
+      --white-faint:rgba(247,245,240,0.51);
+
+      --serif:'Atkinson Hyperlegible', sans-serif;
+      --sans:'Atkinson Hyperlegible', sans-serif;
+      letter-spacing:0.01em;
+      word-spacing:0.05em;
+      line-height:1.9;
+    }
+
+    /* Atkinson Hyperlegible is only loaded at 400/700 — a font-weight:500
+       element (which has an exact match in Poppins) would otherwise fall
+       back to plain 400 here and visually lose its emphasis. Force it to
+       700 instead so anything bold-ish stays bold after the switch. */
+    body.accessible .back-link,
+    body.accessible .hero-sub,
+    body.accessible .meta-label,
+    body.accessible .journey-sub,
+    body.accessible .back-bottom,
+    body.accessible .quick-link-mini { font-weight: 700; }
+
+    body{
+      background:var(--bg);
+      color:var(--white);
+      font-family:var(--sans);
+      font-weight:300;
+      line-height:1.7;
+      overflow-x:hidden;
+    }
+
+    nav{
+      position:sticky;
+      top:0;
+      z-index:100;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:1.75rem 3rem;
+      background:rgba(0,0,0,0.85);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+
+    .nav-logo{
+      font-family:var(--serif);
+      font-size:1.1rem;
+      color:var(--white);
+      text-decoration:none;
+      letter-spacing:0.02em;
+    }
+
+    .back-link{
+      font-size:0.72rem;
+      font-weight:500;
+      letter-spacing:0.1em;
+      text-transform:uppercase;
+      color:var(--white-soft);
+      text-decoration:none;
+      padding:0.6rem 1.3rem;
+      border:1px solid var(--line);
+      border-radius:100px;
+      transition:border-color 0.2s, color 0.2s;
+    }
+
+    .back-link:hover{ border-color:var(--white); color:var(--white); }
+
+    /* ─── ACCESSIBLE MODE TOGGLE + BANNER + EXPLAINER CARD ───
+       See index.html for the full write-up — same behavior here. */
+    .a11y-toggle{
+      display:flex;
+      align-items:center;
+      gap:0.6rem;
+      background:none;
+      border:1px solid var(--line);
+      border-radius:100px;
+      padding:0.4rem 0.9rem;
+      color:var(--white-soft);
+      font-family:var(--sans);
+      font-size:0.65rem;
+      letter-spacing:0.1em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .a11y-toggle:hover{ border-color:var(--white); color:var(--white); }
+    .a11y-toggle.active{ border-color:var(--white); color:var(--white); background:rgba(247,245,240,0.08); }
+
+    .a11y-dot{
+      width:6px; height:6px;
+      border-radius:50%;
+      background:var(--white-faint);
+      transition:background 0.2s;
+      flex-shrink:0;
+    }
+
+    .a11y-toggle.active .a11y-dot{ background:var(--white); }
+
+
+    /* The button label reads "Turn on Accessibility" when the mode is off and
+       "Turn off Accessibility" when it's on. Driven purely by the .active
+       class the toggle already carries, so it stays correct on pages loaded
+       with the mode already enabled. */
+    .a11y-word-off { display: none; }
+    .a11y-toggle.active .a11y-word-on { display: none; }
+    .a11y-toggle.active .a11y-word-off { display: inline; }
+
+    .a11y-note{
+      position:fixed;
+      top:5.5rem;
+      right:1.5rem;
+      z-index:150;
+      width:min(280px, calc(100vw - 3rem));
+      background:var(--bg-panel);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:1rem 1.1rem;
+      opacity:0;
+      transform:translateY(-12px);
+      pointer-events:none;
+      transition:opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .a11y-note.visible{ opacity:1; transform:none; pointer-events:auto; }
+    .a11y-note p{ font-size:0.72rem; line-height:1.55; color:var(--white-soft); }
+    .a11y-note strong{ color:var(--white); }
+    .a11y-note a{ color:var(--white); }
+
+    .a11y-note-close{
+      position:absolute;
+      top:0.5rem;
+      right:0.6rem;
+      background:none;
+      border:none;
+      color:var(--white-soft);
+      font-size:1rem;
+      line-height:1;
+      cursor:pointer;
+      padding:0.2rem;
+    }
+
+    .a11y-note-close:hover{ color:var(--white); }
+
+    .a11y-line-overlay{
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background:rgba(247,245,240,0.32);
+      pointer-events:none;
+      clip-path:inset(0 0 100% 0);
+    }
+
+    main{ max-width:1050px; margin:0 auto; padding:5rem 3rem 7rem; }
+
+    /* ─── HERO ─── */
+    .hero{ text-align:center; margin-bottom:3rem; }
+
+    .hero-title{
+      font-family:var(--serif);
+      font-weight:700;
+      font-size:clamp(2.8rem, 7vw, 5.5rem);
+      line-height:1.05;
+      letter-spacing:-0.01em;
+      margin-bottom:1rem;
+    }
+
+    .hero-title em{ font-style:italic; font-weight:400; color:var(--white-soft); }
+
+    .hero-sub{
+      font-family:var(--sans);
+      font-weight:500;
+      font-size:clamp(0.85rem,1.6vw,1rem);
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+    }
+
+    /* ─── IMAGE SLOT (placeholder styling — replace img src later) ─── */
+    .img-slot{
+      position:relative;
+      border-radius:6px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      margin:2.5rem 0;
+      background:var(--bg-panel);
+    }
+
+    .img-slot img{ width:100%; height:auto; display:block; }
+
+    /* Visual placeholder shown until a real image is dropped in */
+    .img-slot-label{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:0.5rem;
+      aspect-ratio:16/10;
+      color:var(--white-faint);
+      font-family:var(--sans);
+      font-size:0.78rem;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      text-align:center;
+      padding:2rem;
+      border:1px dashed var(--line);
+    }
+
+    .img-slot-label strong{
+      color:var(--white-soft);
+      font-size:0.85rem;
+      display:block;
+      margin-bottom:0.3rem;
+    }
+
+    .hero-caption{
+      font-size:0.85rem;
+      color:var(--white-faint);
+      text-align:center;
+      font-style:italic;
+    }
+    .hero-caption a{ color:var(--ember); text-decoration:none; border-bottom:1px solid var(--ember-soft); }
+    .hero-caption a:hover{ border-bottom-color:var(--ember); }
+
+    /* ─── ENTER THE DOME ───
+       The one control on this page that leaves it. It wears --ember for the
+       same reason the nav entry does: gold is the colour of the room itself,
+       used nowhere else on the site, so the door out is never mistaken for
+       content. Appears twice — once above the fold for anyone who already
+       knows what they came for, once at the end for anyone who read. */
+    .enter-dome{ margin:3rem 0; text-align:center; }
+
+    .enter-dome-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:0.6rem;
+      padding:1rem 2rem;
+      border:1px solid var(--ember);
+      border-radius:100px;
+      background:rgba(184,134,59,0.08);
+      color:var(--ember);
+      font-family:var(--sans);
+      font-weight:600;
+      font-size:0.8rem;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      text-decoration:none;
+      transition:background 0.25s, color 0.25s, transform 0.25s;
+    }
+    .enter-dome-btn span{ transition:transform 0.25s; }
+    .enter-dome-btn:hover{ background:var(--ember); color:#0b0906; transform:translateY(-2px); }
+    .enter-dome-btn:hover span{ transform:translateX(4px); }
+
+    .enter-dome-note{
+      margin-top:1rem;
+      font-size:0.8rem;
+      line-height:1.7;
+      color:var(--white-faint);
+      max-width:34rem;
+      margin-left:auto;
+      margin-right:auto;
+    }
+
+    @media(max-width:768px){
+      .enter-dome{ margin:2.25rem 0; }
+      .enter-dome-btn{ padding:0.9rem 1.5rem; font-size:0.72rem; letter-spacing:0.1em; }
+    }
+
+    /* ─── HERO IMAGE PAIR — before/after ───
+       Two images side by side (before → after), since the "posing" transform
+       is the whole point of this project. Each .img-slot inside keeps its
+       normal styling; this just arranges them in a 2-up row. Stacks to one
+       column on mobile. */
+    .img-pair{
+      position:relative;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0;
+      margin:2.5rem 0;
+    }
+
+    .img-pair .img-slot{ margin:0; border-radius:0; }
+    .img-pair .img-slot:first-child{ border-top-left-radius:6px; border-bottom-left-radius:6px; }
+    .img-pair .img-slot:last-child{ border-top-right-radius:6px; border-bottom-right-radius:6px; }
+
+    /* Badge sitting right on the seam between the two photos, with arrows
+       pointing inward toward each other — a visual cue that this is a single
+       before/after transformation, not two unrelated images. */
+    /* Stacked "exchange" icon on the seam — top arrow points right (toward
+       the second photo), bottom arrow points left (toward the first) — like
+       a currency-exchange symbol, signaling these are two states of the
+       same object, not two separate images. */
+    .img-pair-transform{
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:0.15rem;
+      width:44px;
+      height:44px;
+      background:var(--bg);
+      border:1.5px solid var(--white);
+      border-radius:50%;
+      font-size:0.95rem;
+      line-height:1;
+      color:var(--white);
+    }
+
+    /* The badge always stacks its two glyphs in a column, but which pair of
+       glyphs it shows depends on whether the photos are side-by-side
+       (→ over ←, pointing at each other horizontally) or stacked on mobile
+       (↓ over ↑, pointing at each other vertically) — the arrows should
+       always point between the two images, not just default to horizontal. */
+    .img-pair-transform .arrow-vertical{ display:none; }
+
+    @media(max-width:768px){
+      .img-pair{ grid-template-columns:1fr; gap:0; }
+      .img-pair .img-slot:first-child{ border-radius:6px 6px 0 0; }
+      .img-pair .img-slot:last-child{ border-radius:0 0 6px 6px; }
+      .img-pair-transform{ width:38px; height:38px; font-size:0.8rem; }
+      .img-pair-transform .arrow-horizontal{ display:none; }
+      .img-pair-transform .arrow-vertical{ display:inline; }
+    }
+
+    /* ─── 2×2 IMAGE COLLAGE ───
+       A single bordered "box" holding 4 images in a grid (top-left,
+       top-right, bottom-left, bottom-right), each with its own small
+       caption underneath. Used in the Prototyping step. */
+    .collage-box{
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:0.9rem;
+      background:var(--bg-panel);
+      margin:1.5rem 0;
+    }
+
+    .collage-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      align-items:start;
+      gap:0.75rem;
+    }
+
+    .collage-item img{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius:6px;
+    }
+
+    .collage-item .img-slot-label{ aspect-ratio:4/3; border-radius:6px; padding:1rem; font-size:0.65rem; }
+    .collage-item .img-slot-label strong{ font-size:0.72rem; }
+
+    /* Per-image prose for the collage. Same role as .collage-caption, one
+       level down in specificity: the caption names the step, this says what
+       happened. It is also the VR room's station text — data-loader.js's
+       bodyFor() takes the first <p> inside the group box, and .collage-item is
+       in GROUP_SEL for exactly this. Under 260 characters each (BODY_MAX), or
+       the room trims at the last sentence end. */
+    .collage-note{
+      margin:0.4rem 0 0;
+      font-size:0.78rem;
+      line-height:1.5;
+      /* --white-soft, not the --white-faint the caption above uses: that is
+         pitched for three uppercase words, and this is a sentence. Matches
+         `.a11y-note p`, the page's own precedent for faint PROSE. Sizes are in
+         rem throughout so `html.accessible` (root font-size x 1.15) scales
+         them with everything else. */
+      color:var(--white-soft);
+      text-align:left;
+    }
+    .collage-caption{
+      margin-top:0.5rem;
+      font-size:0.7rem;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      text-align:center;
+    }
+
+    @media(max-width:768px){
+      .collage-grid{ grid-template-columns:1fr 1fr; gap:0.5rem; }
+      .collage-box{ padding:0.6rem; }
+    }
+
+    /* ─── META ROW ─── */
+    .meta-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0;
+      margin:3.5rem 0;
+      border-top:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+    }
+
+    .meta-item{
+      flex:1;
+      min-width:150px;
+      padding:1.5rem 1.5rem;
+      text-align:center;
+      border-left:1px solid var(--line);
+    }
+
+    .meta-item:first-child{ border-left:none; }
+
+    .meta-label{
+      font-size:0.65rem;
+      font-weight:500;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      margin-bottom:0.5rem;
+    }
+
+    .meta-value{
+      font-family:var(--serif);
+      font-size:1.05rem;
+      color:var(--white);
+    }
+
+    /* ─── STORY ─── */
+    .story{ max-width:680px; margin:0 auto 4rem; }
+
+    .story p{
+      position:relative;
+      font-size:1.05rem;
+      color:var(--white-soft);
+      margin-bottom:1.5rem;
+    }
+
+    .story p strong{ color:var(--white); font-weight:600; }
+
+    /* ─── DIVIDER ─── */
+    .divider-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:1.25rem;
+      margin:4.5rem 0;
+    }
+
+    .divider-row .line{ flex:1; max-width:220px; height:1px; background:var(--line); }
+    .divider-row .mark{ font-family:var(--serif); font-style:italic; color:var(--white-faint); font-size:1.1rem; }
+
+    /* ─── JOURNEY ─── */
+    .journey-heading{
+      font-family:var(--serif);
+      font-weight:700;
+      font-size:clamp(2.2rem,5vw,3.2rem);
+      text-align:center;
+      margin-bottom:0.5rem;
+    }
+
+    .journey-heading em{ font-style:italic; font-weight:400; color:var(--white-soft); }
+
+    .journey-sub{
+      text-align:center;
+      font-size:0.75rem;
+      font-weight:500;
+      letter-spacing:0.16em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      margin-bottom:3rem;
+    }
+
+    /* ─── NUMBERED STEPS (matches circle-badge style from reference) ─── */
+    .steps{
+      display:flex;
+      flex-direction:column;
+      gap:2.5rem;
+    }
+
+    .step{
+      display:grid;
+      grid-template-columns:80px 1fr;
+      gap:2rem;
+      align-items:start;
+    }
+
+    .step-badge{
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      border:1.5px solid var(--white);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:var(--serif);
+      font-size:1.5rem;
+      color:var(--white);
+      flex-shrink:0;
+    }
+
+    .step-body h3{
+      font-family:var(--serif);
+      font-weight:600;
+      font-size:1.3rem;
+      margin-bottom:0.6rem;
+      text-transform:capitalize;
+    }
+
+    .step-body p{
+      position:relative;
+      font-size:0.95rem;
+      color:var(--white-soft);
+    }
+
+    /* chess.html gives each step a single paragraph followed by an image, so
+       `p` never needed bottom spacing there and the global reset's margin:0
+       was invisible. The steps on this page run three and four paragraphs
+       deep, which ran them into one block of text. Space only BETWEEN
+       adjacent paragraphs, so the existing gap before an .img-slot (2.5rem of
+       its own margin) is untouched. Matches .story p's 1.5rem rhythm. */
+    .step-body p + p{ margin-top:1.5rem; }
+
+    /* ─── FINAL SUCCESS SHOT ───
+       Closing image, a cutout with no background — sits directly on the
+       page's own black background rather than in a bordered/cropped
+       .img-slot box, and uses object-fit:contain (not cover) so nothing
+       gets cropped off. */
+    .final-shot{
+      text-align:center;
+      margin:3.5rem 0;
+    }
+
+    .final-shot img{
+      max-width:420px;
+      width:100%;
+      height:auto;
+      display:inline-block;
+    }
+
+    /* ─── FOOTER NAV ─── */
+    .back-bottom-wrap{ text-align:center; margin-top:4rem; }
+
+    .back-bottom{
+      display:inline-flex;
+      align-items:center;
+      gap:0.6rem;
+      font-size:0.8rem;
+      font-weight:500;
+      letter-spacing:0.08em;
+      text-transform:uppercase;
+      color:var(--white);
+      text-decoration:none;
+      padding:1rem 2rem;
+      border:1px solid var(--white);
+      border-radius:100px;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .back-bottom:hover{ background:var(--white); color:var(--bg); }
+
+    /* ─── MORE PROJECTS ─── */
+    .more-projects{ margin-top:5rem; }
+
+    .more-projects-title{
+      font-family:var(--serif);
+      font-size:0.75rem;
+      letter-spacing:0.14em;
+      text-transform:uppercase;
+      color:var(--white-faint);
+      text-align:center;
+      margin-bottom:1.75rem;
+    }
+
+    .more-projects-grid{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:1.25rem;
+    }
+
+    .mini-card{
+      position:relative;
+      display:block;
+      text-decoration:none;
+      color:inherit;
+      aspect-ratio:4/3;
+      overflow:hidden;
+      border-radius:4px;
+      background:var(--bg-panel);
+    }
+
+    .mini-card img, .mini-card video{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      filter:grayscale(30%) brightness(0.9);
+      transition:filter 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1);
+    }
+
+    .mini-card:hover img, .mini-card:hover video{ filter:grayscale(0%) brightness(1); transform:scale(1.05); }
+
+    .mini-card::after{
+      content:'';
+      position:absolute;
+      inset:0;
+      background:linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.1) 45%, rgba(0,0,0,0.02) 100%);
+      pointer-events:none;
+    }
+
+    .mini-card-info{
+      position:absolute;
+      left:0; right:0; bottom:0;
+      padding:1rem;
+      z-index:2;
+    }
+
+    .mini-card-title{
+      font-family:var(--serif);
+      font-size:0.92rem;
+      color:#f5f5f0;
+      line-height:1.2;
+      margin-bottom:0.2rem;
+    }
+
+    .mini-card-tag{
+      font-size:0.6rem;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:rgba(245,245,240,0.7);
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .mini-card-arrow{
+      position:absolute;
+      top:0.65rem;
+      right:0.65rem;
+      width:26px;
+      height:26px;
+      border-radius:50%;
+      background:rgba(0,0,0,0.5);
+      -webkit-backdrop-filter:blur(4px);
+      backdrop-filter:blur(4px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-size:0.8rem;
+      transform:rotate(-45deg);
+      transition:transform 0.35s cubic-bezier(0.16,1,0.3,1), background 0.3s;
+      z-index:2;
+    }
+
+    .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+
+    /* ─── QUICK LINKS ROW — writing/coursework samples without a full
+         project page (yet). Sits below the mini-card grid, small and
+         compact. To add another: copy one <a class="quick-link-mini">. */
+    .quick-links-row{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:0.6rem;
+      margin-top:1.25rem;
+    }
+
+    .quick-link-mini{
+      display:inline-flex;
+      align-items:center;
+      gap:0.4rem;
+      padding:0.5rem 1rem;
+      border:1.5px solid var(--white);
+      border-radius:100px;
+      font-size:0.68rem;
+      font-weight:500;
+      text-decoration:none;
+      color:var(--white);
+      white-space:nowrap;
+      transition:background 0.2s, color 0.2s;
+    }
+
+    .quick-link-mini:hover{ background:var(--white); color:var(--bg); }
+
+    @media(max-width:768px){
+      nav{ padding:1rem 1rem; }
+      .a11y-toggle{ font-size:0.6rem; padding:0.75rem 0.7rem; white-space:nowrap; }
+      .a11y-toggle-prefix{ display:none; }
+      .back-link{ font-size:0.62rem; padding:0.85rem 0.9rem; white-space:nowrap; }
+      main{ padding:3rem 1.5rem 5rem; }
+      .meta-row{ flex-direction:column; }
+      .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
+      .meta-item{ border-left:none; border-top:1px solid var(--line); }
+      .meta-item:first-child{ border-top:none; }
+      .step{ grid-template-columns:56px 1fr; gap:1.25rem; }
+      .step-badge{ width:52px; height:52px; font-size:1.2rem; }
+    }
+
+    /* ── Very narrow phones: the nav's three items stop fitting ──
+       nav is logo + back-link + accessibility toggle on one `space-between`
+       row, and that row is a fixed ~344px wide — it does not shrink further
+       below the 768px breakpoint above. Once the usable width drops under
+       ~361px the toggle runs off the right edge, and `overflow-x: hidden`
+       clips it rather than scrolling: measured 56px cut off at a 320px
+       viewport and 20px at 360px, which eats most of the word
+       "Accessibility". Ironic on that control in particular.
+
+       Letting the row wrap is safe here because nav is `position: sticky` and
+       so still in normal flow — it grows and pushes the page down instead of
+       overlapping it. index.html already does exactly this for its own nav.
+       `margin-left:auto` keeps the toggle on the right, where it sits at every
+       other width. */
+    @media(max-width:380px){
+      nav{ flex-wrap:wrap; gap:0.5rem; }
+      .a11y-toggle{ margin-left:auto; }
+
+      /* `white-space: nowrap` cannot shrink, so a long quick-link label runs
+         off both edges of a 320px screen (measured 21px over on this page's
+         widest one). Let it wrap instead — the row is already
+         `flex-wrap: wrap`, so a two-line pill costs nothing. */
+      .quick-link-mini{ white-space:normal; text-align:center; }
+      /* A `1fr` grid track is `minmax(auto, 1fr)`, and that `auto` floor is the
+         content's MIN-CONTENT width — so the step's body column refused to go
+         below the collage grid inside it and overflowed by 36px, clipping the
+         process text. `minmax(0, 1fr)` removes the floor and lets it shrink.
+         Then one image per row, since two 1fr columns inside ~180px is not a
+         photograph, it is a smudge. */
+      .step{ grid-template-columns:56px minmax(0,1fr); }
+      .collage-grid{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
+
+  <div class="a11y-note" id="a11yNote">
+    <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
+    <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go — <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
+  </div>
+
+  <nav>
+    <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html">← Back to Home</a>
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode" aria-pressed="false">
+      <span class="a11y-dot"></span>
+      <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
+    </button>
+  </nav>
+
+  <main>
+  <article>
+
+    <div class="hero">
+      <h1 class="hero-title">The <em>Dome</em></h1>
+      <p class="hero-sub">A Spatial Portfolio You Stand Inside</p>
+      <p class="hero-caption">A WebXR spatial portfolio — live in beta at <a href="vr/">sesteva.com/vr</a></p>
+    </div>
+
+    <div class="img-slot">
+      <img src="images/vr-hero-hub.jpg" alt="The dome seen from its centre: the name Sebastian Esteva in large gold serif type, a bio panel with a portrait below it, a column of writing-sample cards angled in from the left, and experience cards angled in from the right, all floating in a near-black room" width="800" height="450">
+    </div>
+
+    <div class="enter-dome">
+      <a class="enter-dome-btn" href="vr/">Enter the dome <span aria-hidden="true">→</span></a>
+      <p class="enter-dome-note">Best in a headset. Opens in your browser either way — on a laptop you get the same room, flattened, with WASD to move.</p>
+    </div>
+
+    <div class="meta-row">
+      <div class="meta-item">
+        <div class="meta-label">Role</div>
+        <div class="meta-value">Solo build</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Built with</div>
+        <div class="meta-value">A-Frame · three.js · WebXR</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Status</div>
+        <div class="meta-value">Live, in beta</div>
+      </div>
+    </div>
+
+    <div class="story">
+      <p>A portfolio is a room you never get to stand in. You scroll it. Everything sits the same distance away, and the only thing that changes is which rectangle is under your thumb.</p>
+      <p>I wanted to know what it would feel like to <strong>walk into one</strong> — for the projects to be somewhere. To your left. Behind you. Close enough to lean toward. So I built the dome: a dusk-lit room you land in, my name ahead of you, the projects off to one side, the writing to the other, and every photograph I have ever put on this site drifting in a cloud behind your shoulder.</p>
+      <p>No game engine, no build step, no app to install. It is a web page — A-Frame and three.js, loaded from a CDN, which means the whole thing is a link you can send someone.</p>
+    </div>
+
+    <div class="divider-row">
+      <span class="line"></span>
+      <span class="mark">✦</span>
+      <span class="line"></span>
+    </div>
+
+    <h2 class="journey-heading">The <em>Journey</em></h2>
+    <p class="journey-sub">Idea → Composition → Hardware → A Place to Read</p>
+
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-badge">1</div>
+        <div class="step-body">
+          <h3>The Idea</h3>
+          <p>I build physical things — a chess set that folds onto a wall, a cane, a cast pendant, a car door. All of them are objects you understand by standing next to them and reaching out. Then I photograph them and put them in a grid, and the grid does what grids do: it makes everything the same size.</p>
+          <p>The question I actually wanted to answer was whether <strong>distance could carry meaning</strong> on a portfolio. If the writing is on your left and the work is on your right, you have to turn your head to change subject — and turning your head is a decision in a way that scrolling is not.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-badge">2</div>
+        <div class="step-body">
+          <h3>Composing the Room</h3>
+          <p>The dome is composed from one spot, like a stage set. The home panel sits <strong>1.5&nbsp;m</strong> ahead; the project and experience cards sit on arcs at <strong>2.0–2.3&nbsp;m</strong>; the photo cloud starts behind you at 2.2&nbsp;m. Those numbers are the whole design. A card at 2&nbsp;m is a thing you consider; the same card at 4&nbsp;m is a poster.</p>
+          <p>Cards without a photograph get a single large letter instead, so an empty slot reads as deliberate rather than broken. Four of the writing pieces still have no hero art, and that is what you are seeing below.</p>
+
+          <div class="img-slot">
+            <img src="images/vr-projects-grid.jpg" alt="Looking left inside the dome at the projects grid: photo cards for Poser Chess Set and Time Collector, and cards showing only a large gold letter where a project has no hero image yet, with the portrait panel at the right edge" width="1920" height="1080" loading="lazy">
+          </div>
+
+          <p>The portrait was the piece I kept coming back to. It is not one image, it is <strong>four</strong> — a stereo pair of the photograph and a stereo pair of a mosaic version, built from small objects that each mean something. The left eye is drawn to one layer and the right eye to the other, so in a headset the panel has real depth rather than being a flat picture hung in a 3D room.</p>
+
+          <div class="img-pair">
+            <div class="img-slot">
+              <img src="images/vr-portrait-photo.jpg" alt="The plain portrait: a straight headshot of Sebastian Esteva against a grey backdrop in a cream polo shirt" width="768" height="1152" loading="lazy">
+            </div>
+            <div class="img-slot">
+              <img src="images/vr-portrait-mosaic.jpg" alt="The mosaic version of the same portrait, assembled from small tiles and objects — gears, calipers, a VR headset, a DNA helix, a Stanford tree, a 3D printer, a camera, a handshake, an accessibility symbol, books and an apple" width="768" height="1152" loading="lazy">
+            </div>
+            <div class="img-pair-transform" aria-hidden="true">
+              <span class="arrow-horizontal"></span>
+              <span class="arrow-vertical"></span>
+            </div>
+          </div>
+
+          <p>Wherever you look on it, the mosaic mixes in. Look away and the photograph comes back. The catch is that a stereo pair is only honest seen square on — the disparity is baked for a head 1.5&nbsp;m dead ahead, so an oblique view shears the depth. Which is why the panel slowly turns to keep facing you, and why walking was allowed to happen at all: the two features had to be built to know about each other.</p>
+
+          <p>Movement took two passes. The first version had no walking at all — you could turn in fixed steps and nothing else, because smooth movement in a headset is the fastest way to make someone queasy. It was comfortable and it was slightly dead. So I added bounded walking, and the bound is an <strong>ellipse, not a circle</strong>: the room is not symmetric, the home panel is only 1.5&nbsp;m forward, and a circle wide enough to feel like real movement sideways walks you straight through your own name. You decelerate into the edge rather than hitting it.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-badge">3</div>
+        <div class="step-body">
+          <h3>Putting It On</h3>
+          <p>Everything above was built on a monitor, where it worked. The first time I put the room on a real headset, it felt slow. Buttons took a few tries. Opening a project took what felt like forever. My honest first thought was that I had asked too much of the hardware.</p>
+          <p>I measured it instead. The scene drew a frame in <strong>1.17&nbsp;ms</strong> at two-eye resolution, with 63 draw calls. It was not slow. It was <strong>arriving</strong> slowly — <strong>50.9&nbsp;MB</strong> on landing, 50 of which were thirty-four full-resolution photographs, holding <strong>284&nbsp;MB</strong> of texture memory. And the selection was being dropped outright, because a pinch on that headset exists for a single frame and the library was waiting for a press and a release on the same object.</p>
+          <p>Two fixes, neither glamorous: every image gets a downscaled copy for the room, and selection reads the headset's own pinch directly instead of waiting to be told. Arrival went <strong>50.9&nbsp;MB → 7.4&nbsp;MB</strong> and texture memory <strong>284&nbsp;MB → 63&nbsp;MB</strong>. The lesson I keep: <em>it felt like frame rate and it was nothing to do with frame rate.</em></p>
+
+          <div class="img-slot">
+            <img src="images/vr-headset-pinch.jpg" alt="A headset capture from inside the dome showing a hand mid-pinch beneath a Return to dome button, with a project title panel above and Recenter and Sound controls near the floor" width="1920" height="1080" loading="lazy">
+          </div>
+
+          <p>That session also killed features. The floating <em>Recenter</em> and <em>Sound</em> pills in the photograph above are gone — in a headset they read as clutter in every direction you looked. The way out is a pad on the floor now: look down at your feet and it appears.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-badge">4</div>
+        <div class="step-body">
+          <h3>A Place to Read</h3>
+          <p>Half of what is on this site is writing, and a paper is a bad fit for a room — nobody wants to read eleven pages floating in the dark. So the writing does not open as a panel. It moves you: the dome dims and you end up in a reading alcove metres away, with the piece standing in front of you as a continuous column of pages you scroll through.</p>
+          <p>The pages are pre-rendered images, not live PDF rendering, which is why they appear instantly. That created the interesting problem: an image has no idea where its own lines of text are. So the reading guide <strong>finds them</strong> — it projects each page down into a row of darkness values, and the troughs are the lines. Then it lights the one you are looking at, the same reading-ruler idea as the accessible mode on this page.</p>
+
+          <div class="img-slot">
+            <img src="images/vr-reader-line-guide.png" alt="Three panels of the in-headset reader showing one of the writing pieces: the line being looked at highlighted in gold, then a line three clicks further down, then the guide switched off from the toggle beside the scroll rail" width="2000" height="609" loading="lazy">
+          </div>
+
+          <p>Behind you, the photo cloud does the opposite of a grid — it drifts. Looking at a photograph does not pull it toward you, because an image that flies at your face the instant your eyes cross it is exhausting. It fills a small ring instead, and only a full ring reaches. About a second of deliberate attention. Intention, rather than reflex.</p>
+
+          <div class="img-slot">
+            <img src="images/vr-photo-cloud-dwell.jpg" alt="The photo cloud behind the viewer, a drifting constellation of site photographs, with a small progress ring filling on the tile currently being looked at" width="1800" height="496" loading="lazy">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="divider-row">
+      <span class="line"></span>
+      <span class="mark">✦</span>
+      <span class="line"></span>
+    </div>
+
+    <div class="story">
+      <p>It is in beta, which here means: it works, I am still finding things, and the things I find are usually not where I expected. It runs on Apple Vision Pro and on Quest, with controllers or with your hands, and it falls back to a flat window with WASD if you have neither.</p>
+      <p>The part I did not anticipate is how much of the work turned out to be about <strong>time and attention</strong> rather than geometry — how long a thing should wait before it responds, how long a room should take to arrive, how much looking should count as asking. None of that is visible in a screenshot, which is the other reason this page exists.</p>
+    </div>
+
+    <div class="enter-dome">
+      <a class="enter-dome-btn" href="vr/">Enter the dome <span aria-hidden="true">→</span></a>
+      <p class="enter-dome-note">One tap in a headset. A browser window everywhere else.</p>
+    </div>
+
+    <div class="final-shot">
+      <img src="images/vr-return-to-dome.jpg" alt="A headset capture looking at a project panel inside the dome with the Return to dome control below it" width="1920" height="1080" loading="lazy">
+    </div>
+
+  </article>
+
+    <div class="more-projects">
+      <h3 class="more-projects-title">More Projects</h3>
+      <div class="more-projects-grid">
+        <a href="pendant.html" class="mini-card">
+          <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Graduation Pendant</p>
+            <span class="mini-card-tag">Silver · Metalworking · Design</span>
+          </div>
+        </a>
+        <a href="slipdoor.html" class="mini-card">
+          <video aria-label="3D render of The Slip Door wooden frame prototype" width="1280" height="720" autoplay loop muted playsinline disableRemotePlayback preload="auto">
+            <source src="images/slipdoor-final-result.webm" type="video/webm">
+            <source src="images/slipdoor-final-result.mp4" type="video/mp4">
+          </video>
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">The Slip Door</p>
+            <span class="mini-card-tag">Team Project · Accessibility · Volkswagen</span>
+          </div>
+        </a>
+        <a href="baston.html" class="mini-card">
+          <img src="images/baston-hero.jpg" alt="Close-up of the Bastón folded" width="5184" height="3058" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Bastón</p>
+            <span class="mini-card-tag">Woodworking · Metalworking</span>
+          </div>
+        </a>
+        <a href="timecollector.html" class="mini-card">
+          <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gear train and marble mechanism" width="966" height="1192" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Time Collector</p>
+            <span class="mini-card-tag">Team Project · Kinetic Sculpture</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="quick-links-row">
+        <a href="chess.html" class="quick-link-mini">Poser Chess Set <span>↗</span></a>
+        <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+        <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+        <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
+        <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
+        <a href="apple-medical-licensure-apple-watch.html" class="quick-link-mini">Apple's Medical Licensure <span>↗</span></a>
+      </div>
+    </div>
+
+    <div class="back-bottom-wrap">
+      <a class="back-bottom" href="index.html">← Back to Main Page</a>
+    </div>
+
+  </main>
+  <script>
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    const toggle = document.getElementById('a11yToggle');
+    const a11yNote = document.getElementById('a11yNote');
+
+    function updateA11yNote(show) {
+      if (a11yNote) a11yNote.classList.toggle('visible', show);
+    }
+
+    function dismissA11yNote() {
+      sessionStorage.setItem('a11yNoteDismissed', '1');
+      updateA11yNote(false);
+    }
+
+    // Sync the toggle button + explainer card to whatever accessible-mode
+    // state was already applied by the early inline scripts (head + body).
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      toggle.setAttribute('aria-pressed', 'true');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
+    function toggleAccessible() {
+      const isOn = document.body.classList.toggle('accessible');
+      document.documentElement.classList.toggle('accessible', isOn);
+      toggle.classList.toggle('active', isOn);
+      toggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+
+      if (isOn) {
+        localStorage.setItem('a11yMode', '1');
+        sessionStorage.removeItem('a11yNoteDismissed');
+        updateA11yNote(true);
+      } else {
+        localStorage.removeItem('a11yMode');
+        updateA11yNote(false);
+        document.querySelectorAll('.a11y-line-overlay').forEach(o => {
+          o.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      }
+    }
+
+
+    function initA11yLineHighlight(selector) {
+      document.querySelectorAll(selector).forEach(el => {
+        // The highlight bar is a plain absolutely-positioned box with
+        // z-index:-1, so it needs el to be positioned (to anchor to) and to
+        // establish its own stacking context (so the bar paints behind el's
+        // own text without leaking behind any ancestor's background).
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        if (getComputedStyle(el).zIndex === 'auto') el.style.zIndex = '0';
+
+        const overlay = document.createElement('span');
+        overlay.className = 'a11y-line-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        el.appendChild(overlay);
+
+        el.addEventListener('mousemove', e => {
+          if (!document.body.classList.contains('accessible')) return;
+          // Computed fresh every hover (not cached) since toggling accessible
+          // mode changes the font and line-height after this listener is set up.
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+          const rect = el.getBoundingClientRect();
+          const line = Math.floor((e.clientY - rect.top) / lineHeight);
+          const top = Math.max(line, 0) * lineHeight;
+          const bottom = Math.max(rect.height - top - lineHeight, 0);
+          overlay.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
+        });
+
+        el.addEventListener('mouseleave', () => {
+          overlay.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      });
+    }
+
+    initA11yLineHighlight('.hero-title, .hero-sub, .hero-caption, .meta-label, .meta-value, .journey-heading, .journey-sub, .step-body h3, .story p, .step-body p, .enter-dome-note');
+  </script>
+</body>
+</html>

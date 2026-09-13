@@ -339,6 +339,38 @@
     .hero-caption a{ color:var(--ember); text-decoration:none; border-bottom:1px solid var(--ember-soft); }
     .hero-caption a:hover{ border-bottom-color:var(--ember); }
 
+    /* ─── WHILE THE COPY IS BEING WRITTEN ───
+       This page is linked from the nav and from every project page's bottom
+       list, so a visitor lands on it — but the scaffold's placeholders are
+       EMPTY elements rather than absent ones, which is not the same thing. An
+       empty <p> still takes its margins, and "The Journey" with nothing under
+       it is a floating label. Left alone it reads as broken rather than sparse.
+
+       So anything still empty collapses, and the whole journey section (its
+       heading, its subtitle, the steps and the two ornamental dividers that
+       frame it) stays out until at least one step has a heading. Sparse on
+       purpose instead of half-built.
+
+       Nothing here needs undoing: every rule is conditional on the emptiness
+       it is hiding, so each part reappears the moment it has text in it. Write
+       one step heading and the journey comes back with it.
+
+       `:has()` is the load-bearing bit; where it is unsupported these
+       selectors are simply dropped and the placeholders show as gaps, which is
+       the pre-existing behaviour and only lasts until the copy lands. */
+    .hero-sub:empty,
+    .hero-caption:empty,
+    .journey-sub:empty,
+    .story p:empty,
+    .step-body h3:empty,
+    .step-body p:empty { display:none; }
+
+    /* A story block whose every paragraph is still blank. */
+    .story:not(:has(p:not(:empty))){ display:none; }
+
+    /* The journey, until a step has something to say. */
+    article:not(:has(.step-body h3:not(:empty))) :is(.journey-heading, .journey-sub, .steps, .divider-row){ display:none; }
+
     /* ─── THE LIVE HERO ───
        The dome itself, running in an iframe, with the screenshot as its poster.
 
@@ -1158,6 +1190,13 @@
 
     function initA11yLineHighlight(selector) {
       document.querySelectorAll(selector).forEach(el => {
+        // Skip anything with no text. Two reasons, and the second is the one
+        // that bit: a reading ruler for an element with nothing to read is
+        // pointless, AND appending the overlay span makes the element stop
+        // matching `:empty` — which is exactly what the empty-state rules at
+        // the top of this file key off. With the overlay injected, every blank
+        // placeholder counted as filled and the whole scaffold rendered.
+        if (!el.textContent.trim()) return;
         // The highlight bar is a plain absolutely-positioned box with
         // z-index:-1, so it needs el to be positioned (to anchor to) and to
         // establish its own stacking context (so the bar paints behind el's

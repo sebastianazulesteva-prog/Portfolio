@@ -116,14 +116,14 @@
   // the visible radius or the deck ends in a straight edge across the sky.
   var DECKS = [
     { // the cumulus you actually look at
-      count: 38, puffs: [18, 28],
-      alt: [26, 33], span: 120, zHalf: 42,
+      count: 44, puffs: [18, 28],
+      alt: [26, 33], span: 180, zHalf: 78,
       clusterR: [5.0, 12.0], clusterH: [1.8, 3.4],
       puffSize: [2.2, 4.6], drift: 0.30, opacity: 1.00
     },
     { // a higher, smaller, slower deck — pure depth cue
-      count: 30, puffs: [8, 13],
-      alt: [42, 52], span: 200, zHalf: 62,
+      count: 34, puffs: [8, 13],
+      alt: [42, 52], span: 260, zHalf: 110,
       clusterR: [2.6, 6.0], clusterH: [0.8, 1.8],
       puffSize: [1.2, 2.4], drift: 0.11, opacity: 0.78
     }
@@ -137,13 +137,25 @@
   // the only way to get it is to use enough of them to overlap into one mass.
   // ~23 puffs at ~a quarter of the cluster width does it.
   //
-  // ── And why there are so many CLUSTERS ───────────────────────────────────
-  // Only the ones inside the visible cone count, and that is a small share of
-  // the field: deck A spans 120×84 m = 10 000 m², the cone at its altitude is
-  // a disc of radius ~33 m = 3 400 m², so roughly a third of the clusters are
-  // in shot at any moment. At 24 clusters that is ~8 clouds in a 96°-wide
-  // aperture and the zenith was reliably an empty blue hole. 38 puts ~13 up
-  // there, which is a sky.
+  // ── And why the fields got so much bigger when the cut came down ─────────
+  // Lowering the cut widens the hole, and a wider hole sees FURTHER along a
+  // cloud deck, not just more of the sky: a deck at altitude H is visible out
+  // to (H − eye)/tan(cut), so dropping the cut from ~40° to ~28° of apparent
+  // elevation took deck A's reach from ~37 m to ~59 m and deck B's from ~58 m
+  // to ~95 m. Both numbers are hard constraints, in two different ways:
+  //
+  //   * `span` is where the drift WRAPS, and a cluster that wraps inside the
+  //     visible cone pops into view at full size. The guard in
+  //     buildCloudField() checks this and says so.
+  //   * `zHalf` does not wrap, so it merely has to COVER the reach — if it
+  //     does not, the deck ends in a straight edge across the sky, which is
+  //     not something a guard can catch because it looks like a cloudless
+  //     stretch.
+  //
+  // Both are set with room for a cut as low as 30° of latitude, so neither has
+  // to move again if this angle is tuned. Counts went up with them to keep the
+  // density: the area roughly doubled, and 24 clusters over the old field
+  // already left the zenith an empty blue hole.
   var CLOUD_FAR = 78;      // haze reaches full strength here; also the depth
                            // budget the sky cap has to sit outside of
 
@@ -159,8 +171,17 @@
   // own tick(), NOT from rAF or GSAP — guide §3.14: window rAF does not run
   // inside an immersive session, and one hand-rolled scalar does not need the
   // GSAP pump that xr-frame.js exists to provide.
-  var OPEN_MS = 1800;
-  var CLOSE_MS = 1150;
+  // Sebastian, after seeing it: *"make the opening process way slower to
+  // please."* 1800 ms was paced like a UI transition; this is a sixty-metre
+  // roof, and the thing it wants to feel like is machinery. 6500 ms with the
+  // easeInOutCubic below means it leaves slowly, gathers through the middle and
+  // settles — about as long as you can hold a reveal before it stops being a
+  // reveal and starts being a wait.
+  //
+  // Closing stays much quicker. It is a dismissal, not a reveal, and nobody
+  // wants to sit through six seconds of putting the lid back on.
+  var OPEN_MS = 6500;
+  var CLOSE_MS = 2800;
 
   // ── Lighting, open vs closed ─────────────────────────────────────────────
   // The ambient is the big one: it is what every card's glass and every troika
@@ -171,7 +192,14 @@
   // are visible unlit spheres, so lamps that go black while still glowing would
   // read as a bug. Daylight washing them out is the truth of the picture.
   var AMBIENT_OPEN = { color: '#8fb4dd', intensity: 0.95 };
-  var RACK_DIM = 0.42;
+  // Was 0.42. Sebastian asked for the overhead lights to DISAPPEAR as the dome
+  // opens, and the housings below now fade to nothing — so leaving their light
+  // at 42% would have left four warm pools on the cards cast by lamps you can
+  // no longer see, which is the exact "light arriving from nowhere" the visible
+  // housings exist to prevent (index.html). 0.18 is a trace, kept only so the
+  // glass keeps a little specular life; the cards' actual daylight comes from
+  // the ember term below.
+  var RACK_DIM = 0.18;
 
   // ── The lamp housings fade too ───────────────────────────────────────────
   // glass-material.js's light-rack-housings gives each fixture a visible core
@@ -187,13 +215,19 @@
   // when the roof opens, it stops MATTERING, and an additive glow is exactly
   // the term that should disappear when the surround gets brighter.
   //
-  // Only the GLOW. The first version faded the little core spheres too, and
-  // fading an opaque white sphere means making it translucent, which against a
-  // bright sky rendered four grey smudges rather than four lamps — worse than
-  // leaving them. They also sit within a degree of the cut, so they are
-  // sometimes against sky and sometimes against the dark dome, and a bead that
-  // works on both is the one that is left alone.
-  var HOUSING_GLOW_DIM = 0.14;
+  // ── All the way to nothing, cores included ───────────────────────────────
+  // The previous pass faded only the glow sprites and left the little core
+  // beads alone, on the grounds that a 55%-opacity white sphere against a
+  // bright sky reads as a grey smudge — which it does. Sebastian then asked
+  // for the overhead lights to *disappear*, and 0 is not 55%: a bead at zero
+  // opacity has no smudge to be. So both go, and what is left overhead is the
+  // opening.
+  //
+  // This also fixes something the lower cut created. The housings sit at 41.1°
+  // and 50.3° of apparent elevation; the cut now appears BELOW both, so they
+  // are no longer on the rim, they are inside the hole — four beads and four
+  // blown-out additive halos floating in open sky.
+  var HOUSING_DIM = 0;
   var SUN_LIGHT_INTENSITY = 1.4;
   var SUN_LIGHT_DIST = 16;     // only a direction; see index.html's #sunLight
 
@@ -1084,13 +1118,20 @@
         if (!this._housings) {
           var list = [];
           housingEl.object3D.traverse(function (o) {
-            if (o.isSprite && o.material) list.push({ o: o, opacity: o.material.opacity });
+            if (o.material) list.push({ o: o, opacity: o.material.opacity });
           });
           this._housings = list.length ? list : null;
         }
         if (this._housings) {
           this._housings.forEach(function (h) {
-            h.o.material.opacity = lerp(h.opacity, h.opacity * HOUSING_GLOW_DIM, a);
+            var op = lerp(h.opacity, h.opacity * HOUSING_DIM, a);
+            h.o.material.opacity = op;
+            // The core beads are authored OPAQUE, so opacity does nothing until
+            // the material blends. Flipped back off at rest rather than left on
+            // for the session: an opaque mesh sitting in the transparent pass
+            // is one more thing subject to §3.6's scene-graph paint order for
+            // no reason, and while the roof is shut these are opaque beads.
+            h.o.material.transparent = op < 0.999;
           });
         }
       }

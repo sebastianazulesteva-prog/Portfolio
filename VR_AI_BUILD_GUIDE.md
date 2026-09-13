@@ -794,7 +794,11 @@ the shown section has an interaction. Keep its light rack in sync with
                     # §9.18. Run it first, while the bug still reproduces.
 ?forcexr=1|0        # pin the headset or the flat arrival gate (onboarding.js)
 ?sky=1              # land with the skylight already OPEN, with no tween
-                    # (skylight.js). A 1.8s iris and a screenshot are a race.
+                    # (skylight.js). A 6.5s iris and a screenshot are a race.
+?cut=<latitude>     # try another skylight aperture without editing dome.js.
+                    # Latitude, NOT apparent elevation — 34 (the shipped value)
+                    # appears at 32.1° from a seated eye. 30 is the literal
+                    # "half the dome" that the hero title rules out (§9.29.1).
 ```
 
 ### `.tools/vr-phone.sh` — open /vr on a real iPhone
@@ -956,7 +960,8 @@ decays within a frame or two.
   a daylight sky — sun, two drifting decks of 3D cumulus in one draw call, the
   whole room relit from the opening. Built on first press (+6 draw calls,
   +4.3k tris when open; nothing at all when closed), and a full round trip
-  restores every authored light value
+  restores every authored light value (incl. the lamp housings' opacity and
+  their `transparent` flag)
 
 ### In progress / needs review
 - **The photo cloud's zone is stated as a GAP, not as raw angles.** `EDGE_MIN_DEG`
@@ -3920,6 +3925,82 @@ Two details:
   `max-width: 9.5rem` puts ‹ › on the bottom row and ♪ ☀ above, and
   `.onboard-hint` went 8.5rem → 9.25rem because the now-two-row block reached
   2 px into it (298 px²). All three overlaps measured 0 after.
+
+#### 9.29.1 Lower, slower, and the lamps go out (same day, after a look)
+
+*"Can you make the roof open up lower. Like half the way? And make the opening
+process way slower please. Also, make the overhead lights disappear as the dome
+opens."*
+
+Three constants and one measurement.
+
+**Lower — latitude 41.81° → 34°.** "Half the way" read literally is the cap
+above y = R/2, i.e. latitude 30°, and the room does not allow it. The number
+that matters is not latitude but what a visitor SEES: from the seated eye at
+y=1.6 on a radius-40 sphere, latitude θ appears at
+`atan((40·sinθ − 1.6)/(40·cosθ))`, so latitude 30° appears at just **28.0°** —
+and the hero title's top is at **34.4°**, the photo cloud at 31.4°, the
+projects and writing columns at 29.8°. Screenshotted at `?cut=30`, the cut runs
+straight through "Sebastian Esteva": top halves of the letters against bright
+sky, bottom halves on the dark dome, and the sky-side halves barely legible.
+
+**The bounding box lied, and it is worth knowing which way.** `name-scatter-3d`'s
+box overestimates the visible glyphs by 2–3°, because it covers the whole
+entity. Trusting it would have parked the cut at latitude 38 for a title that
+is actually clear at 34 — a 4° tax on the exact thing being asked to grow. So
+34 is **verified, not derived**: rendered at 30 (cuts the title), 33 and 36
+(both clear), then at 34 with `a11yMode` on, which is the worst case because
+accessible type scales ×1.25 and the title grows upward with it. Clear there
+too, with room. `?cut=<latitude>` is now a flag, so the next person argues with
+a screenshot instead of with trigonometry.
+
+The hole went from 49.9° of angular radius to **57.9°** — 2.24 → 2.95
+steradians, a third more sky.
+
+Two knock-ons, both real:
+
+* **The cut no longer lands in `ZENITH_PLATEAU`.** At 0.2678 of the texture it
+  sat inside the flat-`ZENITH` plateau, so it removed only uniform colour and
+  the rim was one clean tone. At 0.3111 it lands in the `topColor`→`FEATHER`
+  ramp, so the rim is a slightly darker slice of that ramp. Reads fine — a
+  darker lip against bright sky — but the old invariant is gone. The ember band
+  is still untouched: the cut reaches 0.311 and `FEATHER` starts at 0.42.
+* **The cloud fields had to grow a lot.** A wider hole sees FURTHER along a
+  deck, not just more sky: reach is `(H − eye)/tan(cut)`, so deck A went from
+  ~37 m to ~50 m and deck B from ~58 m to ~86 m. `span` (where the drift wraps)
+  and `zHalf` (which merely has to cover the reach, and fails as a straight
+  edge across the sky that no guard can catch) both went up, with headroom for
+  a cut as low as 30° so neither moves again if this angle is tuned. Counts
+  rose with them — the area roughly doubled, and the old density left the
+  zenith an empty blue hole. 1,207 → **1,380 quads**, still one draw call.
+  The `VRDome.CUT_ELEV_DEG` guard stayed quiet at the new angle.
+
+**Slower — `OPEN_MS` 1800 → 6500.** 1800 was paced like a UI transition; this
+is a sixty-metre roof and it wants to feel like machinery. Measured through the
+tween: at 600 ms it is 0.3% open, and at 1800 ms — where it used to be finished
+— it is **8.5%**. `CLOSE_MS` 1150 → 2800 only, because closing is a dismissal,
+not a reveal.
+
+**The lamps go out.** `HOUSING_DIM = 0`, and it now covers the core beads as
+well as the glow sprites. The previous pass faded only the glows, on the
+grounds that a 55%-opacity white sphere against bright sky reads as a grey
+smudge — which it does, but 0 is not 55% and a bead at zero opacity has no
+smudge to be. `material.transparent` is flipped back off at rest rather than
+left on for the session: an opaque bead sitting in the transparent pass is one
+more thing subject to §3.6's paint order for no reason.
+
+This also fixes something the lower cut created. The housings sit at 41.1° and
+50.3° apparent, so they used to straddle the rim; the cut now appears *below*
+both, which would have left four beads and four blown-out additive halos
+floating in open sky.
+
+And `RACK_DIM` went 0.42 → **0.18**, because it had to. Lamps you can no longer
+see casting four warm pools on the cards is precisely the "light arriving from
+nowhere" the visible housings exist to prevent. 0.18 is a trace kept for a
+little specular life; the cards' actual daylight is still the ember term.
+
+Re-measured after all of it: **+6 draw calls, +4,694 triangles** when open
+(69→75 calls, 10,772→15,466 tris), and still nothing at all built when closed.
 
 #### Verified
 

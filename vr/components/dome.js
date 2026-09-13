@@ -106,32 +106,83 @@
 
   // ── The skylight aperture (skylight.js) ──────────────────────────────────
   // Sebastian asked for a button that "cuts the top 3rd of the dome" and
-  // reveals a sunny sky behind it. Taken literally, the top third of the dome's
-  // HEIGHT is the cap above y = R·2/3, which is elevation asin(2/3) = 41.81°,
-  // which is (90 − 41.81)/180 = 0.2678 of this texture's height measured down
-  // from the zenith. Three things fall out of that number, and all three are
-  // luck worth writing down because they are what make the cut cheap:
+  // reveals a sunny sky behind it, then — having seen it — for the roof to
+  // open LOWER, "like half the way".
   //
-  //   • 0.2678 sits INSIDE ZENITH_PLATEAU (0.222 → 40° of elevation), where
-  //     the sky is flat ZENITH. So the cut only ever removes uniform colour:
-  //     the ember band, its bloom, the feather and the entire gradient below
-  //     are untouched, the band still measures exactly as recorded, and the
-  //     rim of the hole is one clean colour instead of a slice through a ramp.
-  //   • Nothing in the scene lives that high. Cards sit at radius 2 m and top
-  //     out around 27° of elevation, so the hole cannot expose content to a
-  //     bright sky. The highest things in the room are the light rack's
-  //     housings at ~41°, right on the rim, which is where a lamp hanging at
-  //     the edge of an opening belongs.
-  //   • It is painted into the ALPHA of a canvas that is already repainted for
-  //     the horizon drift, so the cut costs one extra gradient fill on a 2×512
-  //     canvas and no new geometry at all. Feathering is free, which a
-  //     geometric cut (thetaStart on the sphere) would not have been.
+  // Read literally, half the dome's HEIGHT is the cap above y = R/2, i.e.
+  // latitude 30°, i.e. (90−30)/180 = 0.3333 of this texture's height down from
+  // the zenith. The room does not allow it, and the measurement is here so
+  // nobody re-derives it:
+  //
+  //   Latitude is not what a visitor sees. From the seated eye at y=1.6 on a
+  //   radius-40 sphere, latitude θ APPEARS at atan((40·sinθ − 1.6)/(40·cosθ)).
+  //   So latitude 41.81° (the original "top third") appears at 40.1°, and
+  //   latitude 30° appears at just 28.0°.
+  //
+  //   Measured against that, the highest things in the hub are the hero title
+  //   at 34.4° of apparent elevation (bounding box top y=2.61, 1.5 m ahead),
+  //   the photo cloud at 31.4°, and the projects and writing constellations at
+  //   29.8°. Screenshotted at `?cut=30`, the cut does run through the title:
+  //   the top halves of the letters stand against bright sky while the rest
+  //   stay on the dark dome, a split background through the middle of the hero
+  //   type, and the sky-side halves are barely legible.
+  //
+  //   DO NOT pick this angle from that bounding box. It overestimates the
+  //   title by 2–3°, because `name-scatter-3d`'s box covers the whole entity
+  //   rather than the visible glyphs. Going by the box alone would have parked
+  //   the cut at latitude 38 for a title that is actually clear at 34 — a
+  //   4° tax on the thing Sebastian asked to make bigger.
+  //
+  //   34 is therefore VERIFIED rather than derived: rendered at 30 (cuts the
+  //   title), 33 and 36 (both clear), and then at 34 with `a11yMode` on, which
+  //   is the worst case because accessible type scales ×1.25 and the title
+  //   grows upward with it. Clear there too, with room. If the title ever
+  //   moves, re-shoot it — don't re-derive it. `?cut=<latitude>` is the knob.
+  //
+  // Two consequences of coming down from 41.81°, both real:
+  //
+  //   * The cut used to land INSIDE ZENITH_PLATEAU (0.222 → latitude 40°),
+  //     where the sky is flat ZENITH, so it removed only uniform colour and
+  //     the rim of the hole was one clean tone. It now lands in the
+  //     topColor→FEATHER ramp, so the rim is a slightly darker slice of that
+  //     ramp. That reads fine — a darker lip against bright sky — but the old
+  //     invariant is gone, so do not rely on it.
+  //   * The ember band is still untouched. The cut reaches 0.311 of the
+  //     texture and FEATHER does not begin until 0.42, so the band, its bloom
+  //     and the whole gradient below still measure exactly as recorded.
+  //   * The light rack's housings (41.1° and 50.3° apparent) are now INSIDE
+  //     the hole rather than on its rim, which is part of why skylight.js
+  //     fades them to nothing while the roof is open.
+  //
+  // It is painted into the ALPHA of a canvas that is already repainted for the
+  // horizon drift, so the cut costs one extra gradient fill on a 2×512 canvas
+  // and no new geometry at all. Feathering is free, which a geometric cut
+  // (thetaStart on the sphere) would not have been.
   //
   // The material below is transparent and depth-free for this: it is now the
   // MASK over skylight.js's daylight layer, not an opaque backdrop. See the
   // paint-order note in skylight.js's build() for the full chain.
-  var CUT_FRAC = 0.2678;
+  var CUT_LATITUDE_DEG = 34;
+  var CUT_FRAC = (90 - CUT_LATITUDE_DEG) / 180;
   var CUT_FEATHER = 0.013;   // ×180° = 2.4° of softness on the cut edge
+
+  // ?cut=<latitude in degrees> — try another aperture without editing this
+  // file. 30 is the literal "half the dome" that the hero title rules out; 90
+  // is no hole at all. Clamped, because a value outside (0,90) makes the
+  // gradient stops non-monotonic and Canvas throws on addColorStop.
+  (function () {
+    var q = new URLSearchParams(location.search).get('cut');
+    if (q == null) return;
+    var v = parseFloat(q);
+    if (!isFinite(v)) return;
+    CUT_LATITUDE_DEG = Math.max(1, Math.min(89, v));
+    CUT_FRAC = (90 - CUT_LATITUDE_DEG) / 180;
+    console.info('[vr] dome: cut latitude forced to ' + CUT_LATITUDE_DEG +
+                 '° by ?cut (appears at ' +
+                 (Math.atan2(40 * Math.sin(CUT_LATITUDE_DEG * Math.PI / 180) - 1.6,
+                             40 * Math.cos(CUT_LATITUDE_DEG * Math.PI / 180)) * 180 / Math.PI).toFixed(1) +
+                 '° from a seated eye)');
+  })();
 
   function paintDomeTexture(canvas, topColor, horizonColor, aperture) {
     var ctx = canvas.getContext('2d');

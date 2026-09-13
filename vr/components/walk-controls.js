@@ -47,8 +47,21 @@
    velocity ramp is skipped (input applies immediately, no glide) and the motion
    vignette never appears.
 
+   ── In a headset, none of the above is reachable (2026-09-11) ──
+   Both input paths here are flat-view paths. There is no keyboard in an
+   immersive session, and the touch joystick lives in the 2D overlay (vr.css),
+   which is not rendered at all once presenting. So walking — the whole of §9.5
+   — was desktop and phone only, and a Quest visitor had strictly LESS movement
+   than someone on a laptop.
+
+   `stick-walk` at the bottom of this file is the third input path: the left
+   controller's thumbstick, feeding the same `setAxis` the touch joystick uses.
+   Everything downstream is unchanged — same ellipse, same soft edge, same ramp,
+   same motion vignette, same head-relative heading.
+
    Usage — one component on the rig, which owns rig position:
      <a-entity id="rig" walk-controls></a-entity>
+     <a-entity id="leftHand" laser-controls stick-walk></a-entity>
    Exposes window.VRWalk = { setAxis, axis, active, radius } for the dev
    harnesses and for anything else that wants to drive movement.
 */
@@ -387,6 +400,92 @@
       pad.addEventListener('pointerup', end);
       pad.addEventListener('pointercancel', end);
       pad.addEventListener('lostpointercapture', end);
+    }
+  });
+
+  /* ═══ stick-walk ═══
+     The left thumbstick, into the same bounded walk the keyboard and the touch
+     joystick already drive. Mount on ONE hand only — two of these would both
+     write `setAxis` every frame and the last one to fire would win, which reads
+     as a stick that works intermittently.
+
+     ── Which axes ──
+     A-Frame hands the RAW gamepad axes array through in `axismove`. The WebXR
+     `oculus-touch` profile puts the thumbstick at [2],[3] (axes [0],[1] are the
+     absent touchpad and read a constant 0); the older WebVR mapping and some
+     generic profiles use [0],[1]. Length is the honest discriminator — reading
+     [2] when it happens to exist is how you end up silently driving from a
+     touchpad on some other headset.
+
+     ── Why `axismove` and not `thumbstickmoved` ──
+     `laser-controls` attaches every controller component it knows, and on a
+     Quest BOTH `oculus-touch-controls` and `generic-tracked-controller-controls`
+     match the profile array (`oculus-touch-v3` and
+     `generic-trigger-squeeze-thumbstick` are both in it). Only one of them
+     injects `tracked-controls` — generic explicitly yields, it has "the lowest
+     precedence" — but both keep an `axismove` listener and both call
+     `emitIfAxesChanged`, so `thumbstickmoved` can fire TWICE per move while the
+     raw `axismove` fires once. snap-turn already reads the raw event; this
+     matches it.
+
+     ── Y is negated ──
+     WebXR reports thumbstick Y as negative-up. `setAxis` wants y
+     forward-POSITIVE, matching KEY_DIR's W = [0, 1].
+
+     ── Clearing matters more than reading ──
+     A stick value is a level, not an edge. If the controller sleeps, is put
+     down, or the session ends mid-push, the last value sits in `stick` forever
+     and the rig grinds against the boundary for the rest of the page's life —
+     the same failure the window `blur` handler above exists to prevent for
+     keys. So: zeroed on disconnect, on exit-vr, and on remove.
+  */
+  AFRAME.registerComponent('stick-walk', {
+    schema: {
+      // Radial, and rescaled outside itself so there is no speed jump at the
+      // edge of it. Looser than snap-turn's 0.5 because this is a continuous
+      // control: 0.5 would mean half the stick's travel does nothing.
+      deadzone: { type: 'number', default: 0.15 }
+    },
+
+    init: function () {
+      this.onAxisMove = this.onAxisMove.bind(this);
+      this.clear = this.clear.bind(this);
+      this.el.addEventListener('axismove', this.onAxisMove);
+      this.el.addEventListener('controllerdisconnected', this.clear);
+      var scene = this.el.sceneEl;
+      if (scene) scene.addEventListener('exit-vr', this.clear);
+      this._scene = scene;
+    },
+
+    remove: function () {
+      this.el.removeEventListener('axismove', this.onAxisMove);
+      this.el.removeEventListener('controllerdisconnected', this.clear);
+      if (this._scene) this._scene.removeEventListener('exit-vr', this.clear);
+      this.clear();
+    },
+
+    clear: function () {
+      if (window.VRWalk && !window.VRWalk.disabled) window.VRWalk.setAxis(0, 0);
+    },
+
+    onAxisMove: function (evt) {
+      if (DISABLED || !window.VRWalk) return;
+      var a = evt.detail.axis;
+      if (!a) return;
+      var x = a.length >= 4 ? a[2] : a[0];
+      var y = a.length >= 4 ? a[3] : a[1];
+      if (x === undefined || y === undefined) return;
+
+      // Radial deadzone: a per-axis one lets a stick pushed straight forward
+      // leak a little sideways drift, which on a bounded ellipse walks you off
+      // the line you were trying to hold.
+      var mag = Math.sqrt(x * x + y * y);
+      var dz = this.data.deadzone;
+      if (mag <= dz) { window.VRWalk.setAxis(0, 0); return; }
+      // Rescale [dz, 1] back onto [0, 1] so leaving the deadzone starts from a
+      // crawl instead of jumping straight to 15% of full speed.
+      var scale = Math.min(1, (mag - dz) / (1 - dz)) / mag;
+      window.VRWalk.setAxis(x * scale, -y * scale);
     }
   });
 })();

@@ -16,29 +16,26 @@
     var scene = document.querySelector('a-scene');
     var cursorEl = document.querySelector('[cursor]');
 
-    // ── Pointer mode (VR_BUGFIX item 9) ──
-    // Desktop/phone: the cursor raycasts from the mouse/touch point
-    // (rayOrigin:mouse, set in index.html), so any visible panel is directly
-    // clickable — and the fixed centre reticle would be misleading (it can't
-    // track the mouse), so it's hidden. In an immersive session there's no
-    // mouse: switch to gaze (rayOrigin:entity) and show the reticle as the
-    // controller-less selection fallback.
-    function applyPointerMode(inVR) {
-      if (!cursorEl) return;
-      cursorEl.setAttribute('cursor', 'rayOrigin', inVR ? 'entity' : 'mouse');
-      var reticleObj = cursorEl.getObject3D('reticle');
-      if (reticleObj) reticleObj.visible = inVR;
+    // ── Pointer mode (VR_BUGFIX item 9) — now decided in pointer.js ──
+    // This used to own the rule outright: mouse ray outside VR, gaze ray plus
+    // reticle inside it. That is correct on a desktop, a phone and a Vision
+    // Pro, and wrong on a Quest, where two controller rays are already live and
+    // a third hovering ray fights them (nothing in the scene reads
+    // `evt.detail.cursorEl`, so the handlers cannot tell them apart).
+    //
+    // The decision needs to know whether a controller is connected, which is
+    // what `hand-ray-gate` already tracks — so it moved next to that, and this
+    // file just asks. See pointer.js's header for the three-case table.
+    function applyPointerMode() {
+      if (window.VRPointer) window.VRPointer.syncGaze();
     }
-    // The reticle's object3D is built in reticle.js's init — hide it once the
-    // cursor entity has loaded (and as a backstop, shortly after).
+    // The reticle's object3D is built in reticle.js's init, so the first call
+    // can land before there is anything to hide (and as a backstop, shortly
+    // after). pointer.js hooks enter-vr/exit-vr itself.
     if (cursorEl) {
-      if (cursorEl.hasLoaded) applyPointerMode(false);
-      else cursorEl.addEventListener('loaded', function () { applyPointerMode(false); });
-      setTimeout(function () { applyPointerMode(false); }, 500);
-    }
-    if (scene) {
-      scene.addEventListener('enter-vr', function () { applyPointerMode(true); });
-      scene.addEventListener('exit-vr', function () { applyPointerMode(false); });
+      if (cursorEl.hasLoaded) applyPointerMode();
+      else cursorEl.addEventListener('loaded', applyPointerMode);
+      setTimeout(applyPointerMode, 500);
     }
 
     // Only show a styled Enter VR button if the browser actually reports

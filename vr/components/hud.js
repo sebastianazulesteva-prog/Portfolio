@@ -93,7 +93,36 @@
         rig.setAttribute('position', { x: site.x, y: 0, z: site.z });
         return;
       }
-      rig.setAttribute('rotation', { x: 0, y: 0, z: 0 });
+      // ── Yaw: zeroing the rig is only half of it in a headset ──
+      // Outside VR the head's yaw is the visitor's own mouse drag, and undoing
+      // the snap-turns is exactly what this button has always meant. Leave that
+      // alone.
+      //
+      // In a headset the head's yaw is their NECK, and they cannot drag it
+      // back. Zeroing the rig there undoes the snap-turns and leaves them
+      // facing whatever direction their body happens to be pointing, which
+      // after a few turns is usually not the home panel. What "recentre" has to
+      // mean is *put the dome back in front of me*.
+      //
+      // Solve for it rather than assuming where the head's yaw is stored: in an
+      // immersive session the HMD pose lands on the PerspectiveCamera that
+      // `camera` installs via setObject3D, not on #head's own object3D, so
+      // reading either one alone is a coin flip. World yaw is the same number
+      // either way.
+      //   camWorld = rigYaw + (whatever the head contributes)
+      //   want camWorld' = 0  =>  rigYaw' = rigYaw - camWorld
+      var yaw = 0;
+      if (scene && scene.is && scene.is('vr-mode') && scene.camera) {
+        var q = new THREE.Quaternion();
+        scene.camera.getWorldQuaternion(q);
+        // YXZ so the first term IS the yaw, with pitch and roll factored out —
+        // the default XYZ order mixes them in as soon as you are looking up or
+        // down (trap §3.9: orientation goes through quaternions, not by hand).
+        var e = new THREE.Euler().setFromQuaternion(q, 'YXZ');
+        var cur = rig.getAttribute('rotation');
+        yaw = (cur ? cur.y : 0) - THREE.MathUtils.radToDeg(e.y);
+      }
+      rig.setAttribute('rotation', { x: 0, y: yaw, z: 0 });
       rig.setAttribute('position', { x: 0, y: 0, z: 0 });
     }
     var tl = document.getElementById('turnLeftBtn');
@@ -227,7 +256,13 @@
       set(base);
       if (navigator.xr && navigator.xr.isSessionSupported) {
         navigator.xr.isSessionSupported('immersive-vr').then(function (ok) {
-          if (ok) set(base + ' In VR, point and pinch.');
+          // Deliberately device-NEUTRAL. This said "point and pinch", which is
+          // the Vision Pro gesture and wrong on the other headset that answers
+          // this check: a Quest visitor points and pulls the TRIGGER. The
+          // answer arrives before any session exists, so there is nothing to
+          // branch on yet without sniffing the UA, and one honest verb covers
+          // a pinch, a trigger and whatever the next headset calls it.
+          if (ok) set(base + ' In VR, point and select.');
         }).catch(function () { /* keep base */ });
       }
     }

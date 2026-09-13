@@ -32,14 +32,48 @@
    which also means you select what you are LOOKING at rather than what your
    nose is pointed at.
 
-   ── Why only transient-pointer ──
-   `tracked-pointer` sources (Quest controllers) are left strictly alone:
-   A-Frame handles those correctly and a second click emitter would fire
-   everything twice — open-then-close, enter-then-exit. The one thing this does
-   take over is the HAND raycasters, and only once a transient pointer has
-   actually been seen: A-Frame's `generic-tracked-controller-controls` matches
-   any profile at all, so it can bind to a transient pointer for the frame it
-   exists and emit a competing click. Disabled on first sight, restored on exit.
+   ── Why not every tracked-pointer ──
+   A Quest CONTROLLER is left strictly alone: A-Frame handles it correctly and a
+   second click emitter would fire everything twice — open-then-close,
+   enter-then-exit. The one thing this does take over is the HAND raycasters,
+   and only once a transient pointer has actually been seen: A-Frame's
+   `generic-tracked-controller-controls` matches any profile at all, so it can
+   bind to a transient pointer for the frame it exists and emit a competing
+   click. Disabled on first sight, restored on exit.
+
+   ── Quest HAND TRACKING takes the same path (2026-09-11) ──
+   A hand-tracked source is `tracked-pointer`, not `transient-pointer`, so the
+   old scoping skipped it — and nothing else picked it up either:
+
+   • `oculus-touch-controls` sets `handTrackingEnabled: false`, so it never
+     matches a hand.
+   • `generic-tracked-controller-controls` DOES match (Quest's hand profiles are
+     `generic-hand-select-grasp` / `generic-hand`, and it matches on the prefix
+     `generic`), which fires `controllerconnected` and opens pointer.js's
+     `hand-ray-gate`. But it binds `cursor` to `triggerdown`, and a hand input
+     source has no gamepad to fire one. So a hands-only visitor got a laser and
+     no way to click with it. With `hand-ray-gate` now starting disabled, the
+     more recent state was no laser and no click: an entirely inert scene.
+
+   Two things fix it, and the split matters:
+
+   1. THE CLICK comes from here, on exactly the same machinery as a Vision Pro
+      pinch. The gate is `!inputSource.gamepad`: if a browser ever does expose a
+      gamepad on a hand, A-Frame can emit the click itself and this steps back
+      out rather than doubling it. Self-correcting, rather than a version check.
+   2. THE AIM has to be retargeted. `tracked-controls-webxr` defaults to
+      `gripSpace`, which for a hand is the PALM — so A-Frame drew the laser out
+      of the side of your hand while the select ray came from
+      `targetRaySpace`, the pinch-pointing ray metres away from it. Pointing
+      one place and selecting another is worse than no line at all, so
+      `aimHandRay()` moves that entity onto `targetRaySpace` (read fresh every
+      tick, so a live setAttribute is enough) and the drawn line becomes the
+      ray this file raycasts. If the component isn't there to retarget, the
+      hand is muted instead — no line beats a lying one.
+
+   What a hand does NOT get is a controller's full hover-before-press, because
+   the two rays have to agree and only one of them is drawn. Press is the first
+   feedback, same as the Vision Pro deal below.
 
    Diagnostics: load with `?xrdebug=1` to log every input source (handedness,
    targetRayMode, profiles) and every hit/miss with distance. That is the
@@ -82,6 +116,20 @@
     return true;
   }
 
+  // A hand-tracked source: `hand` is the XRHand, and the ray is the browser's
+  // pinch-pointing ray rather than a controller's.
+  function isHand(src) {
+    return !!(src && src.hand && src.targetRayMode === 'tracked-pointer');
+  }
+
+  // Does THIS file own the click for this source? A transient pointer always
+  // (nothing else can), a hand only while nothing else can emit one for it.
+  function handles(src) {
+    if (!src) return false;
+    if (src.targetRayMode === 'transient-pointer') return true;
+    return isHand(src) && !src.gamepad;
+  }
+
   AFRAME.registerComponent('xr-select', {
     init: function () {
       this.raycaster = new THREE.Raycaster();
@@ -92,6 +140,8 @@
       this.pressed = null;        // entity hit at selectstart
       this.sawTransient = false;
       this.handsMuted = [];
+      this.aimed = [];            // hand entities moved onto targetRaySpace
+      this.warnedNoPose = false;
       this.session = null;
 
       this.onSelectStart = this.onSelectStart.bind(this);
@@ -125,14 +175,46 @@
       this.session = null;
       this.pressed = null;
       this.sawTransient = false;
+      this.warnedNoPose = false;
       this.unmuteHands();
     },
 
     onSourcesChange: function (evt) {
       var added = evt.added || [];
       for (var i = 0; i < added.length; i++) {
-        log('source', added[i].handedness, added[i].targetRayMode, JSON.stringify(added[i].profiles));
-        if (added[i].targetRayMode === 'transient-pointer') this.muteHands();
+        var src = added[i];
+        log('source', src.handedness, src.targetRayMode, 'hand:' + !!src.hand,
+            'gamepad:' + !!src.gamepad, JSON.stringify(src.profiles));
+        if (src.targetRayMode === 'transient-pointer') this.muteHands();
+        else if (isHand(src)) this.aimHandRay(src);
+      }
+    },
+
+    // Move this hand's entity onto the ray the browser actually aims with. See
+    // the header: the default is `gripSpace`, which for a hand is the palm, so
+    // A-Frame draws the laser out of the side of your hand while every select
+    // resolves from `targetRaySpace`. `tracked-controls-webxr` re-reads
+    // `data.space` every tick, so setting it live is enough.
+    //
+    // Falls back to muting that hand: with no way to make the drawn line agree
+    // with the ray, no line is better than a wrong one.
+    aimHandRay: function (src) {
+      var sel = src.handedness === 'left' ? '#leftHand'
+              : src.handedness === 'right' ? '#rightHand' : null;
+      if (!sel) return;
+      var el = document.querySelector(sel);
+      if (!el) return;
+      if (el.components && el.components['tracked-controls-webxr']) {
+        el.setAttribute('tracked-controls-webxr', 'space', 'targetRaySpace');
+        this.aimed.push(el);
+        log('hand ray retargeted to targetRaySpace on', sel);
+        return;
+      }
+      if (el.getAttribute('raycaster')) {
+        el.setAttribute('raycaster', 'enabled', false);
+        el.setAttribute('raycaster', 'showLine', false);
+        this.handsMuted.push(el);
+        log('no tracked-controls-webxr on', sel, '— muted instead');
       }
     },
 
@@ -152,6 +234,7 @@
         self.handsMuted.push(el);
       });
       log('transient-pointer detected — hand raycasters muted');
+      if (window.VRPointer) window.VRPointer.syncGaze();
     },
 
     unmuteHands: function () {
@@ -160,6 +243,17 @@
         el.setAttribute('raycaster', 'showLine', true);
       });
       this.handsMuted.length = 0;
+      // Put any retargeted hand back on the authored space, or the next session
+      // — which may well be controllers — inherits a hand's aim.
+      this.aimed.forEach(function (el) {
+        if (el.components && el.components['tracked-controls-webxr']) {
+          el.setAttribute('tracked-controls-webxr', 'space', 'gripSpace');
+        }
+      });
+      this.aimed.length = 0;
+      // pointer.js decides what the head cursor is for, and muting/unmuting a
+      // hand ray is one of the inputs to that decision.
+      if (window.VRPointer) window.VRPointer.syncGaze();
     },
 
     // Every `.clickable` object3D that is actually visible right now. Rebuilt
@@ -204,8 +298,23 @@
     },
 
     hit: function (evt) {
-      if (evt.inputSource.targetRayMode !== 'transient-pointer') return null;
-      if (!this.rayFrom(evt.inputSource, evt.frame)) { log('no pose'); return null; }
+      if (!handles(evt.inputSource)) return null;
+      if (!this.rayFrom(evt.inputSource, evt.frame)) {
+        log('no pose');
+        // A pinch that reports no pose is the one case where a hands-only
+        // visitor is genuinely stuck: nothing else in the scene can emit a
+        // click for them. Say so once, in-scene, rather than leaving them
+        // pinching at an unresponsive dome. Controllers are the reliable path
+        // on this headset and every one of them has a pair.
+        if (isHand(evt.inputSource) && !this.warnedNoPose) {
+          this.warnedNoPose = true;
+          if (window.VRNotice) {
+            VRNotice.show('Pick up your controllers',
+                          'Hand tracking isn\u2019t reporting a pointer in this browser.');
+          }
+        }
+        return null;
+      }
 
       var hits = this.raycaster.intersectObjects(this.targets(), true);
       for (var i = 0; i < hits.length; i++) {
@@ -234,7 +343,7 @@
     },
 
     onSelect: function (evt) {
-      if (evt.inputSource.targetRayMode !== 'transient-pointer') return;
+      if (!handles(evt.inputSource)) return;
       // Prefer the fresh hit; fall back to what the press landed on. A-Frame's
       // cursor demands the same entity for press and release and drops the
       // click otherwise — deliberately more forgiving here, because the ray
@@ -246,7 +355,7 @@
     },
 
     onSelectEnd: function (evt) {
-      if (evt.inputSource.targetRayMode !== 'transient-pointer') return;
+      if (!handles(evt.inputSource)) return;
       var hit = this.pressed;
       this.pressed = null;
       if (!hit) return;

@@ -161,6 +161,12 @@ it had simply never been given a frame to run in. It also made the PDF reader
 appear to hang, because the open transition's `onComplete` (which builds the
 reader) never fired.
 
+**A raycaster needs more than a pumped tick — see §9.27.7.** It runs in `tock`,
+which is driven *after* the render, so `sceneEl.tick()` never reaches it at all;
+and world matrices are themselves refreshed by the render, so the ray casts from
+an identity transform at floor level. Six failure modes of this shape are
+catalogued there, all of which present as "the ray hits nothing".
+
 **Always check `document.hidden` before trusting any time-dependent result.**
 Use `VRCamPath.settle(ms)` (below), which detects a stalled loop and pumps
 `sceneEl.tick()` by hand. Note it does **not** currently pump GSAP's ticker — if
@@ -630,8 +636,13 @@ inside the scene. Plan for that when you build the diagnostic, not after.
 | `reading-line.js` | **New (§9.23).** The reader's line highlighter — the flat site's Accessible-Mode reading ruler, in VR. FINDS the text lines in each pre-rendered page IMAGE (there is no text layer) by a row-projection profile, then multiply-tints the one you are looking at. Click the page to step down a line. |
 
 ### Interaction / support
-`locomotion.js` (snap-turn, comfort vignette), `reticle.js`, `sfx.js`,
-`hud.js`, `fallback.js` (desktop/phone), `text-flow.js`.
+`locomotion.js` (snap-turn + the A-button recentre, comfort vignette),
+`walk-controls.js` (bounded walking; `stick-walk` is the left thumbstick),
+`reticle.js`, `sfx.js`, `hud.js`, `fallback.js` (desktop/phone), `text-flow.js`.
+
+**The controller map, in one place** (§9.27): LEFT stick walks, RIGHT stick
+snap-turns, RIGHT A recentres, trigger selects. One stick consumer per hand —
+`snap-turn` used to be on both, and a strafe is also a stick pushed sideways.
 
 **`carousel-drag.js` — attached to nothing, and not loaded, since 2026-08-30.**
 It made the projects zone spinnable, which was right for the single 10-item grid
@@ -639,9 +650,19 @@ it was built for and became a way to break the scene once §9.1 split that grid.
 See §9.19 and the box at the top of the file; do not re-attach it without giving
 it a bound.
 
-**`xr-select.js`** — selection for headsets with no controllers (Vision Pro).
-Read trap §3.13 before touching anything about input; this file is the reason
-pinch-to-select works at all there.
+**`pointer.js`** — **who is actually pointing**, and the answer to two mirror
+bugs. `hand-ray-gate` keeps a hand's raycaster off until its controller really
+connects (§9.26.2: otherwise both hands fire a permanent phantom ray at floor
+level); `VRPointer.syncGaze()` decides what the HEAD cursor is for, which is
+mouse / gaze / off depending on the device (§9.27.3). `VRPointer.nearest()` is
+the shared "where is the pointer" — **never hand-roll nearest-across-the-three-
+rays again.**
+
+**`xr-select.js`** — selection for headsets A-Frame's cursor cannot serve: a
+Vision Pro pinch (`transient-pointer`, §3.13) and Quest **hand tracking**
+(`tracked-pointer` with no gamepad, §9.27.4). Quest CONTROLLERS are deliberately
+left to A-Frame — a second click emitter there fires everything twice. Read trap
+§3.13 before touching anything about input.
 
 **`xr-diag.js`** — `?xrdiag=1` only, inert otherwise. The in-headset instrument:
 samples window rAF vs the XR clock vs the scene tick vs `gsap.ticker`, runs a
@@ -785,6 +806,24 @@ Both are gitignored (`vr/_dev-*`) and load every component on a
 `Date.now()`-stamped src — cache-busting the page URL does **not** refetch a
 component whose own src has no query, which is how §9.21's first "after" run
 measured a file that was no longer on disk.
+
+### `vr/_dev-xr-quest.html` — the controller/hand wiring, self-reporting
+67 assertions over the real input components, logged PASS/FAIL to the console
+(same idiom as `_dev-gate.html`, and for the same reason — the full scene can
+wedge the preview tab's CDP channel). Covers the gaze arbitration across all
+three device cases, `stick-walk`'s axis pick / deadzone / sign / clearing,
+`snap-turn`'s one-edge-per-push, the A-button recentre including the site and
+flat paths, and which input sources `xr-select` owns the click for.
+
+**Read §9.27.7 before writing another raycaster test.** Six ways a hand-driven
+one lies to you, all producing "the ray hits nothing": a raycaster is `tock` and
+not `tick`; world matrices come from the render; the object list is cached;
+hover only fires on a change and `enter-vr` clears it; `VRWalk.axis` is only
+recomputed in `tick()`; and cache-busting the page URL does not refetch a
+component whose own `src` has no query. Also: `a-scene` changes state BEFORE it
+fires `enter-vr`/`exit-vr`, so a test that reverses that order invents a bug.
+
+**It is not a headset.** See §9.27.7 for what still has to be checked on one.
 
 ### `vr/_dev-camera-path.js` — motion testing
 ```js
@@ -991,7 +1030,10 @@ deliberately-off-centre portrait is all that's there to see.
 ### 9.5 Locomotion — bounded walking, added deliberately
 
 - **Add movement controls**: desktop **WASD + arrow keys**, mobile **touch
-  joystick**.
+  joystick**, and in a headset the **left thumbstick** (`stick-walk`, added
+  2026-09-11 — see §9.27.1, without which none of this section was reachable in
+  VR at all: there is no keyboard in an immersive session and the 2D overlay
+  that holds the joystick is not rendered).
 - **Bounded, and the bound is an ELLIPSE, not a circle** (`walk-controls.js`).
   The scene is not radially symmetric: the home cluster is only 1.5 m forward,
   while the constellation cards sit at 2.0–2.3 m and the photo cloud at 2.21 m.
@@ -3221,6 +3263,397 @@ three faces fetch 200 with `access-control-allow-origin: *` and a real `wOFF`
 magic. Not verified: how they LOOK, which needs a headset. Two things to judge
 there — Fredericka's legibility at title size, and its weight: 248 KB against
 Playfair's 28 KB, fetched on first entry to that room.
+
+---
+
+### 9.27 The Quest pass — the headset nobody had tested on (2026-09-11)
+
+*"For the entire website, please make sure it works with the Meta Quest too,
+and could work with controllers."*
+
+Every headset session on record had been a Vision Pro. `xr-select.js` exists
+because of one, `pointer.js` because of what the other one implied. Both files
+say "Quest controllers are left to A-Frame" — which was the right scoping
+decision and had never once been exercised. This is that pass. **It is
+untested on hardware**; there is no Quest here. Everything below was verified
+against A-Frame 1.5.0's own source and by `vr/_dev-xr-quest.html` (**67
+assertions, all passing**, self-reporting), which proves the wiring and the
+maths and cannot prove the headset. Treat the on-device checklist at the end as
+the real gate.
+
+#### 9.27.1 You could not walk on a Quest, and that was most of §9.5 missing
+
+`walk-controls.js` had exactly two input paths: **WASD/arrow keys**, and a
+**touch joystick in the 2D overlay**. In an immersive session there is no
+keyboard, and `vr.css` is not rendered at all. So bounded walking — the whole of
+§9.5, the thing that made stepping back to see the composition possible — was a
+desktop and phone feature, and a Quest visitor had strictly *less* movement than
+someone on a laptop.
+
+New `stick-walk` (bottom of `walk-controls.js`), on `#leftHand`. It feeds the
+same `VRWalk.setAxis` the touch joystick uses, so everything downstream is
+untouched: same ellipse, same soft edge, same ramp, same motion vignette, same
+head-relative heading.
+
+Three things in it that are not obvious:
+
+* **Which axes.** A-Frame passes the RAW gamepad array through in `axismove`.
+  The WebXR `oculus-touch` profile puts the thumbstick at **[2],[3]** — [0],[1]
+  are the absent touchpad and read a constant 0 — while the WebVR mapping and
+  some generic profiles use [0],[1]. **Length is the discriminator**, not
+  "does [2] exist": [2] also exists on a touchpad controller, and reading it
+  there drives movement off the wrong control. `snap-turn`'s old
+  `axis[2] !== undefined ? axis[2] : axis[0]` had the same latent bug and now
+  uses the same length test.
+* **`axismove`, not `thumbstickmoved`.** `laser-controls` attaches every
+  controller component it knows, and on a Quest **both** `oculus-touch-controls`
+  and `generic-tracked-controller-controls` match the profile array
+  (`oculus-touch-v3` *and* `generic-trigger-squeeze-thumbstick` are both in it).
+  Only one injects `tracked-controls` — generic explicitly yields, "generic
+  controls have the lowest precedence" — but **both keep an `axismove` listener
+  and both call `emitIfAxesChanged`**, so `thumbstickmoved` can fire twice per
+  move while the raw event fires once.
+* **Clearing matters more than reading.** A stick value is a level, not an
+  edge. A controller that sleeps, is put down, or loses its session mid-push
+  leaves that value in `stick` forever and the rig grinds against the boundary
+  for the rest of the page's life — the same failure the window `blur` handler
+  has always prevented for keys. Zeroed on `controllerdisconnected`, on
+  `exit-vr`, and on `remove`.
+
+The deadzone is **radial and rescaled**, at 0.15. Radial because a per-axis one
+throws away a diagonal nudge of 0.12/0.12 — 0.17 off centre, an unmistakable
+request to move — and rescaled onto [0,1] because otherwise leaving the deadzone
+jumps straight to 15% of full speed instead of starting from a crawl.
+
+#### 9.27.2 `snap-turn` was on BOTH hands, which only became a bug now
+
+It had been on both since the first build, and that was harmless while nothing
+else read a stick. The moment one of them drives walking it is not: **a strafe
+left is also a stick pushed left**, so every sideways step would have snapped you
+35°. Left walks, right turns, and the markup comment says so. Do not put two
+stick consumers on one hand.
+
+#### 9.27.3 Three live rays, and nothing can tell them apart
+
+`fallback.js` switched the head cursor to gaze (`rayOrigin: entity`) and showed
+the reticle on **any** `enter-vr`. Exactly right on a Vision Pro, where the gaze
+is the only pointer there is. On a Quest it leaves the head ray *and* two
+controller rays all emitting `mouseenter`/`mouseleave` into handlers that cannot
+distinguish them — **nothing in the scene reads `evt.detail.cursorEl`**.
+
+The sharpest symptom would have been the photo cloud: it arms its dwell on
+`mouseenter` (§9.23) and `dwell.js` keeps exactly one ring, so what you LOOK at
+and what you POINT at cancel each other's ring, permanently. Every `ui-button`,
+`hub-panel.wake()` and `scroll-arrows` hover would have flickered the same way.
+
+So the head cursor's mode is a decision about the whole session, not about
+`enter-vr`, and it moved into `pointer.js` next to the rest of "who is actually
+pointing". `VRPointer.syncGaze()`:
+
+```
+  not presenting          -> mouse/touch ray, no reticle   (desktop, phone)
+  presenting, no hands    -> gaze ray + reticle            (Vision Pro)
+  presenting, hands live  -> head ray OFF, no reticle      (Quest)
+```
+
+`fallback.js` now just calls it. It re-runs on `enter-vr`, on `exit-vr`, and on
+every `hand-ray-gate` connect/disconnect — put a controller down mid-session and
+the gaze comes back, or the visitor is left with no pointer at all.
+
+**Two things this depends on, both verified in A-Frame's source rather than
+assumed:**
+
+* **`setAttribute`, never `rc.data.enabled = …`.** Going through the
+  component's `update()` is what runs `clearAllIntersections()`, which emits
+  `raycaster-intersection-cleared`, which is what makes A-Frame's cursor emit
+  `mouseleave`. Writing the flag directly skips all three and whatever was
+  hovered at that instant **stays hovered for the rest of the session**.
+  `hand-ray-gate` had this latent bug and now uses the same path.
+* **`a-scene` changes state BEFORE it fires the event** — `addState('vr-mode')`
+  then `emit('enter-vr')`, `removeState('vr-mode')` then `emit('exit-vr')`
+  (a-scene.js, 1.5.0). So `scene.is('vr-mode')` reads correctly inside both
+  handlers. A test that emits them in the other order reports a bug that is not
+  there; `_dev-xr-quest.html` encodes the real order for that reason.
+
+**And a real bug fell out of testing it: A-Frame leaves the mouse ray behind.**
+In `rayOrigin: mouse` the cursor writes an explicit WORLD-space origin/direction
+onto the raycaster on every mousemove. Switching back to `entity` resets
+`useWorldCoordinates` to false (`cursor.js` `updateMouseEventListeners`) and
+**does not clear those two** — so they are reinterpreted as a LOCAL offset from
+the eye, and the gaze ray starts wherever the pointer last was, aiming in
+whatever direction it last had.
+
+That is not an edge case. Every desktop visitor moves the mouse before pressing
+Enter VR, and on a Quest the controller laser generates mousemove over the flat
+page too, so the FIRST thing a headset gets is a gaze ray offset by the last
+pointer position. Measured in the harness: origin `(1.2, 1.6, 0.4)`, direction
+20° off axis, inherited from where the rig had been several tests earlier.
+
+It survived because nothing depended on the gaze ray's accuracy until now —
+`xr-select` does its own raycast (§3.13) and there is no hover in a headset — but
+the reticle's depth rides it, and on a controller-less headset it is the only
+pointer there is. `syncGaze()` now zeroes both on entering VR.
+
+Checked, and NOT affected: `mosaic-reveal.js` scans every `[raycaster]` and
+falls back to the raw head pose, so the reveal follows the controller instead;
+`reading-line.js` and the reader's auto-scroll go through `VRPointer.nearest()`,
+which skips a disabled ray, so they follow the controller too — which is what
+you want. `leave-vr.js` reads camera pitch, not a raycast.
+
+#### 9.27.4 Hand tracking was an entirely inert scene
+
+A hand-tracked source is `tracked-pointer`, not `transient-pointer`, so
+`xr-select.js`'s scoping skipped it — and nothing else picked it up either:
+
+* `oculus-touch-controls` sets `handTrackingEnabled: false`, so it never matches
+  a hand.
+* `generic-tracked-controller-controls` **does** match (Quest's hand profiles are
+  `generic-hand-select-grasp` / `generic-hand`, and it matches on the prefix
+  `generic`), which fires `controllerconnected` and opens the `hand-ray-gate`.
+  But it binds `cursor` to `triggerdown`, and a hand input source has no gamepad
+  to fire one.
+
+So: a laser and no way to click with it — and after §9.26.2 gated the hand rays,
+**no laser and no click.** A Quest 3 with hand tracking on, which is a common
+default, got a dome it could look at and not touch.
+
+Two halves, and the split is the point:
+
+1. **The click** comes from `xr-select.js`, on exactly the same machinery as a
+   Vision Pro pinch. The gate is **`!inputSource.gamepad`**: if a browser ever
+   does expose a gamepad on a hand, A-Frame emits the click itself and this
+   file steps back out rather than doubling it. Self-correcting, rather than a
+   version check that rots.
+2. **The aim** has to be retargeted. `tracked-controls-webxr` defaults to
+   **`gripSpace`, which for a hand is the PALM** — so A-Frame drew the laser out
+   of the side of your hand while every select resolved from `targetRaySpace`,
+   the pinch-pointing ray, metres away from it. Pointing one place and
+   selecting another is worse than no line at all. `aimHandRay()` moves that
+   entity onto `targetRaySpace` (`data.space` is re-read every tick, so a live
+   `setAttribute` is enough) and the drawn line becomes the ray this file
+   raycasts. If there is no component to retarget, it mutes that hand instead.
+
+What a hand does **not** get is a controller's hover-before-press: the two rays
+have to agree and only one of them is drawn. Press is the first feedback, the
+same deal §3.13 describes. And if a pinch ever reports no pose at all, a
+`VRNotice` says "pick up your controllers" — once per session, not per pinch.
+
+#### 9.27.5 Recentre was unreachable, and half-right when you reached it
+
+The ⌖ button lives in the 2D overlay, so in a headset there is no recentre at
+all — and with a soft ellipse edge you decelerate into, ending up parked against
+the boundary facing nowhere is an ordinary thing to do. **A on the right
+controller** now calls the same `VRHud.recenter`. Not the thumbstick click: that
+is the control the same thumb is already holding to walk.
+
+Reaching it exposed that it was half-right. Zeroing the rig undoes the
+snap-turns and leaves you facing wherever your **body** happens to point, which
+after a few turns is usually not the home panel — and unlike a mouse drag you
+cannot pull your neck back. What "recentre" has to mean in a headset is *put the
+dome back in front of me*, so the VR branch solves for it:
+
+```
+  camWorld = rigYaw + (whatever the head contributes)
+  want camWorld' = 0   =>   rigYaw' = rigYaw - camWorld
+```
+
+Solved from the camera's **world** quaternion rather than by reading a local
+rotation, because in an immersive session the HMD pose lands on the
+`PerspectiveCamera` that `camera` installs via `setObject3D`, **not** on
+`#head`'s own object3D — reading either one alone is a coin flip. Euler order
+`YXZ`, so the first term is the yaw with pitch and roll factored out (§3.9).
+
+**Scoped to VR deliberately.** Outside a headset the head's yaw is the visitor's
+own mouse drag and undoing the snap-turns is what this button has always meant;
+changing that would be a silent behaviour change to a control already signed
+off. At a *site* (the reading alcove) it stays position-only, for the reason
+already recorded there.
+
+#### 9.27.6 The flat pages: `cursor: none` is a BET, and it was unhedged
+
+Not a /vr issue. `index.html` and `experience.html` hide the system cursor
+outright and draw their own dot+ring — but the replacement only appears once a
+`pointermove` arrives reporting `pointerType === 'mouse'` (index) or a
+`mousemove` at all (experience). **Any pointer that does not announce itself
+that way therefore got no pointer whatsoever**: not the system one, because the
+page hid it, and not the custom one, because it was never shown.
+
+A Quest browses these pages with a controller laser, and whether Quest Browser
+reports that ray as a mouse is not something a stylesheet should be betting the
+whole pointer on. Every `cursor: none` is now `cursor: var(--cursor-mode, auto)`,
+with `html.has-mouse { --cursor-mode: none; }` set the moment the replacement is
+first drawn. One inherited custom property rather than four duplicated
+selectors, and it reaches the three BUTTON rules that carried `cursor: none`
+too — a button was otherwise its own little hole in the pointer. Undefined, they
+all fall back to `auto`.
+
+It now fails to a visible cursor on any device, known or unknown. Verified in
+both files: no pointer events → `auto`; `pen`/`touch`/`''` → `auto`; a real
+mouse → `none` plus the dot, exactly as before. The other ten pages never had a
+custom cursor and were always fine.
+
+#### 9.27.7 Six ways a hand-driven raycaster test lies to you
+
+All found building `_dev-xr-quest.html`, all producing the identical symptom —
+"the ray hits nothing" — which reads as a broken ray. This is §3.1 with a
+different hat on, and it cost most of the time in this pass. The first four are
+about raycasters; the last two are the same shape and bit just as hard.
+
+1. **A RAYCASTER IS `tock`, NOT `tick`.** A-Frame 1.5.0's `raycaster` component
+   has **no `tick` at all** (`rc.tick` is `undefined`, and it is not in
+   `sceneEl.behaviors.tick`). It runs in **`tock`**, which a-scene drives
+   *after* `renderer.render()`. So `sceneEl.tick()` never reaches it however
+   many times you call it — and `VRCamPath.settle()`'s hand-pumped tick does not
+   either. Call `rc.tock(time)`, which also carries the real
+   `if (!data.enabled) return` gate, so it still honours a mute.
+2. **WORLD MATRICES COME FROM THE RENDER.** With the loop stopped the cursor's
+   `matrixWorld` is identity and the ray casts from `(0,0,0)` at floor level
+   instead of the eye at 1.6 m, passing under everything.
+   `scene.object3D.updateMatrixWorld(true)` first — and **before** any
+   synthetic mousemove, because `cursor.onMouseMove` unprojects through
+   `camera.matrixWorld` and will otherwise build the ray from a pose the rig
+   left minutes ago.
+3. **THE OBJECT LIST IS CACHED.** `objects: .clickable` is resolved once; an
+   entity present at parse time can still be absent from it. `refreshObjects()`
+   — ISSUE-01, the same reason `place.js`, `notice.js` and `pdf-reader.js` all
+   call it explicitly.
+4. **HOVER ONLY FIRES ON A CHANGE, and `enter-vr` clears it.** A-Frame's cursor
+   calls `clearCurrentIntersection()` in its own `onEnterVR`, and because the
+   raycaster's intersection LIST never emptied, no new `raycaster-intersection`
+   arrives and hover never resumes. So you cannot demonstrate anything about
+   hover across an `enter-vr` boundary; measured `enters 1, leaves 1, states []`.
+   Test hover in one mode.
+
+Two more that are not about raycasters but bit just as hard: **`VRWalk.axis` is
+only recomputed in `tick()`**, so reading it straight after an emit gets the
+previous frame and every "expect zero" assertion passes for the wrong reason —
+pump `walk-controls.tick()`. And **cache-busting the page URL does not refetch a
+component whose own `src` has no query**, which had this harness measuring a
+`pointer.js` that was no longer on disk; it now `document.write`s every
+component with a `Date.now()` stamp, the same as `_dev-memory.html`.
+
+##### The one claim in this pass that is proved by a control
+
+`pointer.js` disables a ray through `setAttribute('raycaster','enabled',false)`
+and never `rc.data.enabled = false`, because only the former runs the
+component's `update()` → `clearAllIntersections()` →
+`raycaster-intersection-cleared` → the cursor's `mouseleave`. That is easy to
+assert in a comment and easy to get wrong, so the harness measures **both**:
+
+```
+  G2 setAttribute releases the hover                        PASS
+  G4 CONTROL: a direct data.enabled write leaves it STUCK   PASS
+```
+
+G4 is the valuable one. Written the other way, the element stays hovered for the
+rest of the session — nothing throws, nothing logs, and it only shows up on the
+*next* thing you look at.
+
+#### 9.27.8 The on-device checklist — NONE of this has met a Quest
+
+`vr/_dev-xr-quest.html` is 67 self-reporting assertions over the real components
+(synthetic `axismove` / `controllerconnected` / fake `XRInputSource`s), and
+`vr/_dev-xr-input.js` still poses the hands and drives a real `triggerdown`.
+Neither is a headset. **Serve over HTTPS** — WebXR needs a secure context, so a
+plain `http://<lan-ip>:8080` will not offer Enter VR at all;
+`./.tools/vr-phone.sh` already does exactly this, and `--tunnel` avoids the
+self-signed warning.
+
+In rough order of "most likely to be wrong":
+
+1. **The controller ray's angle.** `laser-controls` overrides the raycaster
+   origin to (0,0,0) for `oculus-touch-controls` but not its direction, while
+   `tracked-controls` runs on `gripSpace`. If the laser points noticeably below
+   or above where you are aiming, that is this, and the fix is a `raycaster`
+   direction on the hand entities.
+2. **Walking feel.** Speed 1.5 m/s and a 0.14 s ramp were tuned for WASD. A
+   thumbstick is a finer control and may want less of both. `?walkSpeed=`.
+3. **Snap-turn at 35°** with a real neck, and whether the deadzone re-arm feels
+   right at speed.
+4. **Whether the trigger selects everything**, especially the reader's page
+   halves and the photo cloud's dwell ring at a controller's hover distance.
+5. **Hand tracking at all** — the whole of 9.27.4 is inference from A-Frame's
+   source. `?xrdebug=1` logs every input source with `hand:` and `gamepad:`
+   flags and every hit/miss; run it first.
+6. **Physical room-scale walking is unbounded.** The ellipse clamps the RIG, not
+   your head inside it, so a large guardian lets you walk bodily through the
+   composition. Nearest card is 2.0 m. Not fixed: it needs a decision about
+   whether to fade the world or just let people wander.
+7. **Controller models load from `cdn.aframe.io`** (`laser-controls` defaults to
+   `model: true`), which is a fetch in-headset and stock grey plastic in a
+   hand-authored dusk scene. Left as A-Frame's default deliberately; worth a
+   look on device.
+
+---
+
+### 9.28 The dome gets a room about itself (2026-09-12)
+
+*"I want the 'experience in VR' page to bring people to a projects page talking
+about the process of building the VR experience. So this will be one of the
+projects in my projects. And we will need to build a project room for the VR
+site as well (which is meta I know)."*
+
+New flat page `vr-spatial-portfolio.html` — a full project page, same template
+as its siblings, telling the story of building this room. The nav's "Experience
+in VR" now points at **it** rather than at `/vr`, and the page carries two
+"Enter the dome" buttons. See `SITE_AUDIT.md` §2b for the flat-side details.
+
+#### The one thing here that touches /vr's contracts
+
+The page is deliberately **not** in index.html's work grid, and
+`data-loader.js` discovers projects by scraping `a.work-card` out of that grid.
+So there was no card to enrich, and `mergeProjectsWithManifest` is a `.map()`
+over the scraped list — a `projects.json` entry with no matching card was
+silently dropped.
+
+`projects.json` now has **one entry that is CONTENT rather than enrichment**,
+gated on an explicit `"vrOnly": true`, and `mergeProjectsWithManifest` appends
+any such entry that no card matched. That is a deliberate exception to rule 5
+and to the file's own "enrichment, never content" comment, and both now say so.
+
+Three things about the gate:
+
+* **It is flagged, not inferred.** "Append anything unmatched" would mean a
+  typo'd href in the manifest quietly invents a project with no title instead of
+  failing loudly by going missing.
+* **A `vrOnly` entry must carry its own `title` and `image`**, because there is
+  no card for `parseCard` to read them off. It warns and skips if either is
+  absent rather than placing a blank card.
+* **Keep it to pages that genuinely cannot be in the grid.** The moment this
+  page joins the grid, the entry's `seen[href]` check makes it inert on its own.
+
+Measured after: 11 projects, `The Dome` among them with its theme, accent and a
+7-image room scraped from its own page.
+
+#### The grid absorbed it for free, and that was luck worth checking
+
+The projects zone is 3 columns (§9.19) and held **five** photo cards — rows of
+3 + 2. A sixth fills the second row instead of starting a third, so the zone's
+yaw span is unchanged: card centres 71.67°–121.33°, which at 0.72 m wide on
+radius 2.0 puts the edges at ~61.5°–131.5° against the 61.08–131.96 recorded in
+§9.26.5. **A seventh photo project will not be free** — it starts a third row,
+and §9.26.5's measurements are where to start when it does.
+
+#### Adding to /images has two knock-ons, and both bit
+
+Eight screenshots went into `/images/` for the write-up, and:
+
+1. **The photo cloud swallowed them.** It shows every site image, so it went
+   from 33 tiles to **41** — pictures of the room you are standing in, drifting
+   behind you. Two of them are the hero portrait's own source images, already
+   1.5 m in front of your face, and the mosaic is in the cloud already as
+   `contact-photo-mosaic.jpg` with a caption Sebastian wrote.
+2. **None of them were in `vr/assets/tex`**, so the cloud would have loaded them
+   at full resolution — ~1.1 MB of untuned texture, which is precisely the
+   arrival cost §9.16 spent a session removing.
+
+Both fixed the same way: all eight carry `"exclude": true` in `vr/images.json`,
+with the reasoning on the first one. Cloud measured back at **33**.
+
+**The standing rule this is a reminder of:** adding anything to `/images/` is a
+change to the dome, not just to the flat site. Regenerate `vr/assets/tex` and
+its manifest (`.tools/vr-make-textures.py`) or exclude the file, but do not
+leave it untuned and visible.
 
 ---
 

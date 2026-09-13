@@ -4,7 +4,14 @@
 
    - teleport-controls (from aframe-extras, c-frame org) handles the arc +
      teleport itself, bound to the trigger/grip on tracked controllers.
-   - "snap-turn" rotates the rig in fixed steps on thumbstick input.
+   - "snap-turn" rotates the rig in fixed steps on thumbstick input. RIGHT hand
+     only since 2026-09-11 — the left one drives bounded walking now
+     (walk-controls.js's `stick-walk`), and with snap-turn on both hands a
+     strafe also turned you.
+   - "recenter-button" puts the A button on the right controller through the
+     same recentre the DOM HUD's crosshair uses. In an immersive session that
+     2D control is not rendered at all, so without this there is no way back to
+     the seat from inside a headset.
    - "comfort-vignette" briefly darkens the view edges during a teleport.
 
    Both respect prefers-reduced-motion: under reduced motion the vignette is
@@ -24,7 +31,14 @@
       this.el.addEventListener('axismove', this.onAxisMove);
     },
     onAxisMove: function (evt) {
-      var x = evt.detail.axis[2] !== undefined ? evt.detail.axis[2] : evt.detail.axis[0];
+      // The WebXR `oculus-touch` profile puts the thumbstick at axes [2],[3];
+      // axes [0],[1] are the absent touchpad and read a constant 0. The older
+      // WebVR mapping and some generic profiles use [0],[1]. Length is the
+      // honest discriminator — "[2] exists" is also true of a touchpad
+      // controller, and reading it there drives a turn off the wrong control.
+      var a = evt.detail.axis;
+      if (!a) return;
+      var x = a.length >= 4 ? a[2] : a[0];
       if (x === undefined) return;
       var rig = this.el.sceneEl.querySelector('#rig');
       if (!rig) return;
@@ -36,6 +50,36 @@
       var turn = this.data.degrees * (x > 0 ? 1 : -1);
       var current = rig.getAttribute('rotation');
       rig.setAttribute('rotation', { x: current.x, y: current.y + turn, z: current.z });
+    }
+  });
+
+  /* ═══ recenter-button ═══
+     A on the right controller = the HUD's crosshair. Mount on the right hand.
+
+     Why a button at all: `hud.js` owns recentre, but its control lives in the
+     2D overlay (vr.css), and the overlay is not rendered in an immersive
+     session. Walking is bounded by a soft ellipse you decelerate into, so it is
+     genuinely possible to end up parked against the edge facing nowhere with no
+     way back — which is the state this exists for.
+
+     `abuttondown` comes from `oculus-touch-controls`, which maps the right
+     hand's buttons as [trigger, grip, none, thumbstick, abutton, bbutton,
+     surface] and emits `<name>down`/`<name>up`. A controller that matches only
+     `generic-tracked-controller-controls` has no face buttons in its mapping
+     and simply never fires this; nothing breaks, there is just no shortcut.
+
+     Deliberately NOT the thumbstick click: that is the control the same thumb
+     is already holding to walk, and teleporting yourself back to the seat
+     mid-stride is a hard mispress to forgive. */
+  AFRAME.registerComponent('recenter-button', {
+    init: function () {
+      this.onPress = function () {
+        if (window.VRHud && window.VRHud.recenter) window.VRHud.recenter();
+      };
+      this.el.addEventListener('abuttondown', this.onPress);
+    },
+    remove: function () {
+      this.el.removeEventListener('abuttondown', this.onPress);
     }
   });
 

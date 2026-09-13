@@ -219,7 +219,7 @@
   <!-- Who is actually pointing. Loaded before anything that asks: the two
        hand entities cast a permanent floor-level ray when no controller is
        connected, which is every Vision Pro session — see pointer.js. -->
-  <script src="components/pointer.js?v=1"></script>
+  <script src="components/pointer.js?v=3"></script>
   <script src="components/place.js?v=3"></script>
   <script src="components/fonts.js?v=6"></script>
   <script src="components/themes.js?v=9"></script>
@@ -285,23 +285,23 @@
        than registered and unused — arrival weight is a real budget here (§9.16).
        Same treatment as portrait-layout.js further down. Uncomment to re-attach.
   <script src="components/carousel-drag.js?v=1"></script> -->
-  <script src="components/locomotion.js?v=8"></script>
+  <script src="components/locomotion.js?v=9"></script>
   <!-- Arrival. Holds the view behind the comfort vignette until the scene,
        the scraped content AND the texture queue are all done, then opens a
        clear hole from the centre of vision outward. wake.js's header has the
        measurement of why the portrait used to arrive seconds before the rest. -->
   <script src="components/wake.js?v=2"></script>
-  <script src="components/walk-controls.js?v=5"></script>
+  <script src="components/walk-controls.js?v=6"></script>
   <script src="components/column-scroll.js?v=2"></script>
   <script src="components/onboarding.js?v=6"></script>
-  <script src="components/data-loader.js?v=20"></script>
-  <script src="components/xr-select.js?v=1"></script>
+  <script src="components/data-loader.js?v=21"></script>
+  <script src="components/xr-select.js?v=2"></script>
   <!-- ?xrdiag=1 only. There is no console in a Vision Pro, so this samples the
        clocks in-session and prints the answer on a card in the scene. Inert
        without the flag: nothing is built and no sampler runs. -->
   <script src="components/xr-diag.js?v=2"></script>
-  <script src="components/fallback.js?v=4"></script>
-  <script src="components/hud.js?v=12"></script>
+  <script src="components/fallback.js?v=5"></script>
+  <script src="components/hud.js?v=13"></script>
   <!-- Portrait-phone recomposition of the home view (narrow horizontal fov).
        Loads after hud.js; only acts below a 0.70 aspect ratio. -->
   <!-- portrait-layout.js is RETIRED by decision (VR_AI_BUILD_GUIDE.md §9.4):
@@ -396,8 +396,8 @@
          for tracked controllers specifically. (super-hands used to ride along
          here as "grab-readiness"; it was inert without grabbable targets, so
          it and its library are gone — see the CDN block above.) -->
-    <!-- walk-controls owns rig POSITION (bounded WASD/arrows/joystick, §9.5);
-         snap-turn on the hands and the HUD's ‹ › own rig ROTATION. Two
+    <!-- walk-controls owns rig POSITION (bounded WASD/arrows/joystick/left
+         thumbstick, §9.5); snap-turn and the HUD's ‹ › own rig ROTATION. Two
          components, two transforms, no contention. -->
     <a-entity id="rig" position="0 0 0" walk-controls>
       <!-- reverseMouseDrag/reverseTouchDrag: "grab the scene and push it"
@@ -439,9 +439,17 @@
       <!-- lineColor/lineOpacity match the reticle's off-white (#f5f5f0) and
            sit near its rest opacity, so the Quest ray reads as the same
            design language as the gaze/mouse reticle instead of A-Frame's
-           default laser look. -->
-      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn hand-ray-gate></a-entity>
-      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn hand-ray-gate></a-entity>
+           default laser look.
+
+           THE TWO STICKS DO DIFFERENT THINGS, and that is why the components
+           are not symmetric. `snap-turn` used to be on both hands, which was
+           fine while nothing else read a stick and became a bug the moment one
+           of them drove walking: a strafe left is also a stick pushed left, so
+           every sideways step snapped you 35°. Left walks (§9.5's bounded
+           ellipse, via walk-controls' `stick-walk`), right turns, A recentres.
+           Do not put two stick consumers on one hand. -->
+      <a-entity id="leftHand" laser-controls="hand: left" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" stick-walk hand-ray-gate></a-entity>
+      <a-entity id="rightHand" laser-controls="hand: right" raycaster="objects: .clickable; lineColor: #f5f5f0; lineOpacity: 0.6" snap-turn recenter-button hand-ray-gate></a-entity>
     </a-entity>
 
     <!-- Comfort vignette overlay — flashes briefly during a project-room

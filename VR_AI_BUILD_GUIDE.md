@@ -27,10 +27,31 @@ https://sesteva.com/vr/, linked from the flat site's nav as
 "Experience in VR — Beta", in the dome's own gold.
 
 What is tracked: `vr/index.html`, `vr/vr.css`, `vr/components/*`,
-`vr/projects.json`. What is deliberately NOT, and is gitignored so a stray
-`git add vr` can't sweep it in: the audio clips (`vr/assets/*.mp3|ogg`,
-`vr-audio/` — see rule 6) and the `vr/_dev-*` harnesses. Still untracked and
-unignored: all `VR_*.md` docs and `screenshots/`.
+`vr/projects.json`, **and every `VR_*.md` doc in the repo root, including this
+one.** What is deliberately NOT, and is gitignored so a stray `git add vr`
+can't sweep it in: the audio clips (`vr/assets/*.mp3|ogg`, `vr-audio/` — see
+rule 6) and the `vr/_dev-*` harnesses.
+
+The notes came in from the cold in `5ab44e1` (2026-09-08) — *"the guide is the
+thing that stops the next person re-learning §3 the expensive way, and a guide
+that only exists on one laptop protects nobody."* This paragraph claimed they
+were still untracked for five days after that, which is exactly the kind of
+stale self-description the rest of this file exists to prevent; fixed
+2026-09-13. Two consequences of them being tracked, both worth knowing:
+
+* **They are served.** The repo IS the live site, so this file is readable at
+  `https://sesteva.com/VR_AI_BUILD_GUIDE.md`. Nothing links to them and
+  `sitemap.xml` does not list them, but `robots.txt` is a deliberate blanket
+  `Allow: /`, so they are crawlable. If that is ever unwanted, the fix is a
+  `Disallow` in `robots.txt` (which has its own editing convention at the top
+  of the file) — not untracking them again.
+* **Editing one is a commit to the live site**, and therefore falls under the
+  same rule as the code below: don't push it without Sebastian asking.
+
+The one thing still untracked AND unignored is `screenshots/` — working
+artefacts, 4.7 MB when that commit left them out and 6.9 MB now, and unlike the
+notes not worth reading. It is why everything here stages explicit paths
+rather than `git add -A`.
 
 The old standing rule — "nothing is committed, do not deploy without asking" —
 is retired now that the beta has shipped, but the spirit holds: **`main` is the

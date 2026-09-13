@@ -188,7 +188,7 @@
       --border-hover: rgba(255,255,255,0.12);
       --text: #f5f5f0;
       --muted: rgba(245,245,240,0.4);
-      --muted2: rgba(245,245,240,0.2);
+      --muted2: rgba(245,245,240,0.36);
       --ember: #b8863b;
       --serif: 'Playfair Display', Georgia, serif;   /* used for big headlines */
       --sans: 'Syne', system-ui, sans-serif;          /* used for body/nav text */
@@ -206,7 +206,55 @@
       font-size: calc(var(--base-font-size) * 1.15);
     }
 
+    /* ── Keyboard focus ──────────────────────────────────────────────────
+       Nothing on this site defined a focus indicator, so Tab-navigation fell
+       back to whatever the browser draws. That matters more here than on most
+       sites: `cursor: none` hides the system pointer in favour of a custom dot
+       and ring, so pointing got real design attention and the keyboard got
+       none.
+
+       `:focus-visible`, not `:focus`. The browser only matches it when focus
+       arrived from the keyboard, so clicking a link with a mouse never draws a
+       ring — which is what makes this cost the mouse experience nothing.
+
+       `outline` rather than a border or box-shadow: it is painted outside the
+       box, so it can never shift layout, and it follows the element's own
+       border-radius, which the nav's pill-shaped controls rely on.
+
+       The colour is the page's own primary text colour, which is the highest
+       contrast thing in the palette — well past the 3:1 WCAG asks of a focus
+       indicator. Retune it here, in one place, per page. */
+    :root { --focus-ring: var(--text); }
+
+    :focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    /* The extra-projects grid clips to `overflow: hidden` while collapsed, so
+       an offset ring on a card inside it would be cut off at the panel edge.
+       Tuck those rings inside the card instead. */
+    .work-card:focus-visible,
+    .quick-link:focus-visible,
+    .mini-card:focus-visible,
+    .quick-link-mini:focus-visible { outline-offset: -3px; }
+
     body.accessible {
+      /* ── Contrast, which this mode did not touch until now ──
+         Accessible mode changed the typeface, spacing and root size but no
+         COLOUR at all, so a mode called "accessible reading mode" still served
+         its secondary text at 1.69:1 and 3.52:1 — below the 4.5:1 WCAG AA floor for
+         normal-size text. Measured across the site, every page had one "faint"
+         token doing that.
+         Raised here rather than in :root on purpose: the default palette is a
+         deliberate design and is left exactly as authored. Only a visitor who
+         asks for this mode gets the brighter value, and the number is the
+         objective threshold rather than a taste call — 6.7:1 and 5.1:1 now.
+         Borders/rules are deliberately NOT raised: they are decorative
+         boundaries, not text, and 1.4.3 does not apply to them. */
+      --muted:rgba(245,245,240,0.60);
+      --muted2:rgba(245,245,240,0.51);
+
       --serif: 'Atkinson Hyperlegible', sans-serif;
       --sans: 'Atkinson Hyperlegible', sans-serif;
       letter-spacing: 0.01em;
@@ -219,6 +267,15 @@
        to plain 400 here and visually lose its emphasis. Force it to 700
        instead so anything bold-ish stays bold after the switch. */
     body.accessible .more-toggle { font-weight: 700; }
+
+    /* The one piece of faint text on this page that does NOT come from a token,
+       so the accessible-mode override above cannot reach it: the Beta pill
+       dims --ember to 0.75 alpha, which is 3.89:1 on the near-black. At full
+       opacity the same token is 6.21:1 — the value the build guide already
+       records for --ember on this background — so this needs no new colour,
+       just the token undimmed. The border is left alone: it is a decorative
+       boundary, not text. */
+    body.accessible .nav-beta { color: var(--ember); }
 
     html { font-size: var(--base-font-size); scroll-behavior: smooth; }
     @media (prefers-reduced-motion: reduce) {
@@ -237,7 +294,7 @@
       font-weight: 300;
       line-height: 1.6;
       overflow-x: hidden;
-      cursor: none; /* hides system cursor so our custom dot/ring can show instead */
+      cursor: var(--cursor-mode, auto); /* `none` only once a real mouse is seen — see --cursor-mode below */
     }
 
     /* Hide custom cursor entirely on touch devices — no mouse means no
@@ -246,6 +303,25 @@
       body { cursor: auto; }
       .cursor, .cursor-ring { display: none !important; }
     }
+
+    /* ── Hiding the system cursor is a BET that ours will replace it ──
+       `cursor: none` used to be unconditional on <body>, while the dot/ring
+       only appear once a `pointermove` arrives with `pointerType === 'mouse'`.
+       Every pointer that does not report itself that way therefore got no
+       pointer AT ALL: not the system one, because we hid it, and not ours,
+       because we never showed it.
+
+       That is not hypothetical — a Meta Quest browses these pages with a
+       controller laser, and whether Quest Browser reports that ray as
+       `pointerType: 'mouse'` is not something this file should be betting the
+       whole pointer on. It fails to a visible system cursor now instead of to
+       nothing, on any device, known or not.
+
+       One custom property rather than four duplicated selectors: it inherits,
+       so setting it once on <html> reaches the body rule and the three button
+       rules together. Without the class it is undefined and every one of them
+       falls back to `auto`. */
+    html.has-mouse { --cursor-mode: none; }
 
     .cursor {
       width: 8px; height: 8px;
@@ -383,7 +459,7 @@
       font-size: 0.65rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      cursor: none;
+      cursor: var(--cursor-mode, auto);
       transition: border-color 0.2s, color 0.2s, background 0.2s;
       opacity: 0;
       animation: fadeUp 0.6s 2.2s forwards;
@@ -692,21 +768,31 @@
       font-size: 0.7rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      cursor: none;
+      cursor: var(--cursor-mode, auto);
       padding: 0.3rem 0;
       transition: color 0.2s;
     }
 
     .skills-expand-btn:hover { color: var(--text); }
 
+    /* Same reasoning as .work-grid-extra further down. This one holds no focusable
+       children, so there is no tab-order bug — but a clipped panel is still
+       read out by a screen reader, which announces a second list of skills that
+       is not on screen. */
     .skills-expand-panel {
       max-height: 0;
       overflow: hidden;
       opacity: 0;
-      transition: max-height 0.35s ease, opacity 0.3s ease;
+      visibility: hidden;
+      transition: max-height 0.35s ease, opacity 0.3s ease, visibility 0s linear 0.35s;
     }
 
-    .skills-expand-panel.open { max-height: 300px; opacity: 1; }
+    .skills-expand-panel.open {
+      max-height: 300px;
+      opacity: 1;
+      visibility: visible;
+      transition: max-height 0.35s ease, opacity 0.3s ease, visibility 0s;
+    }
 
     .skills-expand-group {
       display: flex;
@@ -881,17 +967,31 @@
       color: var(--bg);
     }
 
+    /* `visibility` is doing accessibility work here, not visual work — the
+       max-height/opacity pair already hides this visually.
+       Clipping with max-height:0 + overflow:hidden leaves the contents FOCUSABLE
+       and in the accessibility tree: measured, this panel is 0px tall at opacity
+       0 and still holds six tabbable links to project pages, so a keyboard
+       visitor tabs through six invisible links in the middle of the page and a
+       screen reader reads out projects that are not on screen.
+       `visibility: hidden` is what actually removes an element from the tab
+       order, and it is transitionable as a discrete step, so the animation is
+       unchanged: opening flips it at 0s, closing delays it by the full 0.5s of
+       the collapse so the cards stay visible on the way out. */
     .work-grid-extra {
       margin-top: 1.5rem;
       overflow: hidden;
       max-height: 0;
       opacity: 0;
-      transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, margin-top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      visibility: hidden;
+      transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, margin-top 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.5s;
     }
 
     .work-grid-extra.visible {
       max-height: 800px;
       opacity: 1;
+      visibility: visible;
+      transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, margin-top 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s;
     }
 
     /* ─── QUICK LINKS ─── small single-line entries for work samples that
@@ -1144,7 +1244,7 @@
       color: var(--muted);
       font-size: 1rem;
       line-height: 1;
-      cursor: none;
+      cursor: var(--cursor-mode, auto);
       padding: 0.2rem;
     }
 
@@ -1335,7 +1435,7 @@
       <li><a href="experience.html">Where I've Worked</a></li>
       <li class="nav-vr"><a href="vr/">Experience in VR<span class="nav-beta">Beta</span></a></li>
     </ul>
-    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode" aria-pressed="false">
       <span class="a11y-dot"></span>
       <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
     </button>
@@ -1663,6 +1763,9 @@
     // pointerType:'touch', so filtering to 'mouse' avoids this entirely.
     document.addEventListener('pointermove', e => {
       if (e.pointerType !== 'mouse') return;
+      // Only now is it safe to hide the system cursor: this is the first proof
+      // that the replacement will actually be drawn. See --cursor-mode above.
+      document.documentElement.classList.add('has-mouse');
       mx = e.clientX; my = e.clientY;
       hasMouseMoved = true;
       cursor.style.left = mx + 'px';
@@ -1912,6 +2015,7 @@
     // match whatever was carried over from the last page.
     if (document.body.classList.contains('accessible')) {
       toggle.classList.add('active');
+      toggle.setAttribute('aria-pressed', 'true');
       if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
         updateA11yNote(true);
       }
@@ -1935,6 +2039,7 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
+      toggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
 
       if (isOn) {
         localStorage.setItem('a11yMode', '1');

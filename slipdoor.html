@@ -52,8 +52,8 @@
       --vwblue-soft:#e3f6fc;
       --ink:#141414;
       --ink-soft:rgba(20,20,20,0.68);
-      --ink-faint:rgba(20,20,20,0.45);
-      --magenta:#0091c8;
+      --ink-faint:rgba(20,20,20,0.5);
+      --magenta:#0086b9;
       --gold:#e0a83e;
       --sans:'Poppins', system-ui, sans-serif;
     }
@@ -66,7 +66,62 @@
     /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
     html.accessible{ font-size:calc(var(--base-font-size) * 1.15); }
 
+    /* ── Keyboard focus ──────────────────────────────────────────────────
+       Nothing on this site defined a focus indicator, so Tab-navigation fell
+       back to whatever the browser draws. That matters more here than on most
+       sites: `cursor: none` hides the system pointer in favour of a custom dot
+       and ring, so pointing got real design attention and the keyboard got
+       none.
+
+       `:focus-visible`, not `:focus`. The browser only matches it when focus
+       arrived from the keyboard, so clicking a link with a mouse never draws a
+       ring — which is what makes this cost the mouse experience nothing.
+
+       `outline` rather than a border or box-shadow: it is painted outside the
+       box, so it can never shift layout, and it follows the element's own
+       border-radius, which the nav's pill-shaped controls rely on.
+
+       The colour is the page's own primary text colour, which is the highest
+       contrast thing in the palette — well past the 3:1 WCAG asks of a focus
+       indicator. Retune it here, in one place, per page. */
+    :root { --focus-ring: var(--ink); }
+
+    :focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    /* The extra-projects grid clips to `overflow: hidden` while collapsed, so
+       an offset ring on a card inside it would be cut off at the panel edge.
+       Tuck those rings inside the card instead. */
+    .work-card:focus-visible,
+    .quick-link:focus-visible,
+    .mini-card:focus-visible,
+    .quick-link-mini:focus-visible { outline-offset: -3px; }
+
     body.accessible{
+      /* ── Contrast, which this mode did not touch until now ──
+         Accessible mode changed the typeface, spacing and root size but no
+         COLOUR at all, so a mode called "accessible reading mode" still served
+         its secondary text at 2.99:1 — below the 4.5:1 WCAG AA floor for
+         normal-size text. Measured across the site, every page had one "faint"
+         token doing that.
+         Raised here rather than in :root on purpose: the default palette is a
+         deliberate design and is left exactly as authored. Only a visitor who
+         asks for this mode gets the brighter value, and the number is the
+         objective threshold rather than a taste call — 5.15:1 now.
+         Borders/rules are deliberately NOT raised: they are decorative
+         boundaries, not text, and 1.4.3 does not apply to them. */
+      --ink-faint:rgba(20,20,20,0.62);
+      /* The accent blue (--magenta, misleadingly named) is 3.57:1 on white and
+         2.94:1 on the --vwblue panels, so the "217,000 Americans" line and the
+         explainer's own link both fail. #006d96 is the same hue scaled to 80%
+         and clears 4.5:1 on ALL THREE backgrounds this page uses
+         (white 5.79, --vwblue-soft 5.20, --vwblue 4.77). It is also used for a
+         border and for .report-link's hover fill, and darkening helps both —
+         the fill carries white text. */
+      --magenta:#006d96;
+
       --sans:'Atkinson Hyperlegible', sans-serif;
       letter-spacing:0.01em;
       word-spacing:0.05em;
@@ -285,6 +340,11 @@
     .block:nth-of-type(odd){ background:var(--vwblue-soft); }
 
     .block-label{
+      /* margin:0 because these are <h2> now (they were <div>, which left the
+         page with no h2 level at all — see the note in the markup). A UA
+         stylesheet gives h2 a 0.83em margin a div never had, and without this
+         every block below would shift down. */
+      margin:0;
       font-weight:900;
       font-size:clamp(2rem,4vw,2.8rem);
       letter-spacing:-0.01em;
@@ -498,6 +558,31 @@
       .more-projects{ padding:0 1.5rem; }
       .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
     }
+
+    /* ── Very narrow phones: the nav's three items stop fitting ──
+       nav is logo + back-link + accessibility toggle on one `space-between`
+       row, and that row is a fixed ~344px wide — it does not shrink further
+       below the 768px breakpoint above. Once the usable width drops under
+       ~361px the toggle runs off the right edge, and `overflow-x: hidden`
+       clips it rather than scrolling: measured 56px cut off at a 320px
+       viewport and 20px at 360px, which eats most of the word
+       "Accessibility". Ironic on that control in particular.
+
+       Letting the row wrap is safe here because nav is `position: sticky` and
+       so still in normal flow — it grows and pushes the page down instead of
+       overlapping it. index.html already does exactly this for its own nav.
+       `margin-left:auto` keeps the toggle on the right, where it sits at every
+       other width. */
+    @media(max-width:380px){
+      nav{ flex-wrap:wrap; gap:0.5rem; }
+      .a11y-toggle{ margin-left:auto; }
+
+      /* `white-space: nowrap` cannot shrink, so a long quick-link label runs
+         off both edges of a 320px screen (measured 21px over on this page's
+         widest one). Let it wrap instead — the row is already
+         `flex-wrap: wrap`, so a two-line pill costs nothing. */
+      .quick-link-mini{ white-space:normal; text-align:center; }
+    }
   </style>
 </head>
 <body>
@@ -511,7 +596,7 @@
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
     <a class="back-link" href="index.html#projects">← Back to Projects</a>
-    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode" aria-pressed="false">
       <span class="a11y-dot"></span>
       <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
     </button>
@@ -546,7 +631,7 @@
   <div style="height:3rem"></div>
 
   <div class="block">
-    <div class="block-label">Need</div>
+    <h2 class="block-label">Need</h2>
     <div class="block-body">
       <p>It's hard, dangerous, and anxiety-inducing for mobility-impaired drivers to enter and exit parked cars — especially where a conventional hinged door often can't fully open.</p>
       <p class="detail">Vehicle boarding and alighting injuries affect ~<span class="accent">217,000 Americans</span> every year, with adults 65+ injured at nearly twice the rate of younger drivers and hospitalized more than 5x as often. Found through <span class="accent">need-finding interviews</span> — with our grandparents and staff at two senior living communities — backed by published safety research.</p>
@@ -554,7 +639,7 @@
   </div>
 
   <div class="block">
-    <div class="block-label">Idea + Building</div>
+    <h2 class="block-label">Idea + Building</h2>
     <div class="block-body">
       <p class="detail">Four coordinated subsystems — a push-pull actuator, pivot arm, chain-and-sprocket mechanism, and alignment actuator — circumvent traditional front-door challenges.</p>
       <p class="detail">Built as a fully operational, full-scale prototype — real electrical and motor-drive systems included, not just a mockup.</p>
@@ -575,7 +660,7 @@
   </div>
 
   <div class="block">
-    <div class="block-label">Result</div>
+    <h2 class="block-label">Result</h2>
     <div class="block-body">
       <p class="detail">Automatic van-style sliding front door increasing entrance volume by <span class="accent">253%</span> in a standard parking spot, so drivers can exit/enter easily.</p>
 
@@ -658,6 +743,7 @@
     // state was already applied by the early inline scripts (head + body).
     if (document.body.classList.contains('accessible')) {
       toggle.classList.add('active');
+      toggle.setAttribute('aria-pressed', 'true');
       if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
         updateA11yNote(true);
       }
@@ -667,6 +753,7 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
+      toggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
 
       if (isOn) {
         localStorage.setItem('a11yMode', '1');

@@ -72,7 +72,7 @@
       --border-hover: rgba(255,255,255,0.12);
       --text: #f5f5f0;
       --muted: rgba(245,245,240,0.4);
-      --muted2: rgba(245,245,240,0.2);
+      --muted2: rgba(245,245,240,0.36);
       --serif: 'Playfair Display', Georgia, serif;
       --sans: 'Syne', system-ui, sans-serif;
     }
@@ -82,7 +82,55 @@
       font-size: calc(var(--base-font-size) * 1.15);
     }
 
+    /* ── Keyboard focus ──────────────────────────────────────────────────
+       Nothing on this site defined a focus indicator, so Tab-navigation fell
+       back to whatever the browser draws. That matters more here than on most
+       sites: `cursor: none` hides the system pointer in favour of a custom dot
+       and ring, so pointing got real design attention and the keyboard got
+       none.
+
+       `:focus-visible`, not `:focus`. The browser only matches it when focus
+       arrived from the keyboard, so clicking a link with a mouse never draws a
+       ring — which is what makes this cost the mouse experience nothing.
+
+       `outline` rather than a border or box-shadow: it is painted outside the
+       box, so it can never shift layout, and it follows the element's own
+       border-radius, which the nav's pill-shaped controls rely on.
+
+       The colour is the page's own primary text colour, which is the highest
+       contrast thing in the palette — well past the 3:1 WCAG asks of a focus
+       indicator. Retune it here, in one place, per page. */
+    :root { --focus-ring: var(--text); }
+
+    :focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    /* The extra-projects grid clips to `overflow: hidden` while collapsed, so
+       an offset ring on a card inside it would be cut off at the panel edge.
+       Tuck those rings inside the card instead. */
+    .work-card:focus-visible,
+    .quick-link:focus-visible,
+    .mini-card:focus-visible,
+    .quick-link-mini:focus-visible { outline-offset: -3px; }
+
     body.accessible {
+      /* ── Contrast, which this mode did not touch until now ──
+         Accessible mode changed the typeface, spacing and root size but no
+         COLOUR at all, so a mode called "accessible reading mode" still served
+         its secondary text at 1.69:1 and 3.52:1 — below the 4.5:1 WCAG AA floor for
+         normal-size text. Measured across the site, every page had one "faint"
+         token doing that.
+         Raised here rather than in :root on purpose: the default palette is a
+         deliberate design and is left exactly as authored. Only a visitor who
+         asks for this mode gets the brighter value, and the number is the
+         objective threshold rather than a taste call — 6.7:1 and 5.1:1 now.
+         Borders/rules are deliberately NOT raised: they are decorative
+         boundaries, not text, and 1.4.3 does not apply to them. */
+      --muted:rgba(245,245,240,0.60);
+      --muted2:rgba(245,245,240,0.51);
+
       --serif: 'Atkinson Hyperlegible', sans-serif;
       --sans: 'Atkinson Hyperlegible', sans-serif;
       letter-spacing: 0.01em;
@@ -114,13 +162,25 @@
       font-weight: 300;
       line-height: 1.6;
       overflow-x: hidden;
-      cursor: none;
+      cursor: var(--cursor-mode, auto);
     }
 
     @media (hover: none), (pointer: coarse) {
       body { cursor: auto; }
       .cursor, .cursor-ring { display: none !important; }
     }
+
+    /* ── Hiding the system cursor is a BET that ours will replace it ──
+       See index.html for the full note. Short version: `cursor: none` was
+       unconditional, so any pointer that never produces a `mousemove` here
+       leaves the visitor with no pointer at all — not the system one, because
+       we hid it, and not ours, because it never moves off 0,0. A Meta Quest
+       browses this page with a controller laser, and this file should not be
+       betting the whole pointer on how that ray reports itself.
+
+       One inherited custom property covers the body rule and the two button
+       rules together; undefined, they all fall back to `auto`. */
+    html.has-mouse { --cursor-mode: none; }
 
     .cursor {
       width: 8px; height: 8px;
@@ -198,7 +258,7 @@
       font-size: 0.65rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      cursor: none;
+      cursor: var(--cursor-mode, auto);
       transition: border-color 0.2s, color 0.2s, background 0.2s;
     }
 
@@ -254,7 +314,7 @@
       color: var(--muted);
       font-size: 1rem;
       line-height: 1;
-      cursor: none;
+      cursor: var(--cursor-mode, auto);
       padding: 0.2rem;
     }
 
@@ -427,7 +487,7 @@
   <nav>
     <a class="nav-logo" href="index.html">SE</a>
     <a class="back-link" href="index.html#projects">← Back to Home</a>
-    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode">
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode" aria-pressed="false">
       <span class="a11y-dot"></span>
       <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
     </button>
@@ -597,6 +657,9 @@
     let mx = 0, my = 0, rx = 0, ry = 0;
 
     document.addEventListener('mousemove', e => {
+      // Only now is it safe to hide the system cursor: this is the first proof
+      // that the replacement is being drawn. See --cursor-mode above.
+      document.documentElement.classList.add('has-mouse');
       mx = e.clientX; my = e.clientY;
       cursor.style.left = mx + 'px';
       cursor.style.top = my + 'px';
@@ -645,6 +708,7 @@
     // state was already applied by the early inline scripts (head + body).
     if (document.body.classList.contains('accessible')) {
       toggle.classList.add('active');
+      toggle.setAttribute('aria-pressed', 'true');
       if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
         updateA11yNote(true);
       }
@@ -654,6 +718,7 @@
       const isOn = document.body.classList.toggle('accessible');
       document.documentElement.classList.toggle('accessible', isOn);
       toggle.classList.toggle('active', isOn);
+      toggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
 
       if (isOn) {
         localStorage.setItem('a11yMode', '1');

@@ -55,7 +55,7 @@
   <link rel="icon" href="../favicon.ico">
   <!-- ?v= like the component scripts below — vr.css was previously unversioned,
        so returning visitors would keep a cached copy across restyles. -->
-  <link rel="stylesheet" href="vr.css?v=11">
+  <link rel="stylesheet" href="vr.css?v=14">
 
   <!-- Fonts for the 2D DOM overlay only (back-link / Enter VR button).
        In-scene text uses troika-text with real font files — see fonts.js. -->
@@ -141,6 +141,26 @@
        with the flag absent this is a no-op and the real media query is used.
        Must run BEFORE the component scripts below, since they read it at load.
        Same convention as ?sunflower / ?sunflowerRate (see the wiring script). -->
+  <!-- ?embed=1 — the dome running inside another page.
+       vr-spatial-portfolio.html embeds this scene live in its hero, so the
+       visitor can look around before deciding to come in. Two things have to
+       change for that to work, and both are presentation only:
+         • the arrival gate must not appear. It is a full-bleed scrim, so in an
+           800x450 box it IS the whole view. Deliberately does NOT set the
+           `vrOnboardingSeen` session flag, so the disclaimer still shows in
+           full the first time someone actually arrives here — §9.7's whole
+           point is that it is unmissable, and an embed must not spend it.
+         • the "Back to site" link must go. Inside an iframe it would navigate
+           the embed to the homepage, leaving a portfolio rendered in a small
+           box inside another page.
+       Set as a class on <html> before paint so the CSS has it on the first
+       frame, same idiom as the a11y carry-across. -->
+  <script>
+    if (/[?&]embed=1/.test(location.search)) {
+      document.documentElement.classList.add('vr-embed');
+    }
+  </script>
+
   <script>
     (function () {
       var f = new URLSearchParams(location.search).get('reducedMotion');
@@ -293,7 +313,7 @@
   <script src="components/wake.js?v=2"></script>
   <script src="components/walk-controls.js?v=6"></script>
   <script src="components/column-scroll.js?v=2"></script>
-  <script src="components/onboarding.js?v=6"></script>
+  <script src="components/onboarding.js?v=7"></script>
   <script src="components/data-loader.js?v=21"></script>
   <script src="components/xr-select.js?v=2"></script>
   <!-- ?xrdiag=1 only. There is no console in a Vision Pro, so this samples the

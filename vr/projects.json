@@ -2,7 +2,7 @@
   "$comment": "Fallback + VR enrichment only. Live HTML (index.html) is primary, matched by href. Don't hand-duplicate title/image/tags here — only fields the flat page can't provide. `image` is an override for the rare case the flat card has no <img> to scrape (Slip Door's card is a <video>); `heroTone` (0..1) taps the shader highlight-rolloff for blown-out product shots (the pendant hero is on pure white). ONE EXCEPTION, and it is deliberate: an entry with `vrOnly: true` is CONTENT, not enrichment, because the page it describes is deliberately kept out of index.html's work grid — and that grid is the only thing data-loader scrapes. With no card to enrich there is nowhere else for it to live, so a vrOnly entry must carry its own title/image/tags. Keep it to pages that genuinely cannot be in the grid.",
   "projects": [
     { "href": "vr-spatial-portfolio.html", "vrOnly": true, "model": null, "theme": "signatureDark", "accent": "#b8863b",
-      "title": "The Dome", "tags": ["WebXR", "A-Frame", "three.js"],
+      "title": "The Dome", "tags": ["WebXR", "A-Frame", "three.js", "Claude Code"],
       "image": "/images/vr-hero-hub.jpg", "imageW": 800, "imageH": 450,
       "alt": "The dome seen from its centre: the name in gold serif type, a bio panel with a portrait, and cards angled in from either side inside a near-black room",
       "blurb": "This room, and the story of building it" },

@@ -205,9 +205,9 @@ a-scene {
 
 /* The landscape nudge ("Turn your phone sideways for the full view") was
    removed at Sebastian's request — see the note in index.html. Its styles are
-   gone with it; don't reinstate without asking. */
-
-}
+   gone with it; don't reinstate without asking. (The rule's orphaned closing
+   brace outlived it here until 2026-09-12 — harmless, since a stray top-level
+   `}` is discarded, but it made the file's braces read 81/82.) */
 
 /* Arrival veil — a full-screen dark wash that fades away on load, so the
    dome eases in rather than snapping on (build directive item 12's "elegant
@@ -606,3 +606,19 @@ a-scene {
      bottom, where the joystick is off to one side and never meets it. */
   .onboard-hint { bottom: 8.5rem; }
 }
+
+
+/* ── ?embed=1 — the dome inside another page ──────────────────────────────
+   vr-spatial-portfolio.html runs this scene live in its hero. "Back to site"
+   would navigate the IFRAME to the homepage, which leaves a whole portfolio
+   rendering inside an 800x450 box on another page. The embed's own click
+   handler is the way out of it, and that navigates the TOP window.
+   The rest of the HUD stays: turning and moving are the point of the embed. */
+html.vr-embed .back-link { display: none; }
+
+/* The embed draws its own cue ("drag to look around, click to enter") over the
+   bottom of the frame, and this one lands in the same place — two hint pills
+   stacked on top of each other. The embed's is the more useful of the two,
+   because it explains the one thing this scene cannot: that clicking leaves
+   the box. The turn and move controls stay; those ARE the embed. */
+html.vr-embed .onboard-hint { display: none; }

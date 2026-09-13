@@ -339,6 +339,72 @@
     .hero-caption a{ color:var(--ember); text-decoration:none; border-bottom:1px solid var(--ember-soft); }
     .hero-caption a:hover{ border-bottom-color:var(--ember); }
 
+    /* ─── THE LIVE HERO ───
+       The dome itself, running in an iframe, with the screenshot as its poster.
+
+       It does NOT load on page load. /vr is ~7.4 MB of scene and this is a page
+       largely made of text — paying that for someone who scrolls past would be
+       indefensible, and it is the exact cost §9.16 spent a session cutting. The
+       iframe is created on the first real hover and kept after that, because
+       re-fetching on every enter would be worse than loading once.
+
+       The poster stays underneath rather than being replaced: if the iframe
+       never arrives, or JS is off, or this is a touch device, the page is
+       exactly what it was before — a screenshot wrapped in a link. */
+    .live-dome{
+      position:relative;
+      margin:2.5rem 0;
+      border-radius:6px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:var(--bg-panel);
+      aspect-ratio:16 / 9;
+    }
+
+    .live-dome-link{ display:block; width:100%; height:100%; text-decoration:none; }
+    .live-dome-poster{ width:100%; height:100%; display:block; object-fit:cover; }
+
+    /* Sits above the iframe, so it is still readable once the scene is live.
+       pointer-events:none — it must never eat the hover or the click. */
+    .live-dome-cue{
+      position:absolute;
+      left:50%; bottom:0.9rem;
+      transform:translateX(-50%);
+      z-index:2;
+      pointer-events:none;
+      padding:0.5rem 1rem;
+      border-radius:999px;
+      border:1px solid var(--ember-soft);
+      background:rgba(8,7,5,0.72);
+      color:var(--ember);
+      font-family:var(--sans);
+      font-size:0.62rem;
+      font-weight:600;
+      letter-spacing:0.12em;
+      text-transform:uppercase;
+      white-space:nowrap;
+      transition:opacity 0.3s;
+    }
+
+    .live-dome-frame{
+      position:absolute;
+      inset:0;
+      width:100%; height:100%;
+      border:0;
+      opacity:0;
+      transition:opacity 0.6s ease;
+      z-index:1;
+    }
+    .live-dome.is-live .live-dome-frame{ opacity:1; }
+
+    /* Once the scene is up the poster is only a backdrop; keep it painted so a
+       transparent frame never shows the panel colour through. */
+    .live-dome.is-live .live-dome-poster{ visibility:hidden; }
+
+    @media(max-width:768px){
+      .live-dome-cue{ font-size:0.55rem; letter-spacing:0.08em; padding:0.4rem 0.7rem; }
+    }
+
     /* ─── ENTER THE DOME ───
        The one control on this page that leaves it. It wears --ember for the
        same reason the nav entry does: gold is the colour of the room itself,
@@ -869,17 +935,32 @@
 
     <div class="hero">
       <h1 class="hero-title">The <em>Dome</em></h1>
-      <p class="hero-sub">A Spatial Portfolio You Stand Inside</p>
-      <p class="hero-caption">A WebXR spatial portfolio, live in beta at <a href="vr/">sesteva.com/vr</a></p>
+      <!-- ✎ TAGLINE. One line, what the thing IS. The sibling pages read like
+           "A Chess Board That Transforms Into a Wall-Mounted Display". -->
+      <p class="hero-sub"></p>
+      <!-- ✎ Optional byline / context line, italic and centred. Slip Door uses
+           it for the collaborators; Chess leaves it out. -->
+      <p class="hero-caption"></p>
     </div>
 
-    <div class="img-slot">
-      <img src="images/vr-hero-hub.jpg" alt="The dome seen from its centre: the name Sebastian Esteva in large gold serif type, a bio panel with a portrait below it, a column of writing-sample cards angled in from the left, and experience cards angled in from the right, all floating in a near-black room" width="800" height="450">
+    <!-- ═══ THE LIVE HERO ═══
+         Left in place because it is a working control, not a picture: hover
+         and the real dome wakes up and you can look around, click and you are
+         in it. See the script at the end of the page.
+
+         ✎ The poster below is the still it shows before hover, and the
+         fallback for touch screens, reduced motion and JS-off. Swap the src
+         for whichever frame you want to lead with — it is the one image left
+         on the page, and it is load-bearing rather than decorative. -->
+    <div class="live-dome" id="liveDome" data-embed="vr/?embed=1" data-enter="vr/">
+      <a class="live-dome-link" href="vr/">
+        <img class="live-dome-poster" src="images/vr-hero-hub.jpg" alt="The dome seen from its centre: the name Sebastian Esteva in large gold serif type, a bio panel with a portrait below it, a column of writing-sample cards angled in from the left, and experience cards angled in from the right, all floating in a near-black room" width="800" height="450">
+        <span class="live-dome-cue" id="liveDomeCue">Hover to look around · Click to enter</span>
+      </a>
     </div>
 
     <div class="enter-dome">
       <a class="enter-dome-btn" href="vr/">Enter the dome <span aria-hidden="true">→</span></a>
-      <p class="enter-dome-note">Best in a headset. Opens in your browser either way. On a laptop you get the same room, flattened, with WASD to move.</p>
     </div>
 
     <div class="meta-row">
@@ -889,7 +970,7 @@
       </div>
       <div class="meta-item">
         <div class="meta-label">Built with</div>
-        <div class="meta-value">A-Frame · three.js · WebXR</div>
+        <div class="meta-value">A-Frame · three.js · WebXR · Claude Code</div>
       </div>
       <div class="meta-item">
         <div class="meta-label">Status</div>
@@ -897,10 +978,10 @@
       </div>
     </div>
 
+    <!-- ✎ OPENING. Two or three short paragraphs. <strong> carries the numbers
+         and the turns; the sibling pages lean on it hard. -->
     <div class="story">
-      <p>A portfolio is a room you never get to stand in. You scroll it. Everything sits the same distance away, and the only thing that changes is which rectangle is under your thumb.</p>
-      <p>I wanted to know what it would feel like to <strong>walk into one</strong>, for the projects to be somewhere. To your left. Behind you. Close enough to lean toward. So I built the dome: a dusk-lit room you land in, my name ahead of you, the projects off to one side, the writing to the other, and every photograph I have ever put on this site drifting in a cloud behind your shoulder.</p>
-      <p>No game engine, no build step, no app to install. It is a web page: A-Frame and three.js, loaded from a CDN, which means the whole thing is a link you can send someone.</p>
+      <p></p>
     </div>
 
     <div class="divider-row">
@@ -910,83 +991,50 @@
     </div>
 
     <h2 class="journey-heading">The <em>Journey</em></h2>
-    <p class="journey-sub">Idea → Composition → Hardware → A Place to Read</p>
+    <!-- ✎ The three or four beats, arrow-separated. Chess: "Ideation →
+         Prototyping → Execution". -->
+    <p class="journey-sub"></p>
 
+    <!-- ═══ NUMBERED STEPS ═══
+         ✎ Copy the block below per beat and renumber the badge. Each step is a
+         heading, as many paragraphs as it needs, and any number of image
+         slots. The patterns, for reference:
+
+           one image
+             <div class="img-slot">
+               <img src="images/FILE.jpg" alt="WHAT IS IN IT" width="W" height="H" loading="lazy">
+             </div>
+
+           two side by side, before → after (an arrow is drawn between them)
+             <div class="img-pair">
+               <div class="img-slot"><img src="..." alt="..." width="W" height="H" loading="lazy"></div>
+               <div class="img-slot"><img src="..." alt="..." width="W" height="H" loading="lazy"></div>
+               <div class="img-pair-transform" aria-hidden="true">
+                 <span class="arrow-horizontal"></span>
+                 <span class="arrow-vertical"></span>
+               </div>
+             </div>
+
+           a captioned grid — see chess.html for .collage-box / .collage-grid
+
+         Two things worth keeping right: `width` and `height` must be the file's
+         REAL pixel size or the page jumps as images land, and the `alt` should
+         say what is in the picture rather than what it is for.
+
+         The eight screenshots from the first pass are still in /images/
+         (vr-hero-hub, vr-headset-pinch, vr-projects-grid, vr-reader-line-guide,
+         vr-photo-cloud-dwell, vr-return-to-dome, vr-portrait-photo,
+         vr-portrait-mosaic) if any of them turn out to be the right one. All
+         eight are excluded from the dome's photo cloud in vr/images.json — if
+         you drop a NEW file into /images/, read §9.28 of the build guide first,
+         because the cloud will pick it up. -->
     <div class="steps">
 
       <div class="step">
         <div class="step-badge">1</div>
         <div class="step-body">
-          <h3>The Idea</h3>
-          <p>I build physical things: a chess set that folds onto a wall, a cane, a cast pendant, a car door. All of them are objects you understand by standing next to them and reaching out. Then I photograph them and put them in a grid, and the grid does what grids do: it makes everything the same size.</p>
-          <p>The question I actually wanted to answer was whether <strong>distance could carry meaning</strong> on a portfolio. If the writing is on your left and the work is on your right, you have to turn your head to change subject, and turning your head is a decision in a way that scrolling is not.</p>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-badge">2</div>
-        <div class="step-body">
-          <h3>Composing the Room</h3>
-          <p>The dome is composed from one spot, like a stage set. The home panel sits <strong>1.5&nbsp;m</strong> ahead; the project and experience cards sit on arcs at <strong>2.0–2.3&nbsp;m</strong>; the photo cloud starts behind you at 2.2&nbsp;m. Those numbers are the whole design. A card at 2&nbsp;m is a thing you consider; the same card at 4&nbsp;m is a poster.</p>
-          <p>Cards without a photograph get a single large letter instead, so an empty slot reads as deliberate rather than broken. Four of the writing pieces still have no hero art, and that is what you are seeing below.</p>
-
-          <div class="img-slot">
-            <img src="images/vr-projects-grid.jpg" alt="Looking left inside the dome at the projects grid: photo cards for Poser Chess Set and Time Collector, and cards showing only a large gold letter where a project has no hero image yet, with the portrait panel at the right edge" width="1920" height="1080" loading="lazy">
-          </div>
-
-          <p>The portrait was the piece I kept coming back to. It is not one image, it is <strong>four</strong>: a stereo pair of the photograph and a stereo pair of a mosaic version, built from small objects that each mean something. The left eye is drawn to one layer and the right eye to the other, so in a headset the panel has real depth rather than being a flat picture hung in a 3D room.</p>
-
-          <div class="img-pair">
-            <div class="img-slot">
-              <img src="images/vr-portrait-photo.jpg" alt="The plain portrait: a straight headshot of Sebastian Esteva against a grey backdrop in a cream polo shirt" width="768" height="1152" loading="lazy">
-            </div>
-            <div class="img-slot">
-              <img src="images/vr-portrait-mosaic.jpg" alt="The mosaic version of the same portrait, assembled from small tiles and objects: gears, calipers, a VR headset, a DNA helix, a Stanford tree, a 3D printer, a camera, a handshake, an accessibility symbol, books and an apple" width="768" height="1152" loading="lazy">
-            </div>
-            <div class="img-pair-transform" aria-hidden="true">
-              <span class="arrow-horizontal"></span>
-              <span class="arrow-vertical"></span>
-            </div>
-          </div>
-
-          <p>Wherever you look on it, the mosaic mixes in. Look away and the photograph comes back. The catch is that a stereo pair is only honest seen square on. The disparity is baked for a head 1.5&nbsp;m dead ahead, so an oblique view shears the depth. Which is why the panel slowly turns to keep facing you, and why walking was allowed to happen at all: the two features had to be built to know about each other.</p>
-
-          <p>Movement took two passes. The first version had no walking at all. You could turn in fixed steps and nothing else, because smooth movement in a headset is the fastest way to make someone queasy. It was comfortable and it was slightly dead. So I added bounded walking, and the bound is an <strong>ellipse, not a circle</strong>: the room is not symmetric, the home panel is only 1.5&nbsp;m forward, and a circle wide enough to feel like real movement sideways walks you straight through your own name. You decelerate into the edge rather than hitting it.</p>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-badge">3</div>
-        <div class="step-body">
-          <h3>Putting It On</h3>
-          <p>Everything above was built on a monitor, where it worked. The first time I put the room on a real headset, it felt slow. Buttons took a few tries. Opening a project took what felt like forever. My honest first thought was that I had asked too much of the hardware.</p>
-          <p>I measured it instead. The scene drew a frame in <strong>1.17&nbsp;ms</strong> at two-eye resolution, with 63 draw calls. It was not slow. It was <strong>arriving</strong> slowly: <strong>50.9&nbsp;MB</strong> on landing, 50 of which were thirty-four full-resolution photographs, holding <strong>284&nbsp;MB</strong> of texture memory. And the selection was being dropped outright, because a pinch on that headset exists for a single frame and the library was waiting for a press and a release on the same object.</p>
-          <p>Two fixes, neither glamorous: every image gets a downscaled copy for the room, and selection reads the headset's own pinch directly instead of waiting to be told. Arrival went <strong>50.9&nbsp;MB → 7.4&nbsp;MB</strong> and texture memory <strong>284&nbsp;MB → 63&nbsp;MB</strong>. The lesson I keep: <em>it felt like frame rate and it was nothing to do with frame rate.</em></p>
-
-          <div class="img-slot">
-            <img src="images/vr-headset-pinch.jpg" alt="A headset capture from inside the dome showing a hand mid-pinch beneath a Return to dome button, with a project title panel above and Recenter and Sound controls near the floor" width="1920" height="1080" loading="lazy">
-          </div>
-
-          <p>That session also killed features. The floating <em>Recenter</em> and <em>Sound</em> pills in the photograph above are gone. In a headset they read as clutter in every direction you looked. The way out is a pad on the floor now: look down at your feet and it appears.</p>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-badge">4</div>
-        <div class="step-body">
-          <h3>A Place to Read</h3>
-          <p>Half of what is on this site is writing, and a paper is a bad fit for a room. Nobody wants to read eleven pages floating in the dark. So the writing does not open as a panel. It moves you: the dome dims and you end up in a reading alcove metres away, with the piece standing in front of you as a continuous column of pages you scroll through.</p>
-          <p>The pages are pre-rendered images, not live PDF rendering, which is why they appear instantly. That created the interesting problem: an image has no idea where its own lines of text are. So the reading guide <strong>finds them</strong>: it projects each page down into a row of darkness values, and the troughs are the lines. Then it lights the one you are looking at, the same reading-ruler idea as the accessible mode on this page.</p>
-
-          <div class="img-slot">
-            <img src="images/vr-reader-line-guide.png" alt="Three panels of the in-headset reader showing one of the writing pieces: the line being looked at highlighted in gold, then a line three clicks further down, then the guide switched off from the toggle beside the scroll rail" width="2000" height="609" loading="lazy">
-          </div>
-
-          <p>Behind you, the photo cloud does the opposite of a grid: it drifts. Looking at a photograph does not pull it toward you, because an image that flies at your face the instant your eyes cross it is exhausting. It fills a small ring instead, and only a full ring reaches. About a second of deliberate attention. Intention, rather than reflex.</p>
-
-          <div class="img-slot">
-            <img src="images/vr-photo-cloud-dwell.jpg" alt="The photo cloud behind the viewer, a drifting constellation of site photographs, with a small progress ring filling on the tile currently being looked at" width="1800" height="496" loading="lazy">
-          </div>
+          <h3></h3>
+          <p></p>
         </div>
       </div>
 
@@ -998,18 +1046,13 @@
       <span class="line"></span>
     </div>
 
+    <!-- ✎ CLOSING. Where it stands now, what is next. -->
     <div class="story">
-      <p>It is in beta, which here means: it works, I am still finding things, and the things I find are usually not where I expected. It runs on Apple Vision Pro and on Quest, with controllers or with your hands, and it falls back to a flat window with WASD if you have neither.</p>
-      <p>The part I did not anticipate is how much of the work turned out to be about <strong>time and attention</strong> rather than geometry: how long a thing should wait before it responds, how long a room should take to arrive, how much looking should count as asking. None of that is visible in a screenshot, which is the other reason this page exists.</p>
+      <p></p>
     </div>
 
     <div class="enter-dome">
       <a class="enter-dome-btn" href="vr/">Enter the dome <span aria-hidden="true">→</span></a>
-      <p class="enter-dome-note">One tap in a headset. A browser window everywhere else.</p>
-    </div>
-
-    <div class="final-shot">
-      <img src="images/vr-return-to-dome.jpg" alt="A headset capture looking at a project panel inside the dome with the Return to dome control below it" width="1920" height="1080" loading="lazy">
     </div>
 
   </article>
@@ -1146,6 +1189,118 @@
     }
 
     initA11yLineHighlight('.hero-title, .hero-sub, .hero-caption, .meta-label, .meta-value, .journey-heading, .journey-sub, .step-body h3, .story p, .step-body p, .enter-dome-note');
+
+    /* ═══ THE LIVE HERO ═══
+       Turns the hero screenshot into the actual dome: hover and you can look
+       around, click and you are in it.
+
+       The whole thing is progressive. The markup is a screenshot inside a link,
+       which works with no JS, on a touch screen, and if the iframe never loads.
+       Everything below is added on top of that and can fail without taking the
+       page with it. */
+    (function () {
+      var box = document.getElementById('liveDome');
+      if (!box) return;
+
+      // A real mouse only. A live A-Frame scene in a small box on a phone is
+      // heavy and there is no hover to drive it — the link is the whole
+      // interaction there. And under reduced motion this stays a still image
+      // on purpose: the dome drifts continuously (sunflower, the photo cloud),
+      // which is exactly what that setting is asking us not to do unprompted.
+      var canHover = window.matchMedia &&
+        window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      var reduced = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var cue = document.getElementById('liveDomeCue');
+      if (!canHover || reduced) {
+        if (cue) cue.textContent = 'Click to enter';
+        return;
+      }
+
+      var enterHref = new URL(box.dataset.enter, location.href).href;
+      var frame = null, wired = false;
+
+      function wireInside() {
+        // Same-origin, so the embed's own document is reachable. That is what
+        // makes the next two fixes possible at all.
+        var w, d;
+        try { w = frame.contentWindow; d = frame.contentDocument; } catch (e) { return; }
+        if (!d || wired) return;
+        wired = true;
+
+        // Standing rule: tests and embeds never make noise. VR_AUDIO is hard
+        // false upstream, so this is belt and braces rather than a fix.
+        try {
+          var au = d.getElementById('ambientAudio');
+          if (au) { au.muted = true; au.pause(); }
+          if (w.VRSound) w.VRSound.enabled = false;
+        } catch (e) {}
+
+        // ── 1. Give the page its scroll back ──
+        // The embedded document is exactly viewport-height and does not
+        // scroll, so a wheel over this box would dead-end: the visitor scrolls
+        // down the page, crosses the hero, and the page stops moving. Forward
+        // it to the parent by hand. deltaMode 1 is lines, not pixels.
+        d.addEventListener('wheel', function (e) {
+          var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+          window.scrollBy(0, dy);
+          e.preventDefault();
+        }, { passive: false });
+
+        // ── 2. Tell a click apart from a look-around ──
+        // Dragging inside the dome turns the view, and a drag ends in a click.
+        // Navigating on every click would make it impossible to look at
+        // anything. So a click only counts if the pointer barely moved: 6 px,
+        // the same threshold §9.19 records for the old carousel drag.
+        var sx = 0, sy = 0, st = 0;
+        d.addEventListener('mousedown', function (e) {
+          sx = e.clientX; sy = e.clientY; st = Date.now();
+        }, true);
+        d.addEventListener('mouseup', function (e) {
+          var moved = Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy);
+          if (moved <= 6 && Date.now() - st < 500) location.assign(enterHref);
+        }, true);
+
+        // Leaving through the embed's own edge — the parent gets no pointer
+        // events from inside an iframe, so its mouseleave cannot be relied on.
+        d.addEventListener('mouseleave', release);
+      }
+
+      // WASD is bound on the embedded window, so it needs DOM focus to hear a
+      // key at all. preventScroll matters: focusing an element the browser
+      // considers off-centre otherwise jumps the page to it mid-hover.
+      function grab() {
+        if (!frame) return;
+        try { frame.contentWindow.focus({ preventScroll: true }); } catch (e) {}
+      }
+      function release() {
+        try { if (document.activeElement === frame) frame.blur(); } catch (e) {}
+      }
+
+      function wake() {
+        if (frame) { grab(); return; }
+        frame = document.createElement('iframe');
+        frame.className = 'live-dome-frame';
+        frame.title = 'A live view of the dome. Drag to look around, click to enter.';
+        // Kept out of the tab order deliberately: tabbing INTO an embedded
+        // portfolio is a trap with no visible way out. The link underneath is
+        // the keyboard path, and it goes to the real thing.
+        frame.setAttribute('tabindex', '-1');
+        frame.addEventListener('load', function () {
+          box.classList.add('is-live');
+          if (cue) cue.textContent = 'Drag to look around · Click to enter';
+          wireInside();
+          grab();
+        });
+        frame.src = box.dataset.embed;
+        box.appendChild(frame);
+      }
+
+      box.addEventListener('mouseenter', wake);
+      box.addEventListener('mouseleave', release);
+      // If the visitor scrolls away mid-look, stop holding the keyboard.
+      window.addEventListener('blur', release);
+    })();
   </script>
 </body>
 </html>

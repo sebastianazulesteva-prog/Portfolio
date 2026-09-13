@@ -176,6 +176,22 @@
     var gate = document.getElementById('onboardGate');
     if (!gate) return;
 
+    // ── ?embed=1: no gate at all ──
+    // The scene is running inside another page's hero (see the note in
+    // vr/index.html). The gate is a full-bleed scrim, so at embed size it is
+    // not a gate in front of the dome, it IS the view — and everything it says
+    // is addressed to someone who has arrived, which an embedded viewer has
+    // not. Removed rather than hidden, for the same reason dismissGate does it:
+    // a full-screen scrim left in the DOM keeps swallowing pointer events.
+    //
+    // Deliberately does NOT set the `vrOnboardingSeen` flag. §9.7's disclaimer
+    // is meant to be unmissable on arrival, and an embed must not spend it on
+    // the visitor's behalf.
+    if (document.documentElement.classList.contains('vr-embed')) {
+      if (gate.parentNode) gate.parentNode.removeChild(gate);
+      return;
+    }
+
     // Already acknowledged this session — take the whole thing out of the DOM so
     // it can't intercept a pointer event.
     if (sessionStorage.getItem(KEY) === '1') { gate.parentNode.removeChild(gate); return; }

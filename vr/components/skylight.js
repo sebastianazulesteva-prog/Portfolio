@@ -760,7 +760,6 @@
       this._rackBase = null;
       this._ambientBase = null;
       this._emberBase = null;
-      this._housings = null;
       this._heal = 0;
 
       var self = this;
@@ -854,7 +853,7 @@
 
       var btn = document.createElement('a-entity');
       btn.setAttribute('ui-button', {
-        label: 'Open the sky', width: 0.46, height: 0.13,
+        label: 'Open roof', width: 0.46, height: 0.13,
         accent: '#b8863b', variant: 'ghost',
         // Three short words on a 0.52 m plate measured as a lot of empty
         // glass around small type. Narrower plate, and the bump ui-button.js
@@ -884,15 +883,21 @@
 
     refreshControls: function () {
       var open = this.isOpen();
+      var label = open ? 'Close roof' : 'Open roof';
+      // The in-scene button is 3D glass and cannot wear the DOM pill's look,
+      // but it says the same words, so the two controls read as one thing.
       if (this.sceneBtn) {
-        this.sceneBtn.setAttribute('ui-button', 'label', open ? 'Close the sky' : 'Open the sky');
+        this.sceneBtn.setAttribute('ui-button', 'label', label);
       }
       if (this.hudBtn) {
-        var label = open ? 'Close the sky' : 'Open the sky';
+        // `.is-on` is the whole visual state — the pill's fill, its border, its
+        // dot and WHICH LABEL SHOWS are all driven off this one class in
+        // vr.css. Nothing here writes text; see the markup note in index.html
+        // for why that is deliberate.
+        this.hudBtn.classList.toggle('is-on', open);
         this.hudBtn.setAttribute('aria-pressed', open ? 'true' : 'false');
         this.hudBtn.setAttribute('aria-label', label);
         this.hudBtn.setAttribute('title', label);
-        this.hudBtn.classList.toggle('sky-open', open);
       }
     },
 
@@ -1045,9 +1050,14 @@
       // teach it about this file, re-assert the daylight rig twice a second
       // while open. Cheap, and it also covers anything else that touches the
       // lights.
-      if (this.aperture > 0.99 && time - this._heal > 500) {
+      // Any OPEN state, not just fully open: the aperture can land on 1 via
+      // jumpTo() before a late-building consumer (the lamp housings) exists,
+      // so this is the path that recovers from that too. `_heal` is reset on
+      // every state change, so the first tick after a jump re-applies promptly
+      // rather than up to half a second later.
+      if (this.aperture > 0.001 && time - this._heal > 500) {
         this._heal = time;
-        this.applyLights(1);
+        this.applyLights(this.aperture);
       }
     },
 
@@ -1065,6 +1075,7 @@
 
     applyState: function (a) {
       this.aperture = a;
+      this._heal = 0;   // let the next tick re-assert; see the note in tick()
 
       // Resolved per call until it resolves, then cached: dome.js's component
       // may not have initialised when this one does, and a cached null would
@@ -1108,32 +1119,45 @@
 
       if (sunEl) sunEl.setAttribute('light', 'intensity', SUN_LIGHT_INTENSITY * a);
 
+      // ── Resolved per call, and the list is NEVER cached ─────────────────
       // Reached for through the public object3D graph rather than by adding an
-      // API to glass-material for one caller. The housings are unnamed meshes
-      // and sprites on that entity; `isSprite` picks out the glows and skips
-      // the core beads, and the authored opacity is snapshotted on first touch
-      // rather than assumed to be 1.
+      // API to glass-material for one caller.
+      //
+      // This used to snapshot the meshes into `this._housings` on first touch,
+      // and that was a real bug, shipped: `light-rack-housings` builds its
+      // beads on the scene's own `loaded` event, and THIS component's `loaded`
+      // listener can run first — `#skylight` is earlier in index.html than
+      // `[light-rack-housings]`, so it registers first and fires first. Any
+      // `applyLights` before that build therefore traversed an empty group,
+      // cached the empty result, and left the lamps at full brightness for the
+      // rest of the session. `?sky=1` hit it every time; measured, eight
+      // materials at opacity 1 with `_housings === null`.
+      //
+      // Exactly the trap project-room.js documents for the rug — "resolved per
+      // call, never cached: its component may not have initialised when this
+      // file loads, and a cached null would silently disable rug theming for
+      // the whole session." A traverse of nine objects is far cheaper than a
+      // class of bug that only appears in a load-order race.
       var housingEl = document.querySelector('[light-rack-housings]');
       if (housingEl && housingEl.object3D) {
-        if (!this._housings) {
-          var list = [];
-          housingEl.object3D.traverse(function (o) {
-            if (o.material) list.push({ o: o, opacity: o.material.opacity });
-          });
-          this._housings = list.length ? list : null;
-        }
-        if (this._housings) {
-          this._housings.forEach(function (h) {
-            var op = lerp(h.opacity, h.opacity * HOUSING_DIM, a);
-            h.o.material.opacity = op;
-            // The core beads are authored OPAQUE, so opacity does nothing until
-            // the material blends. Flipped back off at rest rather than left on
-            // for the session: an opaque mesh sitting in the transparent pass
-            // is one more thing subject to §3.6's scene-graph paint order for
-            // no reason, and while the roof is shut these are opaque beads.
-            h.o.material.transparent = op < 0.999;
-          });
-        }
+        housingEl.object3D.traverse(function (o) {
+          if (!o.material) return;
+          // The authored opacity is stashed ON THE MATERIAL, not in a list, so
+          // re-resolving mid-fade cannot mistake a faded value for the
+          // original and ratchet the lamps permanently dark.
+          if (o.material.__skyBaseOpacity == null) {
+            o.material.__skyBaseOpacity = o.material.opacity;
+          }
+          var base = o.material.__skyBaseOpacity;
+          var op = lerp(base, base * HOUSING_DIM, a);
+          o.material.opacity = op;
+          // The core beads are authored OPAQUE, so opacity does nothing until
+          // the material blends. Flipped back off at rest rather than left on
+          // for the session: an opaque mesh sitting in the transparent pass is
+          // one more thing subject to §3.6's scene-graph paint order for no
+          // reason, and while the roof is shut these are opaque beads.
+          o.material.transparent = op < 0.999;
+        });
       }
 
       // The rack's dimmed intensities only reach the cards through the shader's

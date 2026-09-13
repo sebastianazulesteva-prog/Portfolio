@@ -55,7 +55,7 @@
   <link rel="icon" href="../favicon.ico">
   <!-- ?v= like the component scripts below — vr.css was previously unversioned,
        so returning visitors would keep a cached copy across restyles. -->
-  <link rel="stylesheet" href="vr.css?v=14">
+  <link rel="stylesheet" href="vr.css?v=16">
 
   <!-- Fonts for the 2D DOM overlay only (back-link / Enter VR button).
        In-scene text uses troika-text with real font files — see fonts.js. -->
@@ -252,7 +252,7 @@
        setAperture), ui-button.js (it builds one) and glass-material.js (it
        reads that file's shared light uniforms and calls the vr-key-light
        system's syncRack while the roof is open). -->
-  <script src="components/skylight.js?v=8"></script>
+  <script src="components/skylight.js?v=10"></script>
   <!-- Shared controls, loaded before every consumer: the one exit button
        (exit-button.js) and the one scroll bar (scroll-arrows.js). Both are used
        at build time by focus-stage, project-room, pdf-reader and the writing
@@ -852,8 +852,19 @@
            control; the headset half is an in-scene ui-button under the bio
            card, because this overlay is not composited into an immersive
            session at all. Both drive the same toggle and skylight.js keeps
-           their labels in step. -->
-      <button class="hud-btn sky-btn" id="skyBtn" aria-label="Open the sky" title="Open the sky" aria-pressed="false">☀&#xFE0E;</button>
+           their labels in step.
+
+           `.toggle-pill` is the STANDARD on/off control (vr.css), ported from
+           the flat site's accessibility toggle at Sebastian's ask. Note what
+           the two spans are doing: the label states the ACTION rather than the
+           state, and which one shows is decided in CSS off `.is-on` — so a
+           page that somehow loaded with the roof already open (?sky=1) reads
+           correctly before any script touches it. Do not "simplify" this into
+           one span set from JS; that is the bug the CSS swap prevents. -->
+      <button class="toggle-pill" id="skyBtn" aria-label="Open the roof" title="Open the roof" aria-pressed="false">
+        <span class="toggle-dot"></span>
+        <span class="toggle-text-off">Open roof</span><span class="toggle-text-on">Close roof</span>
+      </button>
     </div>
 
     <!-- Movement controls, bottom LEFT — the counterpart to the turn controls

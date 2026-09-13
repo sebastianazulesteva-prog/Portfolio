@@ -153,26 +153,82 @@ a-scene {
 .hud-btn.muted { color: var(--muted); }
 .hud-btn.recenter-btn { font-size: 1.2rem; }
 
-/* ─── Open/close the roof (skylight.js) ───────────────────────────────────
-   The glyph is U+2600 followed by U+FE0E in the markup. The variation
-   selector is load-bearing: without it Apple's emoji font wins the fallback
-   on macOS and iOS and the button renders a full-colour cartoon sun in a row
-   of thin monochrome glyphs. VS-15 asks for the text presentation instead.
-   (Syne's latin subset has no sun either way — same per-glyph fallback that
-   already carries the ♪ next to it; guide §3.7 is the in-scene version of
-   this problem.)
+/* ═══ THE STANDARD ON/OFF TOGGLE ═════════════════════════════════════════
+   Sebastian: *"use the same on/off look for the close and open the sky as the
+   on/off for the accessibility button. Let's make that the standard on/off
+   button style."*
 
-   The ON state is colour, not a different glyph: --ember is the dome's own
-   gold, the same value vr.css and dome.js share and the same one the flat
-   site's nav uses for the one link that leaves it. aria-pressed carries the
-   state for anyone who is not looking at the colour. */
-.hud-btn.sky-btn { font-size: 1.2rem; }
-.hud-btn.sky-btn.sky-open {
-  color: var(--ember);
-  border-color: rgba(184, 134, 59, 0.55);
-  background: rgba(34, 24, 10, 0.72);
+   So this is a straight port of the flat site's `.a11y-toggle` (index.html,
+   around line 449) — a pill with a small DOT on the left and a label that
+   states the ACTION, not the state. Off: dim text, hollow ring, "Open roof".
+   On: full-contrast text, filled dot, "Close roof". The label swap is done in
+   CSS off the `.is-on` class rather than in JS, exactly as the accessibility
+   toggle does it, so a control that loads already-on is correct with no
+   script having to run.
+
+   ── Two things to know before touching it ──────────────────────────────────
+   1. THE FLAT SITE IS THE ORIGIN. These values are copied from
+      `.a11y-toggle` / `.a11y-dot` / `.a11y-word-*` in the root index.html,
+      because that page is a single self-contained file and vr.css cannot
+      @import from it. They must be kept in sync by hand — the same standing
+      arrangement as `--ember`, which is duplicated between this file and
+      dome.js with the same warning. If you restyle one, restyle both.
+   2. It replaced a 2.75rem circular ☀ button, and the previous glyph carried
+      a note worth keeping: U+2600 needs a U+FE0E variation selector after it
+      or Apple's emoji font wins the fallback and draws a full-colour cartoon
+      sun. There is no glyph here now, so the trap is gone — but it will come
+      back the moment anyone puts a symbol in a HUD control. Guide §3.7 is the
+      in-scene version of the same problem. */
+.toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(245, 245, 240, 0.04);
+  border: 1px solid var(--border-hover);
+  border-radius: 100px;
+  padding: 0.55rem 0.95rem;
+  color: rgba(245, 245, 240, 0.7);
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  /* The HUD sits over a scene that can be a bright sky now, so this pill gets
+     the same backdrop blur every other .hud-btn has — the flat site's version
+     sits on a solid page and does not need it. */
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
-.hud-btn.sky-btn.sky-open:hover { background: rgba(46, 33, 14, 0.82); }
+
+.toggle-pill:hover { border-color: var(--text); color: var(--text); }
+.toggle-pill:active { transform: scale(0.96); }
+.toggle-pill.is-on {
+  border-color: var(--text);
+  color: var(--text);
+  background: rgba(245, 245, 240, 0.05);
+}
+
+.toggle-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid rgba(245, 245, 240, 0.7);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.toggle-pill.is-on .toggle-dot { background: var(--text); border-color: var(--text); }
+
+/* `.toggle-text-off` is the label shown while the toggle is OFF (i.e. the
+   action that turning it on performs), `.toggle-text-on` while it is on. */
+.toggle-text-on { display: none; }
+.toggle-pill.is-on .toggle-text-off { display: none; }
+.toggle-pill.is-on .toggle-text-on { display: inline; }
 
 
 
@@ -603,7 +659,24 @@ a-scene {
   }
 
   .hud-btn.recenter-btn { font-size: 1.7rem; }
-  .hud-btn.sky-btn { font-size: 1.6rem; }
+
+  /* The standard toggle, sized for a thumb: 0.65rem uppercase is a desktop
+     nav size and unreadable at arm's length on a phone. Height is matched to
+     the 3.4rem round buttons beside it so the row has one baseline. */
+  .toggle-pill {
+    font-size: 0.82rem;
+    padding: 0 1.05rem;
+    height: 3.4rem;
+    gap: 0.7rem;
+    background: rgba(12, 12, 12, 0.82);
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  }
+  .toggle-pill.is-on { background: rgba(28, 28, 26, 0.88); }
+  .toggle-dot { width: 8px; height: 8px; }
+  /* No hover state on touch — :hover sticks after a tap on iOS. */
+  .toggle-pill:hover { border-color: var(--border-hover); color: rgba(245,245,240,0.7); }
+  .toggle-pill.is-on:hover { border-color: var(--text); color: var(--text); }
 
   /* ─── Four controls do not fit on one phone row ─────────────────────────
      Measured at 375 px, the narrowest target: four 3.4rem buttons with
@@ -615,16 +688,20 @@ a-scene {
 
      So the row wraps. `wrap-reverse` puts the FIRST line at the bottom, which
      keeps ‹ › — the only way to look around on a phone, §9.5 — in the easiest
-     place for a thumb and pushes ♪ ☀ to a second row above it. max-width is
-     what forces the break: 9.5rem (152 px) fits two 3.4rem buttons and a gap
-     (120 px) and cannot fit three (185 px).
+     place for a thumb and pushes the roof toggle to a second row above it.
+     max-width is what forces the break: 10.5rem (168 px) fits two 3.4rem
+     buttons and a gap (120 px) and cannot fit three (185 px).
+     It was 9.5rem when the roof control was a 3.4rem circle. The control is a
+     text pill now and measures 140 px closed / 147 px open, which left only
+     5 px of slack inside 152 px — one longer label from overflowing. 168 px
+     gives it room without letting a third item onto the arrows' row.
      The second row sits 73–128 px off the bottom, above .onboard-hint's line,
      so the hint's clearance (see the note at the end of this file) is
      unchanged. */
   .hud-controls {
     flex-wrap: wrap-reverse;
     justify-content: flex-end;
-    max-width: 9.5rem;
+    max-width: 10.5rem;
   }
 
   /* The joystick is the phone's movement control, so it appears here and only

@@ -67,6 +67,12 @@ in practice. Breaking any of them is a regression.
 
 1. **No build step.** Plain files, everything via CDN. No bundler, no npm, no
    transpile. Scripts are plain ES5-style JS (`var`, no modules) to match.
+   The cost of having no bundler is that cache-busting is MANUAL: every script
+   and stylesheet in `vr/index.html` carries a `?v=N`, and **editing the file
+   without bumping N ships nothing to anyone who already has it cached.**
+   `vr.css` is the one people forget, because it is the only non-`components/`
+   entry and it sits 190 lines above the script block — it shipped stale once,
+   see §9.29.2 for the audit command that catches it.
 2. **Pin every CDN version exactly.** Never `latest`. Current pins: A-Frame
    1.5.0, troika-text 0.14.0, GSAP 3.12.5, pdfjs-dist 3.11.174. (super-hands
    3.0.6 and aframe-extras 7.2.0 were removed — both were confirmed inert, see
@@ -4001,6 +4007,111 @@ little specular life; the cards' actual daylight is still the ember term.
 
 Re-measured after all of it: **+6 draw calls, +4,694 triangles** when open
 (69→75 calls, 10,772→15,466 tris), and still nothing at all built when closed.
+
+#### 9.29.2 Two cache bugs and a standard toggle (same day, third pass)
+
+Sebastian, with a screenshot of four lamps still burning in an open sky:
+*"make the lights turn off and disappear when you open the top."*
+
+They already did — via the button. Two separate bugs were hiding it, and one of
+them I had shipped.
+
+**Bug 1: `?sky=1` never faded the lamps (load-order race, shipped).**
+`applyLights` cached the housing meshes into `this._housings` on first touch.
+But `light-rack-housings` builds its beads on the scene's own `loaded` event,
+and **`#skylight` is earlier in index.html, so it registers its `loaded`
+listener first and fires first.** `?sky=1` therefore ran `applyLights` against
+an empty group, cached the empty result as `null`, and left the lamps at full
+brightness for the session. Measured: eight materials at opacity 1 with
+`_housings === null`.
+
+The fix is the pattern `project-room.js` already documents for the rug —
+*"resolved per call, never cached: its component may not have initialised when
+this file loads, and a cached null would silently disable rug theming for the
+whole session."* The list is gone; the traverse runs per call, and each
+material's authored opacity is stashed **on the material** (`__skyBaseOpacity`)
+so re-resolving mid-fade cannot mistake a faded value for the original and
+ratchet the lamps permanently dark. A traverse of nine objects per frame is far
+cheaper than a bug class that only appears in a load-order race.
+
+The `tick` self-heal also now re-asserts on any *open* state rather than only
+at `>0.99`, and `_heal` resets on every state change, so the first tick after a
+`jumpTo` re-applies promptly.
+
+**Bug 2: `vr.css` had a stale cache-buster, and that one was live.**
+Every component script carries `?v=N` and I had been bumping them. `vr.css`
+carries one too — and I changed the file three times without touching it, so it
+stayed `?v=14` from before the session. Returning visitors with the stylesheet
+cached got the OLD CSS: no roof-control styling, **and neither the phone wrap
+rule nor the `.onboard-hint` lift**, which is to say the 64 px HUD/joystick
+overlap §9.29.1 "fixed" was still live for them. It also wasted a round of my
+own debugging: the browser was serving `.hud-btn.sky-btn` rules for markup that
+no longer had that class.
+
+**Audit every versioned asset before a /vr deploy.** One command, and it caught
+this:
+
+```bash
+python3 - <<'EOF'
+import re, subprocess
+idx = open('vr/index.html').read()
+BASE = 'origin/main~1'   # or whatever you are comparing against
+refs = dict(re.findall(r'(?:src|href)="((?:components/)?[\w.-]+\.(?:js|css))\?v=(\d+)"', idx))
+old = dict(re.findall(r'(?:src|href)="((?:components/)?[\w.-]+\.(?:js|css))\?v=(\d+)"',
+      subprocess.run(['git','show',BASE+':vr/index.html'],capture_output=True,text=True).stdout))
+changed = {c.replace('vr/','') for c in subprocess.run(
+      ['git','diff','--name-only',BASE,'HEAD','--','vr/'],capture_output=True,text=True).stdout.split()}
+for f,v in sorted(refs.items()):
+    if f in changed and old.get(f) == v: print('STALE QUERY:', f, '=', v)
+EOF
+```
+
+It reported exactly one file. GitHub Pages serves HTML with `cache-control:
+max-age=600`, so a stale *page* self-heals in ten minutes — which is what
+Sebastian was actually looking at — but a stale **asset** behind an unchanged
+`?v=` never does.
+
+#### The standard on/off toggle
+
+*"Use the same on/off look for the close and open the sky as the on/off for the
+accessibility button. Let's make that the standard on/off button style. And the
+text itself should change to reflect the state."*
+
+`.toggle-pill` / `.toggle-dot` / `.toggle-text-off|on` in `vr.css`, a straight
+port of the flat site's `.a11y-toggle` (root `index.html`, ~line 449). Measured
+against it, value for value:
+
+| | off | on (`.is-on`) |
+|---|---|---|
+| label | `OPEN ROOF` | `CLOSE ROOF` |
+| colour | `rgba(245,245,240,0.7)` | `--text` |
+| border | `--border-hover` | `--text` |
+| fill | `rgba(245,245,240,0.04)` | `rgba(245,245,240,0.05)` |
+| dot | hollow ring | filled `--text` |
+
+Three things about it:
+
+* **The label states the ACTION, not the state**, and which of the two spans
+  shows is decided in CSS off `.is-on` — exactly as the accessibility toggle
+  does it. Nothing in JS writes text. That is what makes a control that loads
+  already-on (`?sky=1`) correct before any script runs; do not "simplify" it
+  into one span set from JS.
+* **The flat site is the origin and the two must be kept in sync by hand,**
+  because that page is one self-contained file and `vr.css` cannot `@import`
+  from it. Same standing arrangement as `--ember`, which is duplicated between
+  `vr.css` and `dome.js` with the same warning.
+* **It cost a layout re-measure.** The control went from a 3.4 rem circle to a
+  140 px (closed) / 147 px (open) text pill, which left 5 px of slack inside
+  the phone row's `max-width: 9.5rem` — one longer label from overflowing. Now
+  `10.5rem`. Re-measured at 375×812: pill on its own row at y=674, HUD box
+  168 px at x=191 against `.move-controls` ending at 174, hint bottom at 664
+  against HUD top at 674, **all five overlap pairs 0**.
+
+The in-scene 3D button is glass and cannot wear the DOM pill's look, but it
+says the same two words, so the two controls read as one thing. Verified that
+its troika label really re-renders (`data` *and* rendered value both flip) —
+`ui-button.update()` handles the label, but the text mesh only lands on
+troika's next sync, so a frozen loop shows the stale word (§3.2).
 
 #### Verified
 

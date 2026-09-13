@@ -244,14 +244,14 @@
   <script src="components/fonts.js?v=6"></script>
   <script src="components/themes.js?v=9"></script>
   <script src="components/dome.js?v=9"></script>
-  <script src="components/glass-material.js?v=21"></script>
+  <script src="components/glass-material.js?v=20"></script>
   <script src="components/text-flow.js?v=3"></script>
   <script src="components/ui-button.js?v=16"></script>
   <!-- skylight.js — the button that cuts the top third of the dome away and
        reveals a sunny sky behind it. AFTER dome.js (it drives that component's
-       new setAperture), ui-button.js (it builds one) and glass-material.js (it
-       adds a fifth fixture to the vr-key-light system while the roof is
-       open). -->
+       setAperture), ui-button.js (it builds one) and glass-material.js (it
+       reads that file's shared light uniforms and calls the vr-key-light
+       system's syncRack while the roof is open). -->
   <script src="components/skylight.js?v=7"></script>
   <!-- Shared controls, loaded before every consumer: the one exit button
        (exit-button.js) and the one scroll bar (scroll-arrows.js). Both are used

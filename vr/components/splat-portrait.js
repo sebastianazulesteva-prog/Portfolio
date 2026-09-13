@@ -1007,7 +1007,16 @@
     // ── Reading this in a headset ─────────────────────────────────────────
     // §3.16: there is no console in a Vision Pro, so anything you need to know
     // about in-session behaviour has to reach a surface inside the scene.
-    // xr-diag.js picks this up and prints it on its card when the flag is on.
+    //
+    // `?xrdiag=1` now prints this as a second section on xr-diag.js's card,
+    // and re-raises the card when the portrait lab opens so the two can
+    // actually be on screen together. That sentence USED TO BE HERE AND WAS
+    // FALSE: nothing in the repo read VRSplatDiag, so every number below was
+    // reachable only from a console, on the one panel whose every failure mode
+    // looks like an empty patch of dome. Three passes of careful diagnostics
+    // that could not be read where they were needed. If you add a field here,
+    // add its row in xr-diag.js's splatFmt().
+    //
     // Cheap, no allocation, safe to call from a sampler.
     diag: function () {
       var v = this.viewer && this.viewer.viewer;

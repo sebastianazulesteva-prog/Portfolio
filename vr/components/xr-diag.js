@@ -32,10 +32,26 @@
                   codebase are self-scheduling setTimeouts, so this decides
                   whether they are 40× slower in a headset.
      MessageChannel  the fallback pump, if setTimeout turns out to be clamped.
-     microtask    sanity floor. If promises don't drain, stop reading.
+     microtask    sanity floor. If promises don't drain, stop reading. Counted
+                  in BOUNDED bursts re-armed on each poll — see the long note
+                  at the sampler, because the unbounded version of this row is
+                  what stopped this instrument ever producing a card.
      hidden / visibilityState / session.visibilityState
                   the two things that would suspend timers and, on some
                   runtimes, animation libraries. Measured, not assumed.
+
+   ── The second section: the gaussian portrait ──
+   Added 2026-09-13, because splat-portrait.js had spent three passes building
+   a diag() that nothing read. Its own comment said "xr-diag.js picks this up
+   and prints it on its card" and that was simply untrue, so every number it
+   collected was console-only — on the one panel whose every failure mode is an
+   empty patch of dome, on the one device with no console (§3.16).
+
+   The section appears only when a splat portrait is in the scene, and the card
+   RE-RUNS ITSELF when the portrait lab opens, because that is the only moment
+   the two can coexist: the lab builds nothing until its button is pressed, the
+   card is raised before that, and closing the card is one-way. It then waits
+   for the splat to settle rather than reporting on a download in flight.
 
    ── The A/B that proves causation ──
      ?xrdiag=1              pump on  (xr-frame.js drives GSAP)  → tween 100%
@@ -43,6 +59,24 @@
                                                                 → tween 0%
    Two taps, two cards, and the difference is the proof. Run the pump=0 one
    FIRST, while the bug is still reproducible.
+
+   ── Two reasons this card had never actually been seen ──
+   Both found 2026-09-13, while wiring the portrait section, and both are the
+   same kind of failure this file exists to expose.
+
+   1. THE SAMPLER FROZE THE PAGE. The microtask row was an unbounded chain —
+      each microtask scheduling the next — and the browser drains microtasks to
+      exhaustion before running any task. So no timer, no rAF and no VRPoll arm
+      could ever fire, `stop` was never set, sample() never resolved, and
+      `?xrdiag=1` simply hung the scene. Found by pausing the blocked thread
+      over CDP: one call frame, the sampler itself.
+   2. THE TEXT WAS OFF THE PLATE. VRTextFlow.stack left-ANCHORS at `s.x || 0`,
+      which is the middle of the card; every other caller passes `-W/2 + PAD`
+      and this one did not, so the column started at the centre and the long
+      verdict lines ran off the right edge into the dome.
+
+   Neither is subtle once the card is in front of you. Nobody could get it in
+   front of them.
 
    ── Notes on how it is built ──
    Nothing in this file uses GSAP, on purpose: the instrument cannot depend on
@@ -63,6 +97,9 @@
   var SAMPLE_MS = 3000;
   var SETTLE_MS = 600;        // let the session get past its first frames
   var TIMEOUT_INTERVAL = 50;  // chained; ~60 fires in 3 s if unclamped
+  // Microtasks enqueued per burst. Small enough to drain in microseconds;
+  // the bound itself is what stops the sampler starving the event loop.
+  var MICRO_BURST = 200;
 
   var CARD_W = 1.02;
   var CARD_DIST = 1.15;
@@ -114,7 +151,38 @@
       (function w() { if (stop) return; winFrames++; window.requestAnimationFrame(w); })();
       if (sess) (function x() { if (stop) return; xrFrames++; sess.requestAnimationFrame(x); })();
       (function tm() { if (stop) return; timeoutFires++; setTimeout(tm, TIMEOUT_INTERVAL); })();
-      (function mi() { if (stop) return; microFires++; Promise.resolve().then(mi); })();
+
+      // ── The microtask sampler has to be BOUNDED, and that is load-bearing ──
+      // This was `(function mi() { if (stop) return; microFires++;
+      // Promise.resolve().then(mi); })()` — an unbounded chain of microtasks,
+      // each one scheduling the next. The browser drains the microtask queue
+      // to EXHAUSTION before it runs the next task, so a microtask that
+      // schedules a microtask never gives the event loop back: no timers, no
+      // rAF, no MessageChannel, no VRPoll. `stop` was therefore never set, the
+      // closer below never ran, this promise never resolved, and no card was
+      // ever built. `?xrdiag=1` froze the entire scene from the moment it was
+      // used, which is why nothing in the repo ever read VRSplatDiag from a
+      // card that could not exist.
+      //
+      // Found by pausing the blocked thread over CDP: one frame, `mi`, here.
+      //
+      // The note under the closer reasons carefully about WHICH clock times
+      // the sample window and concludes VRPoll is safe because it is
+      // dual-armed on tick and timeout. Both of those are tasks. The bug was
+      // upstream of the choice.
+      //
+      // So: a bounded burst, re-armed from the closer (which VRPoll calls
+      // every 100 ms). Still a rate over the whole window — ~30 bursts — and
+      // the queue drains completely between them, so everything else runs.
+      var microBurst = function () {
+        var n = 0;
+        (function step() {
+          if (stop || n >= MICRO_BURST) return;
+          n++; microFires++;
+          Promise.resolve().then(step);
+        })();
+      };
+      microBurst();
 
       var mc = null;
       if (window.MessageChannel) {
@@ -127,7 +195,7 @@
       // of the things under test. VRPoll is dual-armed (tick + timeout), so it
       // closes on whichever clock is actually running.
       var closer = function () {
-        if (perfNow() - t0 < SAMPLE_MS) return false;
+        if (perfNow() - t0 < SAMPLE_MS) { microBurst(); return false; }
         stop = true;
         var frameStats1 = (window.VRFrame && VRFrame.stats()) || { sceneTicks: 0, pumpTicks: 0 };
         var secs = (perfNow() - t0) / 1000;
@@ -152,7 +220,11 @@
           visibilityState: document.visibilityState || 'n/a',
           sessionVisibility: sess ? (sess.visibilityState || 'n/a') : null,
           inSession: !!sess,
-          frameRate: (sess && sess.frameRate) || null
+          frameRate: (sess && sess.frameRate) || null,
+          // Null when there is no splat portrait in the scene, which is the
+          // contract splat-portrait.js's own accessor documents — so the whole
+          // section drops out rather than printing a row of dashes.
+          splat: window.VRSplatDiag ? VRSplatDiag() : null
         });
         return true;
       };
@@ -206,6 +278,94 @@
     return out;
   }
 
+  // ── The gaussian portrait ─────────────────────────────────────────────────
+  // Wired in 2026-09-13, and it should have been from the start. splat-portrait
+  // had built a careful diag() and its own comment claimed "xr-diag.js picks
+  // this up and prints it on its card" — nothing did. So every number it
+  // gathered was reachable only from a console, and §3.16 is that there is no
+  // console in a headset. The one device where the splat has ever misbehaved
+  // was the one device that could not be asked why.
+  //
+  // Every failure this panel has actually had looks identical from inside a
+  // headset — an empty patch of dome — and each is a different row here:
+  //   ready false, splats 0     the download or the parse failed
+  //   splats > 0, drawn 0       loaded and never sorted (the library's own
+  //                             heuristic tests the camera's LOCAL transform,
+  //                             which is always identity in A-Frame)
+  //   bytes != contentLength    the server compressed it; this is NORMAL on
+  //                             GitHub Pages and used to be fatal (§3.18)
+  //   reveal not 'armed'        the shader patch missed; grayscale, no mosaic
+  //   webXRActive false while presenting
+  //                             the stereo correction is off and the splats
+  //                             are sized against the whole canvas, not an eye
+  function splatFmt(d) {
+    var wire = d.wire || {};
+    var enc = wire.encoding || '—';
+    var lines = [
+      'src               ' + String(d.src || '—').replace(/^assets\//, ''),
+      'gaussians         ' + d.splats + ' loaded, ' + d.drawn + ' drawn',
+      'sorts             ' + d.sorts + (d.lastSortMs == null ? '' : '   (last ' + Math.round(d.lastSortMs) + ' ms)'),
+      'splat width       ' + (d.splatWidth == null ? '—' : d.splatWidth),
+      'reveal            ' + d.reveal + (d.reveal === 'armed' ? '   (' + d.revealOn + ')' : ''),
+      'stereo fix        ' + (d.webXRActive == null ? '—' : d.webXRActive) +
+        (d.presenting ? '   (presenting)' : '   (flat)')
+    ];
+    if (wire.contentLength != null || wire.bytes) {
+      // One row, not two: the whole point is the COMPARISON, and on a card
+      // this tall every line has to earn itself.
+      lines.push('transfer          ' + enc + ' ' +
+        (wire.contentLength == null ? '?' : kb(wire.contentLength)) + ' -> ' +
+        kb(wire.bytes || 0) + ' decoded' +
+        (wire.bytes && wire.contentLength && wire.bytes !== wire.contentLength ? '   (differs)' : ''));
+    }
+    if (wire.trimmed != null) {
+      lines.push('conditioned       ' + wire.trimmed + ' trimmed, ' +
+        (wire.hiddenLayer || 0) + ' hidden, ' + (wire.darkened || 0) + ' darkened');
+    }
+    return lines;
+  }
+
+  function kb(n) {
+    return n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : Math.round(n / 1024) + ' KB';
+  }
+
+  function splatVerdict(d) {
+    var out = [];
+    var wire = d.wire || {};
+    if (!d.ready) {
+      out.push('The gaussian portrait has NOT loaded' +
+        (wire.url ? ' (' + wire.url + ')' : '') + '. If it had failed outright the busy card ' +
+        'would have said why; if this is a fresh open it may still be downloading.');
+      return out;
+    }
+    if (!d.splats) {
+      out.push('It reports ready with ZERO gaussians — the file parsed to nothing.');
+      return out;
+    }
+    if (!d.drawn) {
+      out.push('Loaded ' + d.splats + ' gaussians and is drawing NONE. It has been sorted ' +
+        d.sorts + ' times. Nothing is on screen; this is the silent failure.');
+    } else if (d.drawn < d.splats) {
+      out.push('Drawing ' + d.drawn + ' of ' + d.splats + ' gaussians.');
+    } else {
+      out.push('Drawing all ' + d.splats + ' gaussians.');
+    }
+    if (wire.bytes && wire.contentLength && wire.bytes !== wire.contentLength) {
+      out.push('The server sent it as ' + (wire.encoding || 'encoded') + ': ' +
+        kb(wire.contentLength) + ' on the wire, ' + kb(wire.bytes) + ' decoded. That is ' +
+        'correct and expected here — it is also what used to break the load (trap 3.18).');
+    }
+    if (d.presenting && d.webXRActive === false) {
+      out.push('In a session with the stereo correction OFF: the splats are being sized ' +
+        'against the whole canvas instead of one eye, so they will look stretched.');
+    }
+    if (d.reveal && d.reveal !== 'armed' && d.reveal !== 'off') {
+      out.push('The mosaic reveal did not arm (' + d.reveal + '), so he is grayscale with ' +
+        'no mosaic. The rest of the panel is unaffected.');
+    }
+    return out;
+  }
+
   function fmt(r) {
     var lines = [
       'window rAF        ' + r.windowRaf + '   (' + (r.windowRaf / r.seconds).toFixed(1) + '/s)',
@@ -217,7 +377,7 @@
                               !r.pumpEnabled ? 'off (?pump=0)' : r.pumpTicks + ' ticks'),
       'setTimeout(50)    ' + r.timeoutFires + ' of ~' + r.timeoutExpected,
       'MessageChannel    ' + r.messageChannelFires,
-      'microtasks        ' + r.microtaskFires,
+      'microtasks        ' + r.microtaskFires + '   (bursts of ' + MICRO_BURST + ')',
       'document.hidden   ' + r.documentHidden + '   (' + r.visibilityState + ')',
       'session.visible   ' + (r.sessionVisibility == null ? '—' : r.sessionVisibility),
       'session.frameRate ' + (r.frameRate == null ? '—' : r.frameRate)
@@ -278,8 +438,24 @@
     if (!s) return;
     destroyCard();
 
-    var body = fmt(r);
+    // ── Why the clock's numbers drop out when a splat is present ────────────
+    // Measured, not guessed: both sections in full is 32 lines, which the
+    // plate sizing turns into a card 1.55 m tall. At CARD_DIST that is 68° of
+    // vertical view — you would have to crane your neck to read it and the
+    // bottom would be through the floor. An instrument that does not fit in
+    // front of you is not an instrument.
+    //
+    // So the clock keeps its VERDICT (the plain-language lines, which are the
+    // answer) and loses its twelve numeric rows, which are not what you are
+    // looking at when you are looking at the portrait. Nothing is lost across
+    // a session: the card raised at scene start, before the lab exists, always
+    // prints the clock in full.
+    var body = r.splat ? [] : fmt(r);
     var notes = verdict(r);
+    if (r.splat) {
+      notes = notes.concat(['Clock numbers omitted to fit the portrait section — ' +
+        'they are on the card raised before the lab opens.']);
+    }
 
     cardEl = document.createElement('a-entity');
     cardEl.setAttribute('xr-diag-place', '');
@@ -295,22 +471,59 @@
     cardEl.appendChild(inner);
 
     var maxW = CARD_W - PAD * 2;
+    // ── Every spec needs its own x ────────────────────────────────────────
+    // VRTextFlow.stack left-ANCHORS each line and places it at `s.x || 0`,
+    // and 0 is the middle of the plate — so without this the whole column
+    // starts at the centre and the long verdict lines run off the right-hand
+    // edge into the dome. focus-stage.js and card-flip.js both pass
+    // `-W / 2 + PAD` for exactly this reason; this file was the one caller
+    // that did not, and nobody ever saw it because the microtask sampler
+    // above meant no card was ever built to look at.
+    var leftX = -CARD_W / 2 + PAD;
     var specs = [{
       value: 'XR clock — ' + (r.inSession ? 'in session' : 'desktop, no session'),
-      font: VRFonts.title(), fontSize: 0.034, color: '#ffffff', maxWidth: maxW, gapAfter: 0.030
+      font: VRFonts.title(), fontSize: 0.034, color: '#ffffff', maxWidth: maxW,
+      x: leftX, gapAfter: 0.030
     }];
     body.forEach(function (line, i) {
       specs.push({
         value: line, font: VRFonts.body(), fontSize: 0.0235, color: ACCENT,
-        maxWidth: maxW, lineHeight: 1.2, gapAfter: i === body.length - 1 ? 0.030 : 0.009
+        maxWidth: maxW, x: leftX, lineHeight: 1.2,
+        gapAfter: i === body.length - 1 ? 0.030 : 0.009
       });
     });
     notes.forEach(function (line) {
       specs.push({
         value: line, font: VRFonts.body(), fontSize: 0.0245, color: '#ffffff',
-        maxWidth: maxW, lineHeight: 1.28, gapAfter: 0.014
+        maxWidth: maxW, x: leftX, lineHeight: 1.28, gapAfter: 0.014
       });
     });
+
+    // The splat section, only when there is a splat. Its own subheading,
+    // because the card's title is about the XR clock and these numbers are
+    // about something else entirely — two sections under one heading would
+    // read as one list of unrelated rows.
+    if (r.splat) {
+      var splatBody = splatFmt(r.splat);
+      var splatNotes = splatVerdict(r.splat);
+      specs.push({
+        value: 'Gaussian portrait', font: VRFonts.title(), fontSize: 0.030,
+        color: '#ffffff', maxWidth: maxW, x: leftX, gapAfter: 0.022
+      });
+      splatBody.forEach(function (line, i) {
+        specs.push({
+          value: line, font: VRFonts.body(), fontSize: 0.0235, color: ACCENT,
+          maxWidth: maxW, x: leftX, lineHeight: 1.2,
+          gapAfter: i === splatBody.length - 1 ? 0.030 : 0.009
+        });
+      });
+      splatNotes.forEach(function (line) {
+        specs.push({
+          value: line, font: VRFonts.body(), fontSize: 0.0245, color: '#ffffff',
+          maxWidth: maxW, x: leftX, lineHeight: 1.28, gapAfter: 0.014
+        });
+      });
+    }
 
     // Buttons sit under the measured stack, so a long verdict pushes them down
     // instead of running under them.
@@ -388,6 +601,7 @@
           running = false;
           console.info('[vr] xr-diag —', JSON.stringify(r, null, 1));
           verdict(r).forEach(function (l) { console.info('[vr] xr-diag: ' + l); });
+          if (r.splat) splatVerdict(r.splat).forEach(function (l) { console.info('[vr] xr-diag/splat: ' + l); });
           try { showCard(r); } catch (e) { console.warn('[vr] xr-diag: card failed', e); }
           resolve(r);
         });
@@ -412,6 +626,38 @@
       return;
     }
     sc.addEventListener('enter-vr', function () { run(); });
+
+    // ── Re-run when the portrait lab opens ───────────────────────────────────
+    // Without this the splat section could never actually be seen. The card is
+    // raised at scene start and on enter-vr, at which point there is no splat
+    // in the scene at all — the lab builds nothing until its button is
+    // pressed — so `VRSplatDiag()` is null and the section drops out. And once
+    // the card is closed there is no affordance anywhere to summon it back, so
+    // the order you need (open the lab, THEN measure) was unreachable: the
+    // only way to get the card was a reload, which closes the lab.
+    //
+    // So the lab's own open event re-runs it. Then it WAITS, because the splat
+    // arrives seconds later — up to 12 MB — and a card that says "has NOT
+    // loaded" about something still downloading is worse than no card. Polls
+    // until it settles either way, and gives up after ~20 s and reports
+    // whatever it found, which is itself the answer if a load has hung.
+    sc.addEventListener('portrait-lab-open', function () {
+      var waited = 0;
+      VRPoll.every(700, function () {
+        waited += 700;
+        // Keep waiting through a run that is already in flight rather than
+        // giving up on one. The first version returned `true` here — stop
+        // polling — which meant that if the desktop baseline run happened to
+        // still be sampling when the lab opened, the splat card silently never
+        // appeared. Exactly the class of bug this card exists to expose.
+        if (running) return waited > 30000;
+        var d = window.VRSplatDiag ? VRSplatDiag() : null;
+        var settled = d && (d.drawn > 0 || (d.ready && d.sorts > 0));
+        if (!settled && waited < 20000) return false;
+        run();
+        return true;
+      }, { attempts: 48 });
+    });
     // Desktop / preview baseline, so the same card can be checked without a
     // headset. Skipped if a session is already up — enter-vr owns that case.
     VRPoll.every(2500, function () {

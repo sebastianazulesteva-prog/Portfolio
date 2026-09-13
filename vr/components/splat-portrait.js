@@ -108,6 +108,137 @@
       // in a dark dome, where a large portrait used to be. Nothing was broken.
       // 1.5 measures 343x415, which reads as the same presence as the panel.
       splatScale: { type: 'number', default: 1.5 },
+      // ── The gaussians are authored for a 2976 px photo, not a 287 px bust ─
+      // This is the library's `splatScale` UNIFORM, which is a different thing
+      // from the `splatScale` above: that one scales the world transform and
+      // moves the gaussians apart, this one widens each gaussian in SCREEN
+      // SPACE and leaves every centre where it is.
+      //
+      // Sebastian, looking at the lab: *"it looks ugly, way worse than
+      // Apple's."* He was right, and the reason is a resolution mismatch that
+      // has nothing to do with the count. SHARP sized these gaussians for the
+      // photograph it reconstructed — 1984x2976, where the median gaussian
+      // (sigma 0.318 mm on a 0.56 m bust) covers about 1.7 px. In the lab the
+      // bust draws 287 px tall, so the same gaussian covers 0.163 px: every
+      // one of them lands inside a single pixel.
+      //
+      // That is not a coverage problem — 385k gaussians over ~63k pixels of
+      // silhouette is six per pixel — it is an OPACITY problem, and it is
+      // `antialiased` mode that turns it into one. Antialiasing convolves each
+      // 2D gaussian with a 0.3 px kernel and rescales opacity by the ratio of
+      // the determinants, so a 0.163 px gaussian at alpha 0.99 comes out near
+      // 0.2. Six of those stacked never reach opaque, so the FRONT of his face
+      // does not hide what is behind it — and what is behind it is SHARP's
+      // inpainted second layer, which is dark because it was never
+      // photographed. Hence black speckle over the nose, lips and chin,
+      // exactly where the depth steps put layer 1 within a few mm of the
+      // surface. Hence also the milky look: the dome's orange horizon was
+      // shining through him.
+      //
+      // Widening was the FIRST fix for that, and it works — area grows as the
+      // square, so twice as wide is four times the alpha contribution — but it
+      // is the wrong lever and the measurements say so. With antialiasing
+      // still on, the full splat needed 2.0 before the face came clean, and
+      // 2.0 costs his eyebrows; 6.0 is soup with no features at all. Turning
+      // antialiasing OFF removes the cause instead of compensating for it (see
+      // the long note in _build), and then widening goes back to being what it
+      // should be: a small amount of fill for places where the reconstruction
+      // is genuinely thin.
+      //
+      // Re-measured with `antialiased: false`, in the lab, bust 287 px tall:
+      //     full splat  1.0   sharp, faint speckle returning on nose + cheek
+      //                 1.3   clean face, sharp brows, no thin spots   <- best
+      //                 2.0   over-soft, brows gone
+      //     LOD         1.0   sharp, but a visible hole in his left shoulder
+      //                 1.4   shoulder reads as soft shadow rather than hole
+      // The LOD's shoulder is not a tuning failure, it is the decimation: the
+      // bake keeps every 2nd gaussian in each axis, so where the surface was
+      // already only a few gaussians deep there is nothing left to be opaque
+      // with, and no width hides a hole it cannot fill. The full splat has no
+      // such spot. That is why the lab now loads the full one and this default
+      // stays the LOD's number, for the hub portrait which uses the LOD.
+      splatWidth: { type: 'number', default: 1.4 },
+      // ── The bottom of a bust has to end somewhere ────────────────────────
+      // The bake cuts him off at the chest, and that cut is not a hem: it is a
+      // torn fringe of individual blobs hanging off it, which is what the lab
+      // has been showing under the polo shirt. These two numbers end him
+      // deliberately instead. Set trimBottom to 0 to see the raw cut.
+      //
+      // Two wrong answers first, because both are the obvious one:
+      //
+      //  1. FADE THE ALPHA OUT. Tried, and it makes the fringe worse. As the
+      //     white front gaussians go transparent they stop hiding SHARP's
+      //     inpainted layer behind them, which is dark because it was never
+      //     photographed — so a dissolve came out as a dark speckled band
+      //     across his chest. Fading anything against a black dome darkens it.
+      //
+      //  2. CUT ON ALPHA. Also tried, on the theory that the fringe is the
+      //     faint material and the shirt is the opaque material. Measured, it
+      //     is not: slice the bottom 18 cm into 1 cm bands and every band has
+      //     both, in a ratio that slides smoothly from 87% opaque at y -0.20
+      //     to 31% at y -0.32. There is no boundary to cut on, only a density
+      //     that thins out until it can no longer form a surface. Cutting the
+      //     faint half left a sparse scatter of opaque blobs — the same ragged
+      //     edge, just dimmer.
+      //
+      // What works is to cut on DENSITY and then darken rather than dissolve:
+      //   trimBottom  drop the lowest N% of gaussians by height. The cloud is
+      //               too sparse to read as a surface below about y p5 — 1846
+      //               gaussians in the 1 cm band at -0.20 against 118 at
+      //               -0.32 — so that is where he ends.
+      //   fadeBottom  above the cut, ramp the gaussians' COLOUR to black over
+      //               this many metres. Not their alpha: they stay opaque, so
+      //               they still hide the inpainted layer, and a black opaque
+      //               bust bottom against a near-black dome simply is not
+      //               there. It dissolves without ever becoming see-through.
+      trimBottom: { type: 'number', default: 5 },
+      fadeBottom: { type: 'number', default: 0.07 },
+      // ── The dark smudges are SHARP's second layer showing through ────────
+      // A bake holds two layers: the surface the camera saw, and an inpainted
+      // layer behind it that exists so there is something to reveal when you
+      // move your head. That second layer is the entire basis of this panel's
+      // claim ("sees behind edges"), so it does not get deleted.
+      //
+      // But part of it bleeds forward. Mapped on a 220x220 grid, 4,493
+      // gaussians (4.6%) sit more than 8 mm behind the front surface, 37.5% of
+      // them darker than luminance 150, and they cluster exactly where the
+      // render had unexplained dark patches: a ring around the hair and two
+      // blooms at the shoulders. It is the same root cause as the face
+      // speckle — sub-pixel gaussians never accumulate to opaque, so the front
+      // does not hide the back — and widening does not finish the job. At
+      // splatWidth 1.9 the shoulder patch shrinks but survives, and his
+      // eyebrows go soft paying for it.
+      //
+      // So the rule removes only the part that can be SEEN to be wrong:
+      // material far enough behind to be invented, AND much darker than the
+      // surface it is hiding behind. Behind his hair, dark-behind-dark has no
+      // contrast and is kept — which is where the disocclusion fill actually
+      // matters. Behind a white polo shirt, a luminance-90 gaussian is a
+      // smudge and nothing else. 0 on either number switches it off.
+      occludeBehind: { type: 'number', default: 0.008 },
+      occludeContrast: { type: 'number', default: 60 },
+      // ── Match the other three panels, which are all grayscale ────────────
+      // spatial-photo and parallax-photo both ship `desaturate: 1`, and the
+      // relief panel is handed the flat site's gray image. The splat was the
+      // only panel in the room still in colour, so the one comparison that was
+      // supposed to isolate DEPTH also swung skin tone against three
+      // black-and-white prints — and the splat, being the one with no bright
+      // studio backdrop, read as the odd warm object rather than as the fourth
+      // treatment of one photograph.
+      //
+      // Rec.601 luma, the same weights the other two shaders use. Done on the
+      // stored bytes rather than in a shader because there is no shader of
+      // ours here to do it in: the library owns the material. That means it
+      // happens in sRGB rather than linear, which lands a little lighter than
+      // the panels' `lum * 0.84` — hence the trim below, measured against
+      // them rather than derived.
+      desaturate: { type: 'number', default: 1 },
+      desaturateGain: { type: 'number', default: 0.9 },
+      // See the long note at the `antialiased` option in _build. Short version:
+      // the library's antialiasing rescales opacity by a covariance-determinant
+      // ratio that assumes roughly pixel-sized gaussians, and these are a sixth
+      // of a pixel, so it crushed the alpha and the bust went see-through.
+      antialiased: { type: 'boolean', default: false },
       // Progressive reveal looks like a glitch on a face — it assembles from
       // the middle out. Off by default: show nothing, then show him whole.
       progressive: { type: 'boolean', default: false }
@@ -183,7 +314,31 @@
         // No view-dependent colour in a SHARP bake, so do not pay for it.
         sphericalHarmonicsDegree: 0,
         dynamicScene: false,
-        antialiased: true,
+        // ── OFF, and this is the single biggest quality decision here ───────
+        // It was on, because "antialiased" is obviously the good option. What
+        // it actually does is convolve each 2D gaussian with a 0.3 px kernel
+        // and then rescale its opacity by the ratio of the covariance
+        // determinants — correct, and designed for gaussians that are about a
+        // pixel across. These are 0.163 px across (the bust draws 287 px tall
+        // and SHARP sized its gaussians for a 2976 px photograph), so the
+        // ratio is tiny and the rescale crushes a 0.99-alpha gaussian to
+        // roughly 0.2.
+        //
+        // Every visible complaint about this panel followed from that. The
+        // front of him never accumulated to opaque, so:
+        //   • SHARP's dark inpainted second layer showed through as black
+        //     speckle over the nose, lips and chin,
+        //   • the dome's orange horizon shone through his face, which is what
+        //     made him look milky,
+        //   • and where the surface is thinnest — his left shoulder — the
+        //     background came straight through. Tested by putting a magenta
+        //     card behind the bust: the "dark smudge" on his shoulder rendered
+        //     MAGENTA. It was never dark gaussians. It was a hole.
+        //
+        // Turning it off keeps full opacity and costs nothing in sharpness,
+        // which is the part widening could not do: splatWidth 1.9 shrank the
+        // shoulder hole but softened his eyebrows paying for it.
+        antialiased: this.data.antialiased,
         // The scene owns the render loop (xr-frame.js) — this must not try to
         // drive its own, and DropInViewer already forces selfDrivenMode off.
         // Left explicit so a library default change cannot quietly re-enable a
@@ -191,21 +346,45 @@
         useBuiltInControls: false
       });
 
-      var total = null;
-      this.viewer.addSplatScene(this.data.src, {
-        splatAlphaRemovalThreshold: this.data.alphaThreshold,
-        showLoadingUI: false,           // it injects its own DOM spinner otherwise
-        progressiveLoad: this.data.progressive,
-        // onProgress(percent, label, status) — status is the library's
-        // LoaderStatus enum, whose string form is good enough to show.
-        onProgress: function (percent, label, status) {
-          var stage = String(status || 'downloading').toLowerCase();
-          self._say(stage === 'done' ? 'placing him' : stage, percent, 100);
-        },
-        position: [0, 0, 0],
-        rotation: [0, 0, 0, 1],
-        scale: [this.data.splatScale, this.data.splatScale, this.data.splatScale]
-      }).then(function () {
+      var s = this.data.splatScale;
+      this._fetch(this.data.src).then(function (buf) {
+        if (!self.el.parentNode) return null;   // removed while the body was in flight
+        self._say('unpacking the gaussians');
+        buf = self._condition(buf);
+        // The blob is what the library is actually pointed at. See _fetch.
+        self._blobUrl = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+        return self.viewer.addSplatScene(self._blobUrl, {
+          // A blob: URL has no file extension, and the library picks its parser
+          // from one (`sceneFormatFromPath`, which returns null here). Without
+          // this it throws "Could not determine file type".
+          format: GS.SceneFormat.Splat,
+          splatAlphaRemovalThreshold: self.data.alphaThreshold,
+          showLoadingUI: false,           // it injects its own DOM spinner otherwise
+          // Now only describes how the library ASSEMBLES the buffer, not how it
+          // arrives: by this point the bytes are already in memory, so there is
+          // no download left for a reveal to overlap with.
+          progressiveLoad: self.data.progressive,
+          // onProgress(percent, label, status) — status is the library's
+          // LoaderStatus enum, whose string form is good enough to show. No
+          // byte counts here: this stage is a memcpy, and _fetch already
+          // narrated the part that takes time.
+          onProgress: function (percent, label, status) {
+            var stage = String(status || 'processing').toLowerCase();
+            self._say(stage === 'done' ? 'placing him' : stage);
+          },
+          position: [0, 0, 0],
+          rotation: [0, 0, 0, 1],
+          scale: [s, s, s]
+        });
+      }).then(function (added) {
+        if (added === null) return;             // detached mid-load; nothing to show
+        self._releaseBlob();
+        // Screen-space gaussian width. Has to be set AFTER the scene is added,
+        // because the SplatMesh (and its material, which owns the uniform) is
+        // built by addSplatScene — there is nothing to set it on before that.
+        if (self.viewer.splatMesh && self.data.splatWidth !== 1) {
+          self.viewer.splatMesh.setSplatScale(self.data.splatWidth);
+        }
         self.ready = true;
         self.el.setObject3D('splat', self.viewer);
         self._armStereo();
@@ -214,8 +393,233 @@
           count: self.viewer.splatMesh ? self.viewer.splatMesh.getSplatCount() : 0
         }, false);
       }).catch(function (e) {
+        self._releaseBlob();
         self._fail((e && e.message) || String(e));
       });
+    },
+
+    // ── Why the splat is fetched HERE, and handed over as a blob ───────────
+    // Because `Content-Length` is the length of the bytes ON THE WIRE, and the
+    // library reads it as the length of the bytes after decoding.
+    //
+    // This is the whole of "the 3D gaussians panel is blank on the live site",
+    // and it is why it always worked locally. `python3 -m http.server` sends
+    // the file as-is; GitHub Pages sends `.splat` (served as
+    // application/octet-stream) through gzip, so the same 3,112,512-byte asset
+    // arrives as `content-encoding: gzip, content-length: 2764346`. Both are
+    // correct HTTP. Then, in SplatLoader.loadFromURL:
+    //
+    //     maxSplatCount    = fileSize / SplatParser.RowSizeBytes   // 86385.8125
+    //     directLoadBufferIn = new ArrayBuffer(fileSize)           // 2,764,346
+    //
+    // and the read loop copies the DECODED stream into that buffer with
+    // `new Uint8Array(directLoadBufferIn, numBytesLoaded, chunk.byteLength)`.
+    // Somewhere past 2.7 MB the offset walks off the end, the typed-array
+    // constructor throws a RangeError inside the reader loop, and it surfaces
+    // as the library's generic `Viewer::addSplatScene -> Could not load file`.
+    // Nothing about it hints at the server. On the live site it happened every
+    // single time, on desktop and in the headset both, and the panel was
+    // simply empty — which is exactly the class of silent failure the watchdog
+    // and the busy card in this file were built for.
+    //
+    // There is no way to ask for an unencoded body: `Accept-Encoding` is a
+    // forbidden header name, so `fetch` drops it. The server is GitHub Pages
+    // and sends what it sends. So the interposition happens here: `fetch`
+    // decodes transparently, `arrayBuffer()` is the true length, and a
+    // `blob:` URL of those bytes is served back by the browser with an exact
+    // `Content-Length` and no encoding — which makes the library's own fast
+    // path correct instead of avoiding it.
+    //
+    // It costs one extra copy of the asset (3 MB at the LOD, 12 MB at full)
+    // held only until addSplatScene resolves, and it buys real byte progress
+    // on the busy card, which the old `percent`-as-bytes call never gave.
+    _fetch: function (url) {
+      var self = this;
+      this._wire = { url: url, encoding: null, contentLength: null, bytes: 0 };
+      return fetch(url, { credentials: 'same-origin' }).then(function (res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText + ' for ' + url);
+        var enc = res.headers.get('content-encoding');
+        var len = parseInt(res.headers.get('content-length'), 10);
+        self._wire.encoding = enc || 'identity';
+        self._wire.contentLength = isFinite(len) ? len : null;
+        // No streams (or an opaque body): still correct, just no progress.
+        if (!res.body || !res.body.getReader) return res.arrayBuffer();
+
+        var reader = res.body.getReader();
+        var chunks = [], got = 0;
+        return (function pump() {
+          return reader.read().then(function (r) {
+            if (r.done) {
+              var out = new Uint8Array(got), at = 0;
+              for (var i = 0; i < chunks.length; i++) { out.set(chunks[i], at); at += chunks[i].length; }
+              return out.buffer;
+            }
+            chunks.push(r.value);
+            got += r.value.length;
+            // Quote a total only while it is still credible. `got` counts
+            // DECODED bytes and contentLength counts encoded ones, so on a
+            // compressed body the two are not comparable and the bar would
+            // sail past 100%. Past that point the card shows a byte count
+            // against an indeterminate bar, which is the honest reading.
+            var total = (self._wire.contentLength && got <= self._wire.contentLength)
+              ? self._wire.contentLength : 0;
+            self._say('downloading the gaussians', got, total);
+            return pump();
+          });
+        })();
+      }).then(function (buf) {
+        self._wire.bytes = buf.byteLength;
+        // 32 bytes per gaussian: 3 float32 centre, 3 float32 scale, 4 uint8
+        // colour, 4 uint8 rotation. A body that is not a whole number of rows
+        // is not a .splat, whatever the server thought it was sending — and
+        // saying which number was wrong beats "could not load file".
+        if (!buf.byteLength) throw new Error('empty response from ' + url);
+        if (buf.byteLength % 32) {
+          throw new Error(buf.byteLength + ' bytes is not a whole number of 32-byte gaussians');
+        }
+        return buf;
+      });
+    },
+
+    // ── Conditioning the bytes on the way past ────────────────────────────
+    // Only possible because _fetch now holds the whole asset (see the note
+    // there), and worth doing precisely because the bake cannot be re-run:
+    // `vr/tools/sharp/export_assets.py` needs the SHARP output it was baked
+    // from — `seb_f30.ply` and `z_f30.npy` — and those are not in this repo
+    // and are not on this machine any more. `portrait.splat` IS the source
+    // now, so it is left byte-for-byte alone and shaped here instead, where
+    // the reasoning is next to the numbers and `fadeBottom: 0` undoes it.
+    //
+    // 32-byte rows, so this is one pass of integer arithmetic over 97k (or
+    // 385k) rows — under 5 ms, against a download measured in seconds.
+    _condition: function (buf) {
+      var trimPct = this.data.trimBottom;
+      var fade = this.data.fadeBottom;
+      if (!(trimPct > 0) && !(fade > 0)) return buf;
+      var n = buf.byteLength / 32;
+      var f32 = new Float32Array(buf);
+      var u8 = new Uint8Array(buf);
+      var i, y, b;
+
+      // Heights, and the cut taken as a PERCENTILE of them rather than a
+      // hardcoded y. That way the same numbers land correctly on the LOD and
+      // on the full splat (their shapes are identical, their counts are not),
+      // and they would survive a re-bake at a different framing.
+      var ys = new Float32Array(n);
+      for (i = 0; i < n; i++) ys[i] = f32[i * 8 + 1];
+      var sorted = Float32Array.from(ys).sort();
+      var pick = function (pct) {
+        return sorted[Math.min(n - 1, Math.max(0, Math.round(pct / 100 * (n - 1))))];
+      };
+      var yCut = trimPct > 0 ? pick(trimPct) : sorted[0];
+      var yFade = yCut + fade;
+
+      var trimmed = 0, darkened = 0;
+      for (i = 0; i < n; i++) {
+        y = ys[i];
+        b = i * 32;
+        if (y < yCut) {
+          // Zeroed rather than spliced out: the library's own
+          // `splatAlphaRemovalThreshold` drops the rows as it parses, so they
+          // cost nothing to draw and nothing to sort, and this stays a single
+          // in-place walk with no reallocation of a 12 MB buffer.
+          u8[b + 27] = 0;
+          trimmed++;
+          continue;
+        }
+        if (fade > 0 && y < yFade) {
+          // Smoothstep, so there is no corner at the top of the ramp. A linear
+          // one puts a visible horizontal band across a plain white shirt.
+          var t = (y - yCut) / fade;
+          var k = t * t * (3 - 2 * t);
+          u8[b + 24] *= k;
+          u8[b + 25] *= k;
+          u8[b + 26] *= k;
+          darkened++;
+        }
+      }
+      this._wire.trimmed = trimmed;
+      this._wire.darkened = darkened;
+      this._wire.endsAt = +yCut.toFixed(4);
+
+      // ── Drop the invented layer where it can be seen to be wrong ─────────
+      // One grid pass. He faces +z and the viewer looks down -z, so within a
+      // cell the LARGEST z is the surface the camera saw and everything behind
+      // it is either the same surface seen thick or SHARP's inpainting.
+      var back = this.data.occludeBehind;
+      var minContrast = this.data.occludeContrast;
+      var lumOf = function (j) {
+        var o = j * 32;
+        return 0.299 * u8[o + 24] + 0.587 * u8[o + 25] + 0.114 * u8[o + 26];
+      };
+      if (back > 0 && minContrast > 0) {
+        // 220 cells across a 0.45 m bust is ~2 mm per cell — fine enough that a
+        // cell is one patch of surface, coarse enough that every occupied cell
+        // holds a few gaussians rather than one.
+        var G = 220;
+        var xlo = Infinity, xhi = -Infinity, ylo2 = Infinity, yhi2 = -Infinity;
+        for (i = 0; i < n; i++) {
+          if (!u8[i * 32 + 27]) continue;              // already removed above
+          var xv = f32[i * 8];
+          if (xv < xlo) xlo = xv;
+          if (xv > xhi) xhi = xv;
+          if (ys[i] < ylo2) ylo2 = ys[i];
+          if (ys[i] > yhi2) yhi2 = ys[i];
+        }
+        var sx = G / Math.max(xhi - xlo, 1e-6), sy = G / Math.max(yhi2 - ylo2, 1e-6);
+        var cellOf = new Int32Array(n);
+        var frontZ = new Float32Array(G * G);
+        var frontIx = new Int32Array(G * G);
+        for (i = 0; i < G * G; i++) { frontZ[i] = -Infinity; frontIx[i] = -1; }
+        var cx, cy, cellIx, zv;
+        for (i = 0; i < n; i++) {
+          if (!u8[i * 32 + 27]) { cellOf[i] = -1; continue; }
+          cx = (f32[i * 8] - xlo) * sx | 0;
+          cy = (ys[i] - ylo2) * sy | 0;
+          if (cx < 0) cx = 0; else if (cx >= G) cx = G - 1;
+          if (cy < 0) cy = 0; else if (cy >= G) cy = G - 1;
+          cellIx = cy * G + cx;
+          cellOf[i] = cellIx;
+          // Only reasonably opaque gaussians get to DEFINE the surface; a
+          // faint one in front of the face is haze, not the face.
+          if (u8[i * 32 + 27] > 96) {
+            zv = f32[i * 8 + 2];
+            if (zv > frontZ[cellIx]) { frontZ[cellIx] = zv; frontIx[cellIx] = i; }
+          }
+        }
+        var hidden = 0;
+        for (i = 0; i < n; i++) {
+          cellIx = cellOf[i];
+          if (cellIx < 0) continue;
+          var fi = frontIx[cellIx];
+          if (fi < 0 || fi === i) continue;
+          if (frontZ[cellIx] - f32[i * 8 + 2] <= back) continue;
+          if (lumOf(fi) - lumOf(i) < minContrast) continue;   // no contrast, no smudge
+          u8[i * 32 + 27] = 0;
+          hidden++;
+        }
+        this._wire.hiddenLayer = hidden;
+      }
+
+      // ── Desaturate, last, so the two passes above see real colours ───────
+      var ds = this.data.desaturate;
+      if (ds > 0) {
+        var gain = this.data.desaturateGain;
+        for (i = 0; i < n; i++) {
+          b = i * 32;
+          if (!u8[b + 27]) continue;
+          var g = (0.299 * u8[b + 24] + 0.587 * u8[b + 25] + 0.114 * u8[b + 26]) * gain;
+          if (g > 255) g = 255;
+          u8[b + 24] += (g - u8[b + 24]) * ds;
+          u8[b + 25] += (g - u8[b + 25]) * ds;
+          u8[b + 26] += (g - u8[b + 26]) * ds;
+        }
+      }
+      return buf;
+    },
+
+    _releaseBlob: function () {
+      if (this._blobUrl) { URL.revokeObjectURL(this._blobUrl); this._blobUrl = null; }
     },
 
     // ── Why this component sorts the splats itself ───────────────────────
@@ -324,6 +728,13 @@
       var v = this.viewer && this.viewer.viewer;
       var mesh = this.viewer && this.viewer.splatMesh;
       var renderer = this.el.sceneEl && this.el.sceneEl.renderer;
+      // `data` is populated by A-Frame AFTER the component object exists, so a
+      // sampler that catches the gap gets an object with no data and this
+      // threw on `this.data.src`. Which defeats the point of a diagnostic
+      // whose whole job is to be safe to call at any moment — and it threw
+      // inside VRSplatDiag, i.e. inside the thing you reach for when the panel
+      // is blank.
+      var d = this.data || {};
       return {
         ready: !!this.ready,
         splats: mesh ? mesh.getSplatCount() : 0,
@@ -336,7 +747,18 @@
         // splats are sized against the full canvas width instead of one eye.
         webXRActive: v ? !!v.webXRActive : null,
         presenting: !!(renderer && renderer.xr && renderer.xr.isPresenting),
-        src: this.data.src
+        src: d.src,
+        // The two quality knobs, on the card because they are the answer to
+        // "why does he look like that" and they differ per asset.
+        splatWidth: mesh ? mesh.splatScale : d.splatWidth,
+        fadeBottom: d.fadeBottom,
+        // What the SERVER said versus what actually arrived. `encoding` other
+        // than identity with `bytes` != `contentLength` is the normal, healthy
+        // reading on GitHub Pages — and it is the state that used to break the
+        // load outright (see _fetch). Kept on the card so the next blank panel
+        // can be told apart from this one in a headset, where there is no
+        // network tab either (§3.16).
+        wire: this._wire || null
       };
     },
 
@@ -396,6 +818,9 @@
       // A component torn down mid-load would otherwise leave its progress card
       // in the scene with nothing left to finish it.
       this._done();
+      // And a blob: URL torn down mid-load pins its whole ArrayBuffer — 12 MB
+      // at full quality — until the document goes away.
+      this._releaseBlob();
       // §3.17: removeObject3D frees nothing on its own. The viewer owns web
       // workers, a wasm sort module and GPU buffers, all of which leak if we
       // only detach the Group.

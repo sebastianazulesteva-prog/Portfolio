@@ -10,6 +10,26 @@
       ],
       "port": 8080,
       "autoPort": true
+    },
+    {
+      "name": "static-site-gzip",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "python3 .tools/serve_gzip.py $PORT ."
+      ],
+      "port": 8099,
+      "autoPort": true
+    },
+    {
+      "name": "vr-image-picker",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        ".tools/vr-image-picker.py",
+        "--port",
+        "8765"
+      ],
+      "port": 8765
     }
   ]
 }

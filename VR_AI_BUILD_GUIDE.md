@@ -595,6 +595,54 @@ without the flag — nothing built, no sampler armed.
 Anything you want to know about in-headset behaviour has to end up on a surface
 inside the scene. Plan for that when you build the diagnostic, not after.
 
+### 3.18 `Content-Length` is the COMPRESSED length, and GitHub Pages compresses
+
+This is the one that cost the most, because everything about it says "the code
+is fine": it worked on localhost every single time it was checked, on desktop
+and in a headset, and it failed on sesteva.com every single time.
+
+`python3 -m http.server` compresses nothing. GitHub Pages sends `.splat`
+(served as `application/octet-stream`) through gzip, so the same asset arrives
+as `content-encoding: gzip` with `content-length: 2764346` against a body that
+decodes to 3,112,512 bytes. **Both numbers are correct HTTP.** `Content-Length`
+describes the bytes on the wire; `arrayBuffer()` gives you the bytes after
+decoding. Any library that reads the header as the decoded size is broken on
+this host and nowhere else.
+
+`@mkkellogg/gaussian-splats-3d` does exactly that, in `SplatLoader.loadFromURL`:
+
+```js
+maxSplatCount      = fileSize / SplatParser.RowSizeBytes   // 86385.8125
+directLoadBufferIn = new ArrayBuffer(fileSize)             // 2,764,346
+...
+new Uint8Array(directLoadBufferIn, numBytesLoaded, chunk.byteLength).set(...)
+```
+
+The decoded stream overruns that buffer, the typed-array constructor throws a
+`RangeError` inside the read loop, and it surfaces as the library's generic
+`Viewer::addSplatScene -> Could not load file`. Nothing in the message points
+at the server, at compression, or at a length.
+
+**Two things follow, and both are now in the repo:**
+
+* **Interpose your own fetch.** `splat-portrait.js` fetches the asset itself
+  (`fetch` decodes transparently, `arrayBuffer()` is the true length) and hands
+  the library a `blob:` URL, which the browser serves with an exact
+  `Content-Length` and no encoding. That makes the library's own fast path
+  correct rather than avoiding it, and it is also where the asset is
+  conditioned on the way past. You cannot ask for an unencoded body:
+  `Accept-Encoding` is a forbidden header name, so `fetch` drops it.
+* **Test against a server that compresses.** `.tools/serve_gzip.py`, wired up as
+  `static-site-gzip` in `.claude/launch.json`. `python3 -m http.server` cannot
+  reproduce any bug in this class, so a local pass against it means nothing for
+  anything that is sensitive to a byte count.
+
+Sanity check for any binary asset: a `.splat` is 32 bytes per gaussian, so a
+length that is not a multiple of 32 is not a `.splat`. `splat-portrait.js`
+asserts that after the fetch and says which number was wrong, and records the
+server's encoding and both lengths on its `diag()` card — because in a headset
+there is no network tab either (§3.16).
+
 ---
 
 ## 4. File map

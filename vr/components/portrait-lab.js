@@ -64,10 +64,45 @@
   // come to you, which is what the site radius plus the closer ROOM_Z above
   // are for.
   var SITE_WALK_RADIUS = 1.35;
+
+  // ── One photograph, four techniques: the reveal has to be OFF in here ─────
+  // Sebastian: *"make all the panels look as good as possible at representing
+  // the style they are showing off."* The first thing in the way of that was
+  // not a quality setting, it was this room contradicting its own premise.
+  //
+  // `spatial-photo` and `mosaic-reveal` both carry the flat site's signature
+  // gaze-driven mosaic reveal, and both default it ON. So two of the four
+  // panels bloomed COLOUR wherever you happened to be looking while the other
+  // two stayed grey — and the colour they bloomed was the mosaic bake, which
+  // renders his hair ginger. A viewer comparing four depth treatments was
+  // being shown, at the same time, a colour wash on half of them and an
+  // inaccurate one at that. That is exactly the confound the docblock at the
+  // top of this file says must not exist: *the only thing that differs between
+  // them is the depth technique.*
+  //
+  // The reveal is not being removed from the site — it is the hub portrait's
+  // effect and it stays there, where the panel is alone and a wash of colour
+  // over one eye is the point. It just has no business in a controlled
+  // comparison. Both panels get `gaze: false` and the relief panel gets the
+  // grey image for BOTH of its layers, so nothing can bloom.
+  //
+  // The image itself is the flat site's framed contact photo, which is what
+  // parallax-photo already defaulted to and what the relief panel already
+  // used as its grey. Naming it once here is what makes "the same picture in
+  // all four" a thing this file states rather than a coincidence of three
+  // separate defaults. The spatial panel is the exception it has to be: a
+  // stereo pair is a different asset by definition (assets/portrait-eye-*),
+  // baked from this same photograph.
+  var SHOW_PHOTO = '../images/contact-photo-framed-for-mosaic.jpg';
   // The relief panel builds its interior for one reference viewpoint, and that
   // has to be where the panel actually is or the box does not fill its opening.
-  // The home portrait's default is 1.5 m; in here they hang at 1.85 m.
-  var ROOM_VIEW_DIST = 1.85;
+  // The home portrait's default is 1.5 m; in here they hang at 1.85 m — but
+  // that is the distance to the WALL, not to a panel, and only the middle two
+  // panels are anywhere near it. Each slot now passes its own straight-line
+  // distance (`slotDist` in buildRoom), which is 1.90 m for the relief panel
+  // where it actually sits and 2.26 m out at the ends. One constant for four
+  // different distances was a small error while the panels hung square and is
+  // a larger one now they are turned.
   var ROOM_Y = 1.45;
   var LABEL_DROP = 0.42;          // label sits below the panel, clear of the feather
 
@@ -111,9 +146,10 @@
 
   AFRAME.registerComponent('portrait-lab', {
     schema: {
-      // Which splat to load in the lab. The decimated one by default: the lab
-      // is a comparison, not a shrine, and 12 MB on a headset's network is a
-      // long wait before anything appears.
+      // The asset `?quality=low` falls back to. The lab's own default is the
+      // full-resolution splat — see the long note in init() for why that
+      // flipped, and why the decimated one is a fallback rather than the
+      // sensible choice it looks like.
       splat: { type: 'string', default: 'assets/portrait-lod.splat' }
     },
 
@@ -126,18 +162,34 @@
       // events, and A-Frame's tick runs on the session clock on both.
       //
       // What genuinely differs is headroom, so the knob is quality, not
-      // device. The default is already the conservative one: the decimated
-      // splat (97k gaussians, 3.1 MB) rather than the full 385k / 12.3 MB.
-      // That is the right default for a standalone headset AND perfectly good
-      // on a desktop, so nothing has to detect anything. ?quality=high opts
-      // into the full-resolution splat when you know the machine can take it.
+      // device. Sniffing the user agent for "Quest" was the other option and
+      // is worse: it is wrong on Wolvic, wrong on a tethered PC headset, wrong
+      // on every device released after this was written, and it silently gives
+      // someone the degraded asset with no way to say otherwise.
       //
-      // Sniffing the user agent for "Quest" was the other option and is worse:
-      // it is wrong on Wolvic, wrong on a tethered PC headset, wrong on every
-      // device released after this was written, and it silently gives someone
-      // the degraded asset with no way to say otherwise.
+      // ── The default FLIPPED to the full splat (2026-09-13) ───────────────
+      // It used to be the LOD, reasoning that "the lab is a comparison, not a
+      // shrine, and 12 MB on a headset's network is a long wait before
+      // anything appears". Both halves of that turned out to be wrong here.
+      //
+      // The LOD is not a slightly softer version of the full splat, it has a
+      // HOLE in it. The bake decimates by keeping every 2nd gaussian in each
+      // axis, and where the reconstruction was already only a few gaussians
+      // deep — his left shoulder — that leaves too little to be opaque with.
+      // Rendered, the background shows through, which is what Sebastian had
+      // been seeing as an unexplained dark smudge on a white shirt. Widening
+      // cannot fill a hole. The full splat simply does not have one.
+      //
+      // And the wait is not paid by anyone who does not ask for it: nothing in
+      // this room is built until the button is pressed, and splat-portrait
+      // narrates the download on the same busy card the reader uses, with real
+      // byte counts. A 12 MB opt-in behind a button on a scene that ships
+      // ~0 bytes of it otherwise is a different trade from 12 MB on arrival.
+      //
+      // `?quality=low` goes back to the LOD for a slow network; `?quality=high`
+      // still means the full splat, which is now also the default.
       var q = new URLSearchParams(location.search).get('quality');
-      this.quality = q === 'high' ? 'high' : 'default';
+      this.quality = q === 'low' ? 'low' : 'high';
 
       this.open = false;
       this.room = null;
@@ -171,33 +223,107 @@
 
       VARIANTS.forEach(function (v, i) {
         var slot = document.createElement('a-entity');
-        slot.setAttribute('position', (x0 + i * GAP) + ' ' + ROOM_Y + ' ' + ROOM_Z);
+        var slotX = x0 + i * GAP;
+        slot.setAttribute('position', slotX + ' ' + ROOM_Y + ' ' + ROOM_Z);
+
+        // ── Toe the panels in, because two of these four are only valid
+        //    seen square on ─────────────────────────────────────────────────
+        // The panels used to hang on a flat wall with no rotation, all facing
+        // +Z. From the middle of the room that puts the outer two at 34.9° off
+        // axis — and 34.9° is not a neutral way to show either of the outer
+        // techniques:
+        //
+        //   • a STEREO PAIR is only valid seen square on. That is not a
+        //     preference, it is the reason index.html turns the hub portrait
+        //     with sunflower.js: off axis the two eye images no longer
+        //     correspond to the geometry your head is in, and the backdrop
+        //     swims. The spatial panel sits at x -1.29.
+        //   • the PARALLAX MAP marches through a depth map by the tangent of
+        //     the view angle, and parallax-photo.js's own note measures what
+        //     30° costs: 15.6% of the panel's width of invented texture, which
+        //     is why its depth was cut to 0.085 m. At 34.9°, permanently, the
+        //     edge guard is doing its maximum work all the time and the
+        //     hairline carries a visible light fringe. That panel sits at
+        //     x +1.29.
+        //
+        // So the flat wall was showing both of them in the one condition they
+        // cannot do, and calling it a comparison. Each slot now turns to face
+        // the room's own centre, where the viewer starts, so the NEUTRAL view
+        // of every panel is the square-on one. Leaning still moves you off
+        // axis — that is the whole exhibit, and the hint above the panels
+        // still says so — but now it is something you choose rather than the
+        // starting condition.
+        //
+        // It also fixes the way the room reads: fixed-aim panels seen from the
+        // centre are keystoned trapezoids, which is visible in the outer two.
+        // Toed in, they are rectangles, and the four of them form a shallow
+        // arc rather than a flat wall.
+        //
+        // Yaw only, no pitch. The panels hang at 1.45 m against a 1.6 m eye,
+        // which is 4.5° of drop against 34.9° of turn — and pitching them
+        // would tilt the relief panel's portal box out of its own opening for
+        // a correction an order of magnitude smaller than the one that
+        // matters.
+        var slotDist = Math.sqrt(slotX * slotX + ROOM_Z * ROOM_Z);
+        slot.object3D.rotation.y = Math.atan2(-slotX, -ROOM_Z);
 
         var art = document.createElement('a-entity');
         if (v.key === 'spatial') {
           art.setAttribute('spatial-photo', {
-            width: PANEL_W, height: PANEL_H
+            width: PANEL_W, height: PANEL_H,
+            // ── No mosaic reveal in here. See the note above SHOW_PHOTO ──────
+            gaze: false
           });
         } else if (v.key === 'relief') {
-          art.setAttribute('mosaic-reveal',
-            'gray: ../images/contact-photo-framed-for-mosaic.jpg;'
-            + ' color: ../images/contact-photo-mosaic.jpg;'
-            + ' width: ' + PANEL_W + '; height: ' + PANEL_H + ';'
-            + ' relief: assets/portrait-relief.png;'
-            + ' viewDistance: ' + ROOM_VIEW_DIST);
+          art.setAttribute('mosaic-reveal', {
+            gray: SHOW_PHOTO,
+            // The SAME image as `gray`, so there is nothing for a reveal to
+            // reveal even if a pointer lands on the panel. `gaze: false` alone
+            // would leave the hover path live on a desktop.
+            color: SHOW_PHOTO,
+            gaze: false,
+            // ── And no amber sheen either ───────────────────────────────────
+            // This was the actual reason his hair came out GINGER in here, and
+            // it survived turning the reveal off, which is what gave it away.
+            // mosaic-reveal's own shader documents the uniform as "0 =
+            // untouched image; >0 dials in the shared light rig, FOR
+            // COMPARISON" — and the term is ADDITIVE (`col += spec * ... *
+            // uLitAmt`). Additive light is invisible on a lit face and
+            // enormous on dark hair, so 0.12 read as a wash on the one part of
+            // the picture that had no headroom.
+            //
+            // The default stays 0.12 where it belongs: that number is
+            // Sebastian's own call for the HUB portrait, which hangs alone with
+            // nothing to be compared against. A controlled comparison of four
+            // depth techniques wants the untouched image, which is what the
+            // shader says 0 gives.
+            litAmt: 0,
+            width: PANEL_W, height: PANEL_H,
+            relief: 'assets/portrait-relief.png',
+            viewDistance: slotDist
+          });
         } else if (v.key === 'parallax') {
           // Same depth map and the same metric span as the relief panel beside
           // it (parallax-photo.js's depthM defaults to the bake's relief_m), so
           // the only thing differing between those two is the technique.
           art.setAttribute('parallax-photo', {
-            width: PANEL_W, height: PANEL_H
+            width: PANEL_W, height: PANEL_H, photo: SHOW_PHOTO
           });
         } else {
           // The splat is a free-standing bust, not something behind an opening —
           // it has no backdrop to frame, because the bake prunes it away. Sized
           // to the panels so the comparison is about depth and not about scale.
-          var src = this.quality === 'high' ? 'assets/portrait.splat' : this.data.splat;
-          art.setAttribute('splat-portrait', 'src: ' + src);
+          // The gaussian WIDTH goes with the asset, not with the component's
+          // default: the LOD's own gaussians were already widened 1.45x by the
+          // bake to cover the neighbours it dropped, so the two assets need
+          // different screen-space multipliers to look the same. Both numbers
+          // were measured in this room — see the long note on `splatWidth` in
+          // splat-portrait.js.
+          var hi = this.quality !== 'low';
+          art.setAttribute('splat-portrait', {
+            src: hi ? 'assets/portrait.splat' : this.data.splat,
+            splatWidth: hi ? 1.3 : 1.4
+          });
         }
         slot.appendChild(art);
 

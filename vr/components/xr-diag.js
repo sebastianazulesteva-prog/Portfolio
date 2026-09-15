@@ -224,7 +224,11 @@
           // Null when there is no splat portrait in the scene, which is the
           // contract splat-portrait.js's own accessor documents — so the whole
           // section drops out rather than printing a row of dashes.
-          splat: window.VRSplatDiag ? VRSplatDiag() : null
+          splat: window.VRSplatDiag ? VRSplatDiag() : null,
+          // Null until the skylight has been built (it builds on first open),
+          // so the section drops out rather than printing a row of dashes —
+          // same contract as the splat above.
+          sky: (window.VRSkylight && VRSkylight.stats) ? VRSkylight.stats() : null
         });
         return true;
       };
@@ -321,6 +325,65 @@
         (wire.hiddenLayer || 0) + ' hidden, ' + (wire.darkened || 0) + ' darkened');
     }
     return lines;
+  }
+
+  // ── The skylight's cost, where it can be read ───────────────────────────
+  // Sebastian asked whether the dome runs on a Quest. Nobody here has one, and
+  // the measurement that settles it is the XR frame rate WITH THE ROOF OPEN —
+  // which is the row already at the top of this card. These rows say what the
+  // skylight is costing to produce it, so a bad number has somewhere to point.
+  //
+  // What was measured on an M1 Pro at 1920×1080, per layer, isolated by
+  // visibility: cloud deck 0.015 ms, sky cap 0.013, floor pool 0.015,
+  // transparent dome mask 0.007 — about 0.02 ms per megapixel. At Quest 3's
+  // ~5.9 MP across both eyes that is ~0.12 ms of desktop-GPU fill; the
+  // unmeasurable step is the desktop-to-Adreno ratio on blended fill (roughly
+  // 10–20×), which puts it near 1–2.5 ms of a 13.9 ms budget at 72 Hz.
+  function skyFmt(d) {
+    if (!d.built) {
+      return ['roof              never opened this session',
+              'profile would be  ' + d.profile];
+    }
+    return [
+      'roof              ' + (d.open ? 'OPEN' : 'shut'),
+      'profile           ' + d.profile + (d.profile === 'low' ? '   (downscaled)' : ''),
+      'cloud quads       ' + d.quads + '   in 1 draw call',
+      'shadow map        ' + d.coveragePx + '\u00b2',
+      'added layers      ' + d.layers + '   sky cap, 3 sun sprites, deck, pool'
+    ];
+  }
+
+  function skyVerdict(d, r) {
+    var out = [];
+    if (!d.built) {
+      out.push('Open the roof and re-run this to measure it — nothing of the skylight ' +
+               'is built until the button is pressed.');
+      return out;
+    }
+    if (!r.inSession) {
+      out.push('Flat baseline. The number that decides Quest is the XR clock row above, ' +
+               'sampled in a session with the roof OPEN.');
+      return out;
+    }
+    var target = r.frameRate || 72;
+    // Derived here the same way the main formatter derives it — `xrPerSec` is
+    // a local there, not a field on `r`, and reading `r.xrPerSec` silently
+    // yields undefined and reports 0/s for a session that is running fine.
+    var rate = (r.xrRaf != null && r.seconds) ? r.xrRaf / r.seconds : 0;
+    if (!d.open) {
+      out.push('The roof is SHUT, so this is the cheap case. Open it and re-run.');
+    } else if (rate >= target * 0.92) {
+      out.push('Holding ' + rate.toFixed(0) + '/s against a ' + Math.round(target) +
+               ' Hz display with the roof open — the skylight fits at the "' +
+               d.profile + '" profile.');
+    } else {
+      out.push('Only ' + rate.toFixed(0) + '/s against ' + Math.round(target) +
+               ' Hz with the roof open. Try ?sky=low (' +
+               (d.profile === 'low' ? 'already on' : 'about a third of the quads') +
+               '); if low is still short, the skylight is not the culprit — ' +
+               'compare against the roof shut.');
+    }
+    return out;
   }
 
   function kb(n) {
@@ -519,6 +582,29 @@
       });
     }
 
+    // The skylight section. Same shape and same reason as the splat one above.
+    if (r.sky) {
+      var skyBody = skyFmt(r.sky);
+      var skyNotes = skyVerdict(r.sky, r);
+      specs.push({
+        value: 'Skylight', font: VRFonts.title(), fontSize: 0.030,
+        color: '#ffffff', maxWidth: maxW, x: leftX, gapAfter: 0.022
+      });
+      skyBody.forEach(function (line, i) {
+        specs.push({
+          value: line, font: VRFonts.body(), fontSize: 0.0235, color: ACCENT,
+          maxWidth: maxW, x: leftX, lineHeight: 1.2,
+          gapAfter: i === skyBody.length - 1 ? 0.030 : 0.009
+        });
+      });
+      skyNotes.forEach(function (line) {
+        specs.push({
+          value: line, font: VRFonts.body(), fontSize: 0.0245, color: '#ffffff',
+          maxWidth: maxW, x: leftX, lineHeight: 1.28, gapAfter: 0.014
+        });
+      });
+    }
+
     // Buttons sit under the measured stack, so a long verdict pushes them down
     // instead of running under them.
     var BTN_H = 0.10, BTN_GAP = 0.030;
@@ -596,6 +682,7 @@
           console.info('[vr] xr-diag —', JSON.stringify(r, null, 1));
           verdict(r).forEach(function (l) { console.info('[vr] xr-diag: ' + l); });
           if (r.splat) splatVerdict(r.splat).forEach(function (l) { console.info('[vr] xr-diag/splat: ' + l); });
+          if (r.sky) skyVerdict(r.sky, r).forEach(function (l) { console.info('[vr] xr-diag/sky: ' + l); });
           try { showCard(r); } catch (e) { console.warn('[vr] xr-diag: card failed', e); }
           resolve(r);
         });

@@ -280,7 +280,68 @@
   // 512, not 256: the map spans 180 m, so 256 px is 0.70 m per pixel and a
   // 2.2 m puff would be three pixels across. At 512 it is 0.35 m/px and the
   // puff-scale structure the bake now draws actually survives into the
-  // texture. One 512² canvas, built once, on first open.
+  // texture. One canvas, built once, on first open. The low profile halves it.
+
+  // ══ QUALITY PROFILES ═════════════════════════════════════════════════════
+  // Sebastian: *"make sure this can run on Meta Quest, and if it can't try and
+  // make it a downscaled version."*
+  //
+  // ── What is actually known, and what is not ──────────────────────────────
+  // There is no Quest here (§9.27 said the same and it is still true). What
+  // was measured, on an M1 Pro at 1920×1080, isolating each layer by
+  // visibility so no shader recompile lands in the timed window:
+  //
+  //     cloud deck (1332 quads)   0.015 ms
+  //     sky cap                   0.013 ms
+  //     floor pool + shadows      0.015 ms
+  //     transparent dome mask     0.007 ms   (this one costs even when SHUT)
+  //     ---------------------------------------
+  //     ~0.02 ms per megapixel of skylight
+  //
+  // Quest 3 draws ~5.9 MP per frame across both eyes, so that is ~0.12 ms of
+  // DESKTOP-GPU fill. The step nobody can measure from here is the ratio
+  // between an M1 Pro and an Adreno 740 on blended fill, which is somewhere
+  // around 10–20×. That puts the skylight at roughly 1–2.5 ms against a
+  // 13.9 ms budget at 72 Hz: material, not fatal, and firmly in the range
+  // where it is worth having a smaller version and worth measuring on device.
+  // `?xrdiag=1` prints the numbers on a card in the scene; that is the gate.
+  //
+  // ── Why these knobs ─────────────────────────────────────────────────────
+  // The cost is FRAGMENTS, not triangles — 1332 soft transparent quads is
+  // nothing geometrically and a lot of blending, which is exactly the thing a
+  // tile-based mobile GPU charges most for. So `low` cuts quad count, and it
+  // cuts cluster RADIUS alongside puff count rather than only the count:
+  // fewer puffs in a cluster of the same size reopens the gaps that made the
+  // first cloud pass look like soap bubbles (§9.29.1), so radius scales as
+  // sqrt(puffScale) to hold the puff-per-area density. Net ~460 quads.
+  var PROFILES = {
+    high: { count: 1.00, puffs: 1.00, coveragePx: 512, skySeg: [40, 24], poolSeg: 64 },
+    low:  { count: 0.65, puffs: 0.55, coveragePx: 256, skySeg: [24, 16], poolSeg: 32 }
+  };
+
+  // Narrow and explicit on purpose. `OculusBrowser` is the Meta Quest
+  // Browser's UA token and is the one signal that is actually diagnostic;
+  // Adreno/Mali cover a standalone headset or phone browser that does not
+  // advertise itself. Deliberately NOT keyed on "is this an XR device" —
+  // a Vision Pro is not a tile GPU with a mobile power budget, and guessing
+  // low there would throw away quality for nothing.
+  // `?sky=low` / `?sky=high` force it, which is how this gets tested without
+  // owning the hardware.
+  function pickProfile(renderer) {
+    var q = new URLSearchParams(location.search).get('sky');
+    if (q === 'low' || q === 'high') return q;
+    var ua = navigator.userAgent || '';
+    if (/OculusBrowser|Quest/i.test(ua)) return 'low';
+    try {
+      var gl = renderer && renderer.getContext();
+      var dbg = gl && gl.getExtension('WEBGL_debug_renderer_info');
+      var name = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : '';
+      if (/Adreno|Mali|PowerVR/i.test(name)) return 'low';
+    } catch (e) { /* the extension is absent or blocked; keep high */ }
+    return 'high';
+  }
+
+  var PROFILE = 'high';        // resolved in build(), once the GL context exists
   var SHADOW_COVERAGE_PX = 512;
 
   // COOL, not warm. The first version used the sun's own #ffeece at 0.26 and
@@ -521,7 +582,7 @@
   // every cluster three times, at x−span, x and x+span. Without that, a
   // cluster straddling the seam casts half a shadow.
   function bakeCoverage(clusters, deck) {
-    var SIZE = SHADOW_COVERAGE_PX;
+    var SIZE = (PROFILES[PROFILE] || PROFILES.high).coveragePx;
     var c = document.createElement('canvas');
     c.width = c.height = SIZE;
     var ctx = c.getContext('2d');
@@ -743,6 +804,24 @@
     console.info('[vr] skylight: cloud seed forced to ' + CLOUD_SEED + ' by ?cloudSeed');
   })();
 
+  // The deck spec with the active profile applied. Returns a COPY — mutating
+  // DECKS would make the profile sticky across a rebuild and un-testable.
+  function effectiveDecks() {
+    var pf = PROFILES[PROFILE] || PROFILES.high;
+    var radiusScale = Math.sqrt(pf.puffs);   // hold puff-per-area density
+    return DECKS.map(function (d) {
+      return {
+        count: Math.max(6, Math.round(d.count * pf.count)),
+        puffs: [Math.max(4, Math.round(d.puffs[0] * pf.puffs)),
+                Math.max(5, Math.round(d.puffs[1] * pf.puffs))],
+        alt: d.alt, span: d.span, zHalf: d.zHalf,
+        clusterR: [d.clusterR[0] * radiusScale, d.clusterR[1] * radiusScale],
+        clusterH: d.clusterH, puffSize: d.puffSize,
+        drift: d.drift, opacity: d.opacity
+      };
+    });
+  }
+
   function buildCloudField() {
     var r = rng(CLOUD_SEED);
     var pos = [], off = [], corner = [], tile = [], size = [], rot = [],
@@ -756,7 +835,7 @@
     // base, which is the face you are actually looking at from underneath.
     var shadowCasters = null, shadowDeck = null;
 
-    DECKS.forEach(function (deck, deckIndex) {
+    effectiveDecks().forEach(function (deck, deckIndex) {
       // ── The one coupling here that breaks silently ────────────────────────
       // A cluster that WRAPS inside the visible cone pops into view at full
       // size. The visible ground radius of a deck is alt / tan(cut elevation),
@@ -982,6 +1061,20 @@
       this.buildControls();
 
       window.VRSkylight = {
+        // For xr-diag's card — the only instrument that works in a headset
+        // (§3.16). Static counts plus the active profile; the frame rate the
+        // card already samples is the number that actually decides this.
+        stats: function () {
+          if (!self._built) return { built: false, profile: pickProfile(self.el.sceneEl.renderer) };
+          return {
+            built: true,
+            profile: PROFILE,
+            open: self.isOpen(),
+            quads: self.cloudMesh ? self.cloudMesh.geometry.index.count / 6 : 0,
+            coveragePx: self.coverageTex ? self.coverageTex.image.width : 0,
+            layers: 6   // sky cap, 3 sun sprites, cloud deck, floor pool
+          };
+        },
         open: function () { self.setOpen(true); },
         close: function () { self.setOpen(false); },
         toggle: function () { self.setOpen(!self.isOpen()); },
@@ -1143,6 +1236,14 @@
       if (this._built) return;
       this._built = true;
 
+      // Resolved HERE, not at module load: pickProfile reads the GL renderer
+      // string, which needs a live context.
+      PROFILE = pickProfile(this.el.sceneEl.renderer);
+      var pf = PROFILES[PROFILE];
+      if (window.VR_DEBUG || PROFILE === 'low') {
+        console.info('[vr] skylight: "' + PROFILE + '" quality profile');
+      }
+
       var group = new THREE.Group();
       group.visible = false;
 
@@ -1150,7 +1251,8 @@
       // above it blends onto, and being in the opaque pass means it draws
       // before all of them regardless of renderOrder.
       var skyGeo = new THREE.SphereGeometry(
-        SKY_RADIUS, 40, 24, 0, Math.PI * 2, 0, SKY_ARC_DEG * Math.PI / 180
+        SKY_RADIUS, pf.skySeg[0], pf.skySeg[1], 0, Math.PI * 2, 0,
+        SKY_ARC_DEG * Math.PI / 180
       );
       this.skyTex = skyTexture();
       var skyMat = new THREE.MeshBasicMaterial({
@@ -1249,7 +1351,7 @@
         depthWrite: false,
         fog: false
       });
-      var pool = new THREE.Mesh(new THREE.CircleGeometry(POOL_RADIUS, 64), poolMat);
+      var pool = new THREE.Mesh(new THREE.CircleGeometry(POOL_RADIUS, pf.poolSeg), poolMat);
       pool.rotation.x = -Math.PI / 2;
       // Above dusk-floor (-0.02) and dusk-rug (+0.002), both of which are
       // opaque and therefore already drawn by the time this blends over them.

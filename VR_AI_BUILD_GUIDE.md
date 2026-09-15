@@ -801,6 +801,9 @@ the shown section has an interaction. Keep its light rack in sync with
 ?forcexr=1|0        # pin the headset or the flat arrival gate (onboarding.js)
 ?sky=1              # land with the skylight already OPEN, with no tween
                     # (skylight.js). A 6.5s iris and a screenshot are a race.
+?sky=low|high       # force the skylight's quality profile (skylight.js).
+                    # `low` is ~a third of the cloud quads and engages by
+                    # itself on Quest-class hardware. See §9.29.5.
 ?cloudSeed=N        # reseed the cloud field (skylight.js). The seed decides
                     # the composition INCLUDING how much shadow lands on the
                     # floor — `comp.poolShadowCover` measures it. See §9.29.3.
@@ -4203,6 +4206,85 @@ unchanged.** `opacity` was 0 and the beads were still at full brightness,
 because three.js bakes `transparent` into the program cache key and flipping it
 at runtime needs `needsUpdate` (§9.29.2's fix was incomplete for exactly this
 reason). Read pixels, not state, whenever the claim is about what is on screen.
+
+#### 9.29.5 Will it run on a Quest? (2026-09-14)
+
+*"Do some tests and whatnot to make sure this can run on Meta Quest, and if it
+can't try and make it a downscaled version."*
+
+**There is still no Quest here**, so this follows §9.27's method: measure what
+can be measured, reason about what cannot, ship the smaller version, and put
+the instrument where the answer can be read on device.
+
+**What was measured** — M1 Pro, 1920×1080, each layer isolated by *visibility*
+so no shader recompile lands in the timed window (an earlier attempt flipped
+`material.transparent` mid-benchmark and timed the recompile stall as 4.6 ms):
+
+| layer | fill |
+|---|---|
+| cloud deck (1,332 quads) | 0.015 ms |
+| sky cap | 0.013 ms |
+| floor pool + shadows | 0.015 ms |
+| transparent dome mask — **costs even when shut** | 0.007 ms |
+
+≈**0.02 ms per megapixel**. Whole open scene at 1080p: ~0.9–1.5 ms depending on
+where you look.
+
+**What cannot be measured from here** is the desktop-to-Adreno ratio on blended
+fill, which is roughly 10–20×. Quest 3 draws ~5.9 MP across both eyes, so the
+skylight is ~0.12 ms of desktop-GPU fill there, i.e. **~1–2.5 ms against a
+13.9 ms budget at 72 Hz**. Material, not fatal — the right answer to which is a
+smaller version and a way to check, not a confident claim either way. Note two
+things the arithmetic does *not* cover: Quest's fixed foveated rendering makes
+the periphery cheaper, and the frame budget is shared with everything else in
+the dome, which this pass did not re-measure.
+
+**Attempts that produced garbage, for the record.** Timing whole frames at a
+faked Quest resolution failed twice: `renderer.setSize(w, h, false)` still
+multiplies by `pixelRatio` (2 here), so "5.9 MP" was really 23.6 MP and
+probably past an allocation limit — the numbers came back *faster* than at
+1080p and one material-flag toggle appeared to cost 3.6 ms. If a frame time
+moves in the wrong direction, distrust the harness before the code.
+
+**The downscaled version.** `PROFILES` in `skylight.js`, `low` vs `high`:
+
+```
+              high      low
+cluster count  ×1.00    ×0.65
+puffs/cluster  ×1.00    ×0.55
+cluster radius ×1.00    ×0.74   (= sqrt(puffs) — see below)
+shadow map      512²     256²
+sky cap segs   40×24    24×16
+pool segs        64       32
+cloud quads     1332      465
+```
+
+The radius scaling is the part worth keeping: cutting puffs at a fixed cluster
+radius reopens the gaps that made the first cloud pass read as soap bubbles
+(§9.29.1), so radius falls as √(puff scale) to hold puff-per-area density.
+Screenshotted at `low` — smaller, sparser clouds that are still solid, reading
+as a clearer day rather than a degraded render. Shadows survive (pool cover
+0.15 against 0.25 at high).
+
+`low` engages automatically on `OculusBrowser`/`Quest` user agents or an
+Adreno/Mali/PowerVR renderer string. **Deliberately not keyed on "is this
+XR"** — a Vision Pro is not a tile GPU on a mobile power budget and would lose
+quality for nothing. `?sky=low` / `?sky=high` force it, which is the only way
+to test this without the hardware.
+
+**The gate is on the device.** `?xrdiag=1` now prints a *Skylight* section on
+its in-scene card (§3.16: there is no console in a headset): roof state,
+profile, quad count, shadow-map size, added layers — and a verdict that
+compares the XR frame rate it already samples against the display's refresh.
+Open the roof, load `?xrdiag=1`, screenshot the card. Specifically:
+
+1. Roof open, `?xrdiag=1`, in session. If the XR clock holds ≥92% of the
+   display rate, the skylight fits at whatever profile is shown.
+2. If it does not, `?sky=low` and repeat.
+3. If `low` is still short, compare with the roof **shut** — that separates the
+   skylight from the rest of the dome, and §9.27.8 has no performance item at
+   all, so the baseline has never been established.
+4. Serve over HTTPS or there is no Enter VR button (`.tools/vr-phone.sh`).
 
 #### Verified
 

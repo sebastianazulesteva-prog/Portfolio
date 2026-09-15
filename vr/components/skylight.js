@@ -265,6 +265,24 @@
                                // upper left lands down and to the right
   var POOL_PEAK = 0.30;
 
+  // ── Cloud shadows on the floor ───────────────────────────────────────────
+  // How much light a cloud takes away: 0.78 means a shadowed patch keeps 22% of
+  // the open-sky value. Measured against the floor's own numbers — lit floor
+  // reads (60,62,64) against an unlit (12,11,10), so 0.72 puts a shadow at
+  // about (26,26,26): plainly darker than the sunlit floor, still plainly
+  // lighter than the dusk floor around the pool. Not 1.0, because a cloud
+  // shadow on a real floor is still lit by the whole rest of the sky.
+  var SHADOW_DEPTH = 0.78;
+  // Only the LOW deck casts. Deck B is at 42–52 m with much smaller clusters,
+  // and stacking its coverage on deck A's would double-darken the ground for
+  // cloud you can barely see. High cloud casts weak shadows; this treats it as
+  // casting none, which is the cheaper lie and the less visible one.
+  // 512, not 256: the map spans 180 m, so 256 px is 0.70 m per pixel and a
+  // 2.2 m puff would be three pixels across. At 512 it is 0.35 m/px and the
+  // puff-scale structure the bake now draws actually survives into the
+  // texture. One 512² canvas, built once, on first open.
+  var SHADOW_COVERAGE_PX = 512;
+
   // COOL, not warm. The first version used the sun's own #ffeece at 0.26 and
   // the floor came out tan — a big brown disc that read as a stain rather than
   // as light, and it fought the ember horizon it sits inside. Direct sunlight
@@ -491,6 +509,89 @@
     return _puffTex;
   }
 
+  // ── The shadow map, baked from the clusters themselves ───────────────────
+  // A top-down coverage map of deck A. This is what makes the shadows the
+  // REAL clouds' shadows rather than a plausible noise field: the same cluster
+  // list that becomes geometry overhead is what gets drawn here, so looking up
+  // at a cloud and then down at its shadow agrees.
+  //
+  // Wrapping is the fiddly part. The deck's drift wraps each cluster at
+  // ±span/2 in the vertex shader, and the pool shader undoes that with a
+  // `fract()`, so this texture has to tile seamlessly in x — hence drawing
+  // every cluster three times, at x−span, x and x+span. Without that, a
+  // cluster straddling the seam casts half a shadow.
+  function bakeCoverage(clusters, deck) {
+    var SIZE = SHADOW_COVERAGE_PX;
+    var c = document.createElement('canvas');
+    c.width = c.height = SIZE;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    // Additive, so overlapping clusters deepen toward full cover rather than
+    // the last one drawn winning.
+    // ── One blob per PUFF, not per cluster ─────────────────────────────────
+    // The first version drew a single ~8.5 m blob per cluster. That is
+    // defensible physically and unreadable in practice: a cloud shadow 17 m
+    // across is larger than the patch of floor a standing visitor can see, so
+    // you are either wholly in it or wholly out of it and the effect reads as
+    // "the floor got a bit dimmer" rather than as dappled shade.
+    //
+    // A real cumulus is not a disc, and neither is its shadow — it has
+    // structure at the scale of its lobes. Drawing the actual puffs (2.2–4.6 m
+    // each) gives shadows with 3–7 features across the visible floor, which is
+    // what makes them legible, and it is MORE faithful than the cluster blob
+    // rather than a cheat for the sake of the look.
+    //
+    // Per-puff alpha is deliberately low: a dozen overlapping puffs saturate
+    // the middle of a cluster to full cover while the edges feather on their
+    // own, which is the shape a cloud's shadow actually has.
+    ctx.globalCompositeOperation = 'lighter';
+    clusters.forEach(function (cl) {
+      var puffs = cl.puffs || [{ x: 0, z: 0, s: (cl.rx + cl.rz) * 0.5 }];
+      // Three copies in x so the map tiles seamlessly under the shader's
+      // fract() — a cluster straddling the seam otherwise casts half a shadow.
+      [cl.x - deck.span, cl.x, cl.x + deck.span].forEach(function (baseX) {
+        puffs.forEach(function (pf) {
+          var rpx = (pf.s * 1.15 / deck.span) * SIZE;
+          if (rpx < 0.6) return;
+          var px = ((baseX + pf.x + deck.span * 0.5) / deck.span) * SIZE;
+          var py = ((cl.z + pf.z + deck.zHalf) / (2 * deck.zHalf)) * SIZE;
+          var g = ctx.createRadialGradient(px, py, 0, px, py, rpx);
+          g.addColorStop(0.00, 'rgba(255,255,255,0.62)');
+          g.addColorStop(0.55, 'rgba(255,255,255,0.46)');
+          g.addColorStop(1.00, 'rgba(255,255,255,0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(px, py, rpx, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+    });
+    ctx.globalCompositeOperation = 'source-over';
+    var tex = new THREE.CanvasTexture(c);
+    // NoColorSpace: only the red channel is read, as a 0–1 scalar. Tagging it
+    // sRGB would make three.js decode a number that is not a colour.
+    tex.colorSpace = THREE.NoColorSpace;
+    tex.wrapS = THREE.RepeatWrapping;        // x tiles with the drift
+    tex.wrapT = THREE.ClampToEdgeWrapping;   // z does not; the shader gates it
+    // ── flipY MUST be off, and this one was invisible ────────────────────────
+    // three.js uploads a texture with flipY TRUE by default, so texture v=0
+    // maps to the canvas's LAST row. This bake draws a cluster at
+    // `py = (z + zHalf)/(2·zHalf) · SIZE` — a canvas row, counted from the top
+    // — and the shader reads `v = (sz + zHalf)/(2·zHalf)`. With the flip those
+    // two are MIRRORED, so every shadow was cast by the cloud on the opposite
+    // side of the deck in z.
+    //
+    // It looked completely fine. There was dappling, it drifted at the right
+    // speed, it had the right scale — it was simply the wrong clouds, which is
+    // the one thing this whole approach exists to get right. Measured, the
+    // correlation between predicted cover and actual darkening was −0.432:
+    // full shadow exactly where there was no cloud. Only a correctness test
+    // catches this; no screenshot ever would.
+    tex.flipY = false;
+    return tex;
+  }
+
   // ═══ The cloud field ══════════════════════════════════════════════════════
 
   var CLOUD_VERT = [
@@ -612,8 +713,38 @@
     '}'
   ].join('\n');
 
+  // ── The seed is art direction, not noise ─────────────────────────────────
+  // The field is seeded so it is identical on every load (a sky that
+  // reshuffles itself cannot be judged in a screenshot). That also means the
+  // seed DECIDES THE COMPOSITION, and one part of the composition is only
+  // visible on the ground: cloud shadows land offset from their clouds by the
+  // sun's angle, ~13 m in x and ~17 m in z at this elevation, so the patch of
+  // deck that shadows the floor pool is a 52 m disc well off to the sun side.
+  // Cumulus are clumped, not evenly spread, and 913202609 put a void exactly
+  // there — measured, mean cover 0.001 inside the pool's window against 0.126
+  // outside it, i.e. a visitor could open the roof and stand in unbroken
+  // sunlight while the sky overhead looked full of cloud.
+  //
+  // So the seed is chosen rather than arbitrary, and `?cloudSeed=N` exists to
+  // choose it again if the sun moves, the cut angle changes, or the pool is
+  // resized — any of which moves that window. See §9.29.3.
+  // 77123 chosen over 913202609 by measurement, not taste: `poolShadowCover`
+  // (below) reads 0.14 at arrival and holds 0.12–0.18 across the first three
+  // minutes, where the old seed gave 0.0001 at arrival and did not reach
+  // useful cover for five minutes. Same cluster counts and sizes, so the sky
+  // itself reads the same — re-screenshotted to confirm.
+  var CLOUD_SEED = 77123;
+  (function () {
+    var q = new URLSearchParams(location.search).get('cloudSeed');
+    if (q == null) return;
+    var v = parseInt(q, 10);
+    if (!isFinite(v)) return;
+    CLOUD_SEED = v >>> 0;
+    console.info('[vr] skylight: cloud seed forced to ' + CLOUD_SEED + ' by ?cloudSeed');
+  })();
+
   function buildCloudField() {
-    var r = rng(913202609);
+    var r = rng(CLOUD_SEED);
     var pos = [], off = [], corner = [], tile = [], size = [], rot = [],
         shade = [], drift = [], span = [], fade = [], index = [];
     var quad = 0;
@@ -623,6 +754,8 @@
     // buffer order and nothing sorts them: far-before-near means a near cloud
     // covers a far one, and top-before-base means each cluster shows you its
     // base, which is the face you are actually looking at from underneath.
+    var shadowCasters = null, shadowDeck = null;
+
     DECKS.forEach(function (deck, deckIndex) {
       // ── The one coupling here that breaks silently ────────────────────────
       // A cluster that WRAPS inside the visible cone pops into view at full
@@ -658,6 +791,9 @@
         return (b.x * b.x + b.z * b.z) - (a.x * a.x + a.z * a.z);
       });
 
+      // Deck A is the one that casts — see SHADOW_DEPTH's note.
+      if (deckIndex === 0) { shadowCasters = clusters; shadowDeck = deck; }
+
       clusters.forEach(function (cl) {
         var pr = rng(Math.floor(cl.seed * 4294967296));
         var puffs = [];
@@ -683,6 +819,9 @@
           });
         }
         puffs.sort(function (a, b) { return b.y - a.y; });
+        // Kept for bakeCoverage: a cluster's shadow has structure at the PUFF
+        // scale, not the cluster scale. See its header.
+        cl.puffs = puffs;
 
         puffs.forEach(function (p) {
           var tx = (p.tile % 2) * 0.5, ty = Math.floor(p.tile / 2) * 0.5;
@@ -740,14 +879,81 @@
       fog: false
     });
 
+    var coverage = shadowCasters ? bakeCoverage(shadowCasters, shadowDeck) : null;
     var mesh = new THREE.Mesh(g, mat);
     // `position` holds cluster centres and the quads are built in the vertex
     // shader, so three.js's bounding sphere is wrong by a cluster's width AND
     // the drift moves geometry it never sees. Culling this mesh is meaningless
     // anyway — it is either overhead or masked.
     mesh.frustumCulled = false;
-    return { mesh: mesh, material: mat, quads: quad };
+    return {
+      mesh: mesh, material: mat, quads: quad,
+      coverage: coverage,
+      // The pool shader needs the casting deck's own numbers to undo the drift
+      // and project the shadow. Passed out rather than re-read from DECKS, so
+      // there is one source for which deck casts.
+      shadow: shadowDeck ? {
+        alt: (shadowDeck.alt[0] + shadowDeck.alt[1]) * 0.5,
+        span: shadowDeck.span, zHalf: shadowDeck.zHalf, drift: shadowDeck.drift
+      } : null
+    };
   }
+
+  // ═══ The floor's pool of daylight, with cloud shadows in it ═══════════════
+
+  var POOL_VERT = [
+    'varying vec2 vUv;',
+    'varying vec3 vWorld;',
+    'void main() {',
+    '  vUv = uv;',
+    // World space, because the shadow projection is a world-space walk and this
+    // quad is rotated flat and offset. Deriving xz from the local `position`
+    // would mean re-deriving the rotation here, which is the kind of second
+    // copy that drifts.
+    '  vWorld = (modelMatrix * vec4(position, 1.0)).xyz;',
+    '  gl_Position = projectionMatrix * viewMatrix * vec4(vWorld, 1.0);',
+    '}'
+  ].join('\n');
+
+  var POOL_FRAG = [
+    'uniform sampler2D uPool;',
+    'uniform sampler2D uCover;',
+    'uniform float uOpacity;',
+    'uniform float uTime;',
+    'uniform vec3 uSunDir;',
+    'uniform float uDeckAlt;',
+    'uniform float uSpan;',
+    'uniform float uZHalf;',
+    'uniform float uDrift;',
+    'uniform float uShadow;',
+    'varying vec2 vUv;',
+    'varying vec3 vWorld;',
+    'void main() {',
+    '  vec4 p = texture2D(uPool, vUv);',
+    '  float a = p.a * uOpacity;',
+    '  if (a < 0.002) discard;',
+    // ── Project this floor point up to the cloud deck, along the sun ───────
+    // uSunDir points AT the sun, so walking +uSunDir from the floor rises; at
+    // t = alt/uSunDir.y we are level with the deck. `s` is then (x, z) on the
+    // deck — s.y is a WORLD Z, not a height.
+    '  float t = uDeckAlt / max(uSunDir.y, 0.001);',
+    '  vec2 s = vWorld.xz + uSunDir.xz * t;',
+    // Undo the drift: a cloud drawn at X was baked at X - uTime*drift. fract()
+    // handles negatives, and uCover repeats in x, so the seam is continuous.
+    '  float u = fract(((s.x - uTime * uDrift) + uSpan * 0.5) / uSpan);',
+    '  float v = (s.y + uZHalf) / (2.0 * uZHalf);',
+    // Outside the deck's z extent there is no cloud, so no shadow. The texture
+    // clamps rather than repeats on t, and this gate is what stops the last row
+    // of pixels being smeared outward as a permanent stripe of shade.
+    '  float cover = 0.0;',
+    '  if (v >= 0.0 && v <= 1.0) cover = texture2D(uCover, vec2(u, v)).r;',
+    '  a *= 1.0 - clamp(cover, 0.0, 1.0) * uShadow;',
+    '  gl_FragColor = vec4(p.rgb, a);',
+    // Guide §3.5 — uPool is tagged sRGB so this samples LINEAR, and a custom
+    // shader has to encode on the way out or the pool renders dark and warm.
+    '  #include <colorspace_fragment>',
+    '}'
+  ].join('\n');
 
   // ═══ The component ════════════════════════════════════════════════════════
 
@@ -760,6 +966,7 @@
       this._rackBase = null;
       this._ambientBase = null;
       this._emberBase = null;
+      this._reapplyQueued = false;
       this._heal = 0;
 
       var self = this;
@@ -825,6 +1032,29 @@
       // DIRECTIONAL light the position is only a direction (three.js shines it
       // from `position` at the origin), so the 16 m is arbitrary — it just has
       // to be outside the room and on the right bearing.
+      // ── One deterministic re-apply, after every `loaded` listener has run ──
+      // glass-material's light-rack-housings builds its beads on the scene's
+      // own `loaded`, and so does this component — and `#skylight` is earlier
+      // in index.html, so it goes first and any lighting applied in that same
+      // task cannot see the housings. The tick self-heal does recover, but not
+      // until scene time passes 500 ms, which means `?sky=1` renders its first
+      // half-second with the lamps still burning. That is invisible to a
+      // visitor pressing the button and highly visible in a screenshot taken
+      // right after load — it is what made two rounds of captures look like
+      // the fade was broken when it was not.
+      //
+      // A 0 ms timeout runs after every synchronous `loaded` listener, so by
+      // then the housings exist. Belt and braces with the tick heal rather
+      // than instead of it: §3.15 warns timeouts can be clamped in a
+      // backgrounded context, and the heal covers that case.
+      if (!this._reapplyQueued) {
+        this._reapplyQueued = true;
+        var self2 = this;
+        setTimeout(function () {
+          if (self2.aperture > 0) self2.applyLights(self2.aperture);
+        }, 0);
+      }
+
       var sunEl = document.querySelector('#sunLight');
       if (sunEl && !this._sunPlaced) {
         this._sunPlaced = true;
@@ -970,6 +1200,7 @@
       this.sunBloom = sunSprite(sunGlareTexture(), '#ffe6bc', 0.34, ORDER_BLOOM);
 
       var field = buildCloudField();
+      this.coverageTex = field.coverage;   // disposed in remove(); §3.17
       this.cloudMesh = field.mesh;
       this.cloudMat = field.material;
       this.cloudMesh.renderOrder = ORDER_CLOUD;
@@ -982,12 +1213,43 @@
       // Its own object3D, not in `group`: the floor is a different place in the
       // scene and this has to sit a hair above it, so keeping them separate
       // means the sky group can be hidden without a stray lit patch surviving.
+      // ── Cloud shadows, and why they are not noise ───────────────────────
+      // Sebastian: *"do more wow stuff like that."* This is the cheapest real
+      // one available — the pool was already a drawn quad, so dappling it costs
+      // no new draw call and adds nothing to the paint-order chain.
+      //
+      // The shader walks from each floor pixel TOWARD THE SUN until it reaches
+      // the casting deck's altitude, and asks the baked coverage map whether
+      // there is cloud there. That is a genuine shadow projection, so the
+      // shade lands offset from the cloud by the sun's angle (about 13 m along
+      // x and 17 m along z at this elevation) rather than directly beneath it,
+      // and it drifts at exactly the deck's own speed because the same uTime
+      // and drift undo the wrap.
+      //
+      // Written as a ShaderMaterial rather than a MeshBasicMaterial, so
+      // `opacity` is now the uOpacity uniform — see applyState.
       this.poolTex = poolTexture();
-      var poolMat = new THREE.MeshBasicMaterial({
-        map: this.poolTex, transparent: true, opacity: 0,
-        blending: THREE.AdditiveBlending, depthWrite: false, fog: false
+      var poolMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uPool: { value: this.poolTex },
+          uCover: { value: field.coverage },
+          uOpacity: { value: 0 },
+          uTime: { value: 0 },
+          uSunDir: { value: SUN_DIR.clone() },
+          uDeckAlt: { value: field.shadow ? field.shadow.alt : 30 },
+          uSpan: { value: field.shadow ? field.shadow.span : 180 },
+          uZHalf: { value: field.shadow ? field.shadow.zHalf : 78 },
+          uDrift: { value: field.shadow ? field.shadow.drift : 0.3 },
+          uShadow: { value: field.coverage ? SHADOW_DEPTH : 0 }
+        },
+        vertexShader: POOL_VERT,
+        fragmentShader: POOL_FRAG,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        fog: false
       });
-      var pool = new THREE.Mesh(new THREE.CircleGeometry(POOL_RADIUS, 48), poolMat);
+      var pool = new THREE.Mesh(new THREE.CircleGeometry(POOL_RADIUS, 64), poolMat);
       pool.rotation.x = -Math.PI / 2;
       // Above dusk-floor (-0.02) and dusk-rug (+0.002), both of which are
       // opaque and therefore already drawn by the time this blends over them.
@@ -1000,6 +1262,43 @@
       if (window.VR_DEBUG) {
         console.log('[vr] skylight: ' + field.quads + ' cloud quads, 1 draw call');
       }
+
+      // How much of the floor pool is actually in shadow, at t=0. This is the
+      // number the cloud seed is chosen against (see CLOUD_SEED): too low and
+      // the ground is unbroken sunlight under a cloudy sky, too high and the
+      // pool reads as a stain rather than as sunlight. Exposed because picking
+      // a seed by eye takes a reload per candidate; with this it is one loop.
+      this.poolShadowCover = this.measurePoolShadow();
+    },
+
+    // Mean cloud cover over the floor pool's own footprint, sampled the same
+    // way the shader samples it. Returns 0 when there is no coverage map.
+    measurePoolShadow: function (timeSec) {
+      if (!this.poolMat || !this.coverageTex) return 0;
+      var img = this.coverageTex.image;
+      if (!img || !img.getContext) return 0;
+      var d = img.getContext('2d').getImageData(0, 0, img.width, img.height).data;
+      var U = this.poolMat.uniforms, sd = U.uSunDir.value;
+      var t = U.uDeckAlt.value / sd.y;
+      var T = timeSec == null ? 0 : timeSec;
+      var cx = -sd.x * POOL_OFFSET, cz = -sd.z * POOL_OFFSET;
+      var sum = 0, n = 0;
+      for (var x = -POOL_RADIUS; x <= POOL_RADIUS; x += 1) {
+        for (var z = -POOL_RADIUS; z <= POOL_RADIUS; z += 1) {
+          var fx = cx + x, fz = cz + z;
+          if (x * x + z * z > POOL_RADIUS * POOL_RADIUS) continue;
+          var sx = fx + sd.x * t, sz2 = fz + sd.z * t;
+          var u = ((sx - T * U.uDrift.value) + U.uSpan.value * 0.5) / U.uSpan.value;
+          u -= Math.floor(u);
+          var v = (sz2 + U.uZHalf.value) / (2 * U.uZHalf.value);
+          if (v < 0 || v > 1) { n++; continue; }
+          var px = Math.min(img.width - 1, Math.round(u * img.width));
+          var py = Math.min(img.height - 1, Math.round(v * img.height));
+          sum += d[(py * img.width + px) * 4] / 255;
+          n++;
+        }
+      }
+      return n ? +(sum / n).toFixed(4) : 0;
     },
 
     // ── The toggle ──────────────────────────────────────────────────────────
@@ -1039,7 +1338,14 @@
       }
 
       if (this.cloudMat && this.group && this.group.visible) {
-        if (!reducedMotion) this.cloudMat.uniforms.uTime.value = time / 1000;
+        if (!reducedMotion) {
+          var secs = time / 1000;
+          this.cloudMat.uniforms.uTime.value = secs;
+          // The SAME clock drives the shadows, which is what keeps a cloud and
+          // its shadow in step. Two clocks here would desynchronise slowly and
+          // look like nothing in particular.
+          if (this.poolMat) this.poolMat.uniforms.uTime.value = secs;
+        }
         this.syncSunView();
       }
 
@@ -1091,7 +1397,8 @@
       if (this.group) this.group.visible = a > 0.001;
       if (this.poolMesh) {
         this.poolMesh.visible = a > 0.001;
-        this.poolMat.opacity = POOL_PEAK * a;
+        // A ShaderMaterial has no `opacity`; POOL_PEAK now rides a uniform.
+        this.poolMat.uniforms.uOpacity.value = POOL_PEAK * a;
       }
       this.applyLights(a);
     },
@@ -1151,12 +1458,28 @@
           var base = o.material.__skyBaseOpacity;
           var op = lerp(base, base * HOUSING_DIM, a);
           o.material.opacity = op;
+          // ── `transparent` needs needsUpdate, and this cost two rounds ─────
           // The core beads are authored OPAQUE, so opacity does nothing until
-          // the material blends. Flipped back off at rest rather than left on
-          // for the session: an opaque mesh sitting in the transparent pass is
-          // one more thing subject to §3.6's scene-graph paint order for no
-          // reason, and while the roof is shut these are opaque beads.
-          o.material.transparent = op < 0.999;
+          // the material blends — but three.js bakes `transparent` into the
+          // PROGRAM CACHE KEY, so flipping it at runtime without
+          // `needsUpdate` leaves the material compiled as opaque and the alpha
+          // is simply ignored. The beads kept rendering at full brightness
+          // while `material.opacity` read exactly 0, which is about the most
+          // convincing false negative available: every number said faded.
+          // The glow sprites were authored `transparent: true` already, so
+          // their flag never changed, no stale program, and they faded
+          // correctly — which is why only half the fixture went out.
+          //
+          // Only on CHANGE. Setting needsUpdate every frame rebuilds the
+          // program every frame, which is a far worse bug than the one it
+          // fixes. Flipped back off at rest, too: an opaque mesh sitting in
+          // the transparent pass is one more thing subject to §3.6's paint
+          // order for no reason.
+          var wantsBlend = op < 0.999;
+          if (o.material.transparent !== wantsBlend) {
+            o.material.transparent = wantsBlend;
+            o.material.needsUpdate = true;
+          }
         });
       }
 
@@ -1202,6 +1525,7 @@
         this.poolMat.dispose();
       }
       if (this.poolTex) this.poolTex.dispose();
+      if (this.coverageTex) this.coverageTex.dispose();
       if (this.sunGlow) this.sunGlow.material.dispose();
       if (this.sunCore) this.sunCore.material.dispose();
       if (this.sunBloom) this.sunBloom.material.dispose();

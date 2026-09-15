@@ -801,6 +801,9 @@ the shown section has an interaction. Keep its light rack in sync with
 ?forcexr=1|0        # pin the headset or the flat arrival gate (onboarding.js)
 ?sky=1              # land with the skylight already OPEN, with no tween
                     # (skylight.js). A 6.5s iris and a screenshot are a race.
+?cloudSeed=N        # reseed the cloud field (skylight.js). The seed decides
+                    # the composition INCLUDING how much shadow lands on the
+                    # floor — `comp.poolShadowCover` measures it. See §9.29.3.
 ?cut=<latitude>     # try another skylight aperture without editing dome.js.
                     # Latitude, NOT apparent elevation — 34 (the shipped value)
                     # appears at 32.1° from a seated eye. 30 is the literal
@@ -4112,6 +4115,94 @@ says the same two words, so the two controls read as one thing. Verified that
 its troika label really re-renders (`data` *and* rendered value both flip) —
 `ui-button.update()` handles the label, but the text mesh only lands on
 troika's next sync, so a frozen loop shows the stale word (§3.2).
+
+#### 9.29.3 Cloud shadows on the floor (2026-09-14)
+
+*"Do more wow stuff like that."* Picked from three options as the cheapest real
+one: the floor pool was already a drawn quad, so dappling it costs no new draw
+call and adds nothing to the paint-order chain.
+
+**How it works.** The pool's material became a `ShaderMaterial` that, per
+pixel, walks from the floor point TOWARD the sun until it reaches the casting
+deck's altitude, and asks a baked top-down coverage map whether there is cloud
+there. A genuine shadow projection: shade lands offset from its cloud by the
+sun's angle (13 m in x, 17 m in z at this elevation) rather than directly
+beneath it, and it drifts at exactly the deck's speed because the same `uTime`
+and `drift` undo the wrap. Deck A only — high cloud casts weak shadows and
+stacking deck B would double-darken for cloud you can barely see.
+
+The map is baked from **the same cluster list that becomes geometry overhead**,
+so a cloud and its shadow are the same object. `POOL_PEAK` now rides a uniform
+instead of `material.opacity`, since a ShaderMaterial has no `opacity`.
+
+**Three bugs, and only one was visible.**
+
+1. **The shadow map was mirrored in z (`flipY`).** three.js uploads textures
+   with `flipY: true`, so texture v=0 maps to the canvas's LAST row — while the
+   bake draws at `py = (z + zHalf)/(2·zHalf)·SIZE`, a row counted from the top.
+   Every shadow was therefore cast by the cloud on the *opposite side* of the
+   deck. It looked completely fine: dappling existed, drifted at the right
+   speed, had the right scale — it was simply the wrong clouds, which is the
+   one thing the whole approach exists to get right. `tex.flipY = false`.
+2. **One blob per cluster was unreadable.** A 17 m shadow is wider than the
+   floor a standing visitor can see, so you are wholly in it or wholly out and
+   it reads as "the floor got dimmer". Baking the actual **puffs** (2.2–4.6 m)
+   gives 3–7 features across the visible floor — and is *more* faithful than
+   the cluster blob, not a cheat. Needed the map at 512² (180 m over 256 px is
+   0.70 m/px; a 2.2 m puff would be three pixels).
+3. **The seed had a hole exactly where the sun casts the pool.** Shadows land
+   offset, so the patch of deck that shadows the floor is a 52 m disc well off
+   to the sun side — about 9% of the field, and cumulus are clumped. Measured
+   on the old seed: mean cover **0.001 inside** the pool's window against 0.126
+   outside, i.e. open the roof and stand in unbroken sunlight under a sky full
+   of cloud. `poolShadowCover` measures it and `?cloudSeed=N` selects it; 77123
+   holds 0.12–0.18 over the first three minutes where 913202609 gave 0.0001 at
+   arrival and nothing useful for five.
+
+**The correctness proof.** Predicted cover (sampled from the map in JS) against
+measured darkening (read back from the framebuffer), 130 floor points:
+Pearson **+0.876**, peak drop 36 levels, mean 11.6, σ 12. Before the `flipY`
+fix the same test gave **−0.432** — full shadow precisely where there was no
+cloud. No screenshot would ever have caught that; only the correlation did.
+
+**Honest limit.** σ 12 on a floor lit to ~74/255 is real but gentle — it reads
+as the room breathing rather than as dappled shade. The binding constraint is
+that a shadow can only remove the light that is there, and `POOL_PEAK` is 0.30.
+Raising it is the one dial that makes this dramatic, and it was left alone on
+purpose because it would change the daylight balance Sebastian had already
+approved.
+
+#### 9.29.4 Four ways I fooled myself measuring this
+
+Worth more than the feature. Every one produced a confident, wrong answer.
+
+1. **A probe that filtered on the thing it was testing.** Hunting lit lamps, I
+   enumerated visible objects and skipped any with `opacity < 0.02` — so the
+   faded-but-still-rendering lamps were excluded *by construction* and the
+   probe reported "only the sun is up there". Never filter on the property
+   under test.
+2. **`material.program` does not exist in r158.** Checking whether a shader
+   had compiled via `material.program` returns `undefined` — I read that as
+   "not compiled" and went looking for a compile error that was not there. The
+   program lives in `renderer.properties.get(material)`. Use `renderer.info`
+   draw counts to ask "did it draw", and a solid-colour fragment shader to ask
+   "where did it draw".
+3. **`Vector3.project()` returns in-range NDC for points BEHIND the camera.**
+   The perspective divide flips sign, so `|x| ≤ 1 && |y| ≤ 1` passes for points
+   180° behind you. Fifteen floor samples all read "no shadow, delta 0" because
+   they were behind the camera, reading dome. Gate on view space instead:
+   `p.applyMatrix4(camera.matrixWorldInverse).z < 0`.
+4. **Forgetting to hide the hub.** Floor samples that land on a card do not
+   change when you toggle a floor uniform, so they read delta 0 and dragged a
+   correlation to −0.276. Hide `.hub-cluster` (and `#leaveVr`) before sampling
+   the floor.
+
+And the meta-lesson, which cost the most: **for the lamps I verified the INPUT
+(`material.opacity === 0`) and reported it as done, when the OUTPUT was
+unchanged.** `opacity` was 0 and the beads were still at full brightness,
+because three.js bakes `transparent` into the program cache key and flipping it
+at runtime needs `needsUpdate` (§9.29.2's fix was incomplete for exactly this
+reason). Read pixels, not state, whenever the claim is about what is on screen.
 
 #### Verified
 

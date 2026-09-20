@@ -986,6 +986,11 @@
   // hero is a procedural accent graphic (VRGlass.makePlaceholderImage) instead
   // of a photo, so the room feels composed rather than a lone floating title
   // (VR_BUGFIX item 1 / item 6).
+  // NOT CALLED since 2026-09-20 — see the note at its former call site in
+  // buildRoom. Kept rather than deleted because the decision was about the
+  // cropped-initial ARTWORK, not about the placement; if an image-less room
+  // ever gets real furniture, this is the shape it goes in. Do not re-wire it
+  // with makePlaceholderImage still behind it, or the T comes back.
   function placePlaceholderCard(container, label, angleDeg, radius, height, accent) {
     var eyeHeight = 1.6;
     var w = 0.775, h = 1.0;   // +25% with ST_W/ST_H, so a room has one scale
@@ -1362,11 +1367,20 @@
                     CW * (i + 1) * (360 / (arr.length + 1)), g.radius, accent));
       });
     } else {
-      // No photography → a symmetric pair of generated accent panels flanking
-      // the text, keeping the same out-to-the-sides placement so the forward
-      // column (title/blurb/tags + buttons) stays clear.
-      placePlaceholderCard(room, project.title, -g.inner, g.radius, g.height, accent);
-      placePlaceholderCard(room, project.title, g.inner, g.radius, g.height, accent);
+      // No photography. There used to be a symmetric pair of generated accent
+      // panels here, carrying the project's large faded initial, on the
+      // reasoning that an image-less room should read as intentional rather
+      // than empty. It does the opposite now and did before the pictures grew:
+      // makePlaceholderImage draws a SQUARE canvas, a station is landscape, and
+      // the image shader cover-fits — so The Dome, the one room with no
+      // photographs, greeted you with two enormous cropped letter T's. At the
+      // new 1.61 m station width the crop is worse.
+      //
+      // Nothing is better than that. The room still has its title, its hero at
+      // full size and its caption, which is a composed arrival; two cropped
+      // letterforms flanking it is not. If an image-less room ever needs
+      // furniture again, it should be something that is actually about the
+      // project, not its first character.
     }
 
     // Drive the direction wave and the video's idle state. Attached even with

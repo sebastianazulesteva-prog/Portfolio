@@ -367,9 +367,38 @@
   // clear, which matters more here than anywhere else in the scene because
   // everything in a room is renderOrder 0 and overlapping quads paint in
   // scene-graph order rather than by depth (§3.6).
-  var ST_W = 1.075, ST_H = 0.775;
+  // +50% again on 2026-09-20, Sebastian: "making the images all a bit bigger
+  // (like at least 50%) will also have everything be a bit more wow." Straight
+  // linear scale, so a station is now 1.61 x 1.16.
+  //
+  // That breaks the no-overlap sum the paragraph above works out, and the fix
+  // is NOT to shrink back: the ring radius is derived from the station count
+  // now (ringRadiusFor), so a room with seven stops stands its ring further
+  // out and a room with two brings it close. That is the per-room geometry
+  // Sebastian unlocked in the same conversation, and it is the only way a
+  // bigger station and a crowded room can both be true.
+  var ST_W = 1.6125, ST_H = 1.1625;
   var ST_GAP = 0.014;          // between mosaic cells
   var ST_Y = 1.56;             // station centre height
+
+  // How far out the ring has to stand for `n` stations of ST_W to sit side by
+  // side with a real gap between them. Solves the same no-overlap rule the
+  // constants above used to satisfy by hand:
+  //
+  //     halfAngle = atan((ST_W/2) / r)  must be <= (step - RING_GAP_DEG) / 2
+  //
+  // Clamped at both ends: never nearer than the walk bound plus clearance
+  // (you must not be able to walk into a station), never further than the
+  // point where a 1.61 m panel stops reading as big — which is the whole
+  // reason for the size change.
+  var RING_GAP_DEG = 9;        // clear sky between neighbouring stations
+  var RING_MIN = 1.95, RING_MAX = 3.1;
+  function ringRadiusFor(ringCount) {
+    var step = 360 / (ringCount + 1);          // +1: the hero owns a slot too
+    var half = Math.max(4, (step - RING_GAP_DEG) / 2);
+    var r = (ST_W / 2) / Math.tan(THREE.MathUtils.degToRad(half));
+    return Math.max(RING_MIN, Math.min(RING_MAX, r));
+  }
 
   // How many texels a surface of `metres` at `dist` actually deserves. 30 px
   // per degree is chosen with headroom: a Quest 3 is ~20 and a Vision Pro
@@ -377,6 +406,86 @@
   // away unseen. Snapped UP to a familiar size so the GPU gets round numbers,
   // and clamped — 128 is the floor below which a thumbnail turns to mush, 1024
   // the ceiling nothing in a room needs.
+  // ── Hung, not pasted ────────────────────────────────────────────────────
+  // A photograph in here used to be a feathered quad straight onto the glass:
+  // FEATHER 0.05 world units on a cell about 0.5 m wide is a tenth of the
+  // picture dissolving at each edge, and the hero's was 0.08. Captured at
+  // 1280x720 it reads as soft focus — as if the print itself were out of
+  // focus — rather than as a print with a soft mount.
+  //
+  // Three things make it read as exhibited instead:
+  //   • a MAT. The backing plate already extends past the image; widening that
+  //     margin and letting it show is a passe-partout for free.
+  //   • a CRISP edge. Feather drops to the point where it only kills the
+  //     aliasing staircase, so the picture has a boundary again.
+  //   • a SHADOW. A slightly larger dark quad a hair behind the print lifts it
+  //     off the mat. Without it a crisp-edged photo looks laminated ON the
+  //     plate; with it, it hangs in front of it.
+  // The shadow is the cheap half of the trick and does most of the work.
+  var PHOTO_FEATHER = 0.012;   // was 0.05 / 0.08 — enough to kill the stair-step, no more
+  var PHOTO_SHADOW = 0.018;    // how far the shadow quad oversizes the print
+  var MAT = 0.055;             // plate margin left visible around a station's images
+
+  // ── Depth you can actually move against ─────────────────────────────────
+  // Sebastian asked for "some of the depth photo effects we do for the
+  // portraits". The literal ones cannot come here, and it is worth writing
+  // down why rather than half-faking them: spatial-photo needs a stereo PAIR,
+  // relief and parallax-photo both need a DEPTH MAP, and the portrait has
+  // those because it was captured that way (portrait-relief.png, the eye
+  // pair). A project photograph is one flat JPEG off the flat site, there is
+  // no depth model on this machine to infer one (no torch, no transformers),
+  // and inventing depth from luminance looks exactly as wrong as it is.
+  //
+  // What IS available is the effect those panels are chasing — the picture
+  // responding to where your head is — done with real geometry instead of a
+  // depth map. A shadow box: the print sits recessed and a frame lip stands
+  // proud of it, so moving your head slides the lip's inner edge across the
+  // picture and occludes a sliver of it. That is true parallax, from actual
+  // depth, and unlike a texture-space march it cannot smear at a steep angle
+  // (the failure parallax-photo's own header calls its honest cost).
+  //
+  // The lip is four boxes, not a ring, so it has thickness to occlude WITH.
+  // Top and left are a shade lighter than bottom and right, which is a bevel
+  // catching the key rack overhead — the rack is above and slightly forward,
+  // so that is the direction the light actually comes from.
+  var LIP_PROUD = 0.017;   // how far the lip stands in front of the print
+  var LIP_FACE = 0.020;    // width of the lip face
+
+  function frameLip(parent, w, h, x, y, z, accent) {
+    var lit = new THREE.Color(accent).lerp(new THREE.Color('#000000'), 0.55);
+    var dim = lit.clone().lerp(new THREE.Color('#000000'), 0.45);
+    var mTop = new THREE.MeshBasicMaterial({ color: lit });
+    var mBot = new THREE.MeshBasicMaterial({ color: dim });
+    var ow = w + LIP_FACE * 2, oh = h + LIP_FACE * 2;
+    [
+      [ow, LIP_FACE, 0, (h + LIP_FACE) / 2, mTop],   // top
+      [ow, LIP_FACE, 0, -(h + LIP_FACE) / 2, mBot],  // bottom
+      [LIP_FACE, oh, -(w + LIP_FACE) / 2, 0, mTop],  // left
+      [LIP_FACE, oh, (w + LIP_FACE) / 2, 0, mBot]    // right
+    ].forEach(function (s) {
+      var box = new THREE.Mesh(new THREE.BoxGeometry(s[0], s[1], LIP_PROUD), s[4]);
+      box.position.set(x + s[2], y + s[3], z + LIP_PROUD / 2);
+      parent.add(box);
+    });
+  }
+
+  function framedPhoto(parent, src, w, h, px, tone, x, y, z, accent) {
+    // Behind first, so scene-graph order paints it under the print — depth
+    // does not decide that here (guide §3.6).
+    var shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(w + PHOTO_SHADOW * 2, h + PHOTO_SHADOW * 2),
+      new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.38, depthWrite: false })
+    );
+    shadow.position.set(x, y - PHOTO_SHADOW * 0.35, z - 0.002);
+    parent.add(shadow);
+
+    var img = VRGlass.makeFeatheredImage(src, w, h, PHOTO_FEATHER, px, tone || 0);
+    img.position.set(x, y, z);
+    parent.add(img);
+    if (accent) frameLip(parent, w, h, x, y, z, accent);
+    return img;
+  }
+
   var PX_PER_DEG = 30;
   function texelsFor(metres, dist) {
     var deg = 2 * THREE.MathUtils.radToDeg(Math.atan((metres / 2) / dist));
@@ -661,7 +770,7 @@
     wrap.object3D.add(plate);
 
     var rows = mosaicGrid(images.length);
-    var pad = 0.03;
+    var pad = MAT;   // was 0.03 — the visible margin IS the mat now
     var cellH = (ST_H - pad * 2 - ST_GAP * (rows.length - 1)) / rows.length;
     var k = 0;
     rows.forEach(function (row, r) {
@@ -678,13 +787,10 @@
       row.forEach(function (_, c) {
         var im = images[k++];
         if (!im) return;
-        var mesh = VRGlass.makeFeatheredImage(im.src, cellW, cellH, 0.05, cellPx);
-        mesh.position.set(
+        framedPhoto(wrap.object3D, im.src, cellW, cellH, cellPx, 0,
           -ST_W / 2 + pad + cellW / 2 + c * (cellW + ST_GAP),
           ST_H / 2 - pad - cellH / 2 - r * (cellH + ST_GAP),
-          0.008
-        );
-        wrap.object3D.add(mesh);
+          0.008, accent);
       });
     });
     inner.appendChild(wrap);
@@ -848,7 +954,13 @@
   // against the portrait's 27° — which is why this is "roughly", not exact.
   // Bringing it to 1.5 m to match angularly too would put it in front of the
   // text plane and inside the walk bound's 1.15 m forward cap.
-  var HERO_AREA = 0.72 * 1.08;
+  // x2.25 in area on 2026-09-20 = +50% in width and height, the same linear
+  // scale the stations got. It is no longer "the size of the home portrait" —
+  // that was the right anchor when the question was "does this read as the
+  // same class of object", and the question now is whether arriving in a room
+  // lands. Pendant's hero goes 0.76 x 1.02 -> 1.15 x 1.53, which at the hero's
+  // 1.7 m is 37° wide against the portrait's 27°.
+  var HERO_AREA = 0.72 * 1.08 * 2.25;
   // Guard only: keeps a hypothetical ultra-wide hero clear of the gallery's
   // inner edge at 45.7°. The widest real one (Slip Door, 16:9) is 1.18.
   var HERO_MAX_W = 1.45;
@@ -971,17 +1083,24 @@
     // one, and projects.json's `image` override exists purely to give its card
     // SOMETHING to show, so preferring the video here undoes a workaround
     // rather than overriding a choice.
+    // The hero gets the same mat as a station, so the two read as the same
+    // kind of object at different sizes rather than as two different
+    // treatments — it was inset 0.06 with a 0.08 feather, the softest edge in
+    // the room, on the one picture that has to carry the arrival.
+    var iw = w - MAT * 2, ih = h - MAT * 2;
     var vid = null, img;
-    if (project.video && project.video.sources && project.video.sources.length) {
-      vid = makeVideoHero(project, w - 0.06, h - 0.06);
-      img = vid.mesh;
-    } else {
-      img = VRGlass.makeFeatheredImage(project.image, w - 0.06, h - 0.06, 0.08, 1024, project.heroTone || 0);
-    }
-    img.position.z = 0.008;
-
     wrap.object3D.add(plate);
-    wrap.object3D.add(img);
+    if (project.video && project.video.sources && project.video.sources.length) {
+      vid = makeVideoHero(project, iw, ih);
+      img = vid.mesh;
+      img.position.z = 0.008;
+      wrap.object3D.add(img);
+      // Same shadow box as a still, or Slip Door would be the one room whose
+      // hero sits flush while every other picture is recessed.
+      frameLip(wrap.object3D, iw, ih, 0, 0, 0.008, accent);
+    } else {
+      img = framedPhoto(wrap.object3D, project.image, iw, ih, 1024, project.heroTone || 0, 0, 0, 0.008, accent);
+    }
     container.appendChild(wrap);
     if (vid) state.video = vid;   // so applyExit can stop and free it
     return { el: wrap, w: w, h: h, top: HERO_Y + h / 2, bottom: HERO_Y - h / 2 };
@@ -1147,6 +1266,9 @@
       var ceilIdx = (!hasDoc && stations.length > 1) ? stations.length - 1 : -1;
       var ringCount = stations.length - (ceilIdx >= 0 ? 1 : 0) + (hasDoc ? 1 : 0);
       var step = 360 / (ringCount + 1);
+      // Derived, not themed: a bigger station has to stand further out in a
+      // crowded room and may come closer in an empty one.
+      var ringR = ringRadiusFor(ringCount);
       var slot = 0;
       stations.forEach(function (st, i) {
         if (i === ceilIdx) {
@@ -1154,11 +1276,11 @@
           return;
         }
         slot++;
-        placed.push(placeStation(room, st, i, total, CW * slot * step, g.radius, accent));
+        placed.push(placeStation(room, st, i, total, CW * slot * step, ringR, accent));
       });
       if (hasDoc) {
         slot++;
-        placed.push(placePdfStation(room, project, total - 1, total, CW * slot * step, g.radius, accent));
+        placed.push(placePdfStation(room, project, total - 1, total, CW * slot * step, ringR, accent));
       }
     } else if ((project.roomImages || []).length) {
       // Images but no grouping (a page whose markup this pass has not seen):
@@ -1217,6 +1339,13 @@
     // rather than up and to the right like every other context's).
     var returnBtn = VRExitButton.mount(room, {
       distance: 1.3, eye: 1.6, accent: accent,
+      // Quieter in here than anywhere else. A room exists to show the project,
+      // and at full strength the exit measured as the brightest and largest
+      // object in the Pendant and Dome rooms — ahead of the hero. Same
+      // control, same place, same words; it just stops being the first thing
+      // your eye lands on. It still lifts to full strength as your gaze comes
+      // toward it (exit-attention), so finding it is unchanged.
+      dim: 0.55,
       onExit: function () { window.VRProjectRoom.exit(); }
     });
 

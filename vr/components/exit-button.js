@@ -390,9 +390,54 @@
     el.__exitOwned.push(name);
   }
 
+  // ── `dim`: the same control, quieter, for one caller ────────────────────
+  // The exit is deliberately the one loud thing in the scene, and the header
+  // argues that case well. Inside a PROJECT ROOM it wins too hard: captured at
+  // 1280x720 in the Pendant and Dome rooms it is the brightest, largest,
+  // highest-contrast object in view, ahead of the project the room exists to
+  // show. Sebastian, 2026-09-20: tone it down in rooms only.
+  //
+  // So this is a per-MOUNT attenuation, not a redesign and not a theme hook.
+  // Position, size, label, shape and the green identity are all untouched;
+  // what drops is emissive output and the separation between the plate, its
+  // ring and its mark — the three things that make it shout. Everything mixes
+  // toward the deck's own furniture colour, so a dimmed exit reads as part of
+  // the console rather than as a different control.
+  //
+  // dim defaults to 0 and 0 is a strict no-op: the hub, the reader, the focus
+  // stage and the lab all render byte-identically to before.
+  function mixHex(a, b, t) {
+    var ca = new THREE.Color(a), cb = new THREE.Color(b);
+    return '#' + ca.lerp(cb, Math.max(0, Math.min(1, t))).getHexString();
+  }
+  function look(opts) {
+    var d = Math.max(0, Math.min(1, (opts && opts.dim) || 0));
+    var toward = CFG.consoleFill;
+    return {
+      d: d,
+      fill: d ? mixHex(CFG.fill, toward, d * 0.55) : CFG.fill,
+      ring: d ? mixHex(CFG.ring, toward, d * 0.62) : CFG.ring,
+      arrow: d ? mixHex(CFG.arrow, toward, d * 0.50) : CFG.arrow,
+      // The LABEL is attenuated least, and never below legibility: a control
+      // whose text you cannot read is not a quieter control, it is a broken
+      // one. Same principle as the restRing/restArrow note above.
+      labelColor: d ? mixHex(CFG.labelColor, toward, d * 0.28) : CFG.labelColor,
+      glow: CFG.fillGlow * (1 - d * 0.75),
+      deckGlow: 0.10 * (1 - d * 0.60)
+    };
+  }
+
   function make(opts) {
     opts = opts || {};
+    var L = look(opts);
     var el = document.createElement('a-entity');
+    // exit-attention lifts the ring and mark to activeRing/activeArrow as your
+    // gaze comes over, and it reads CFG directly — so without this the dim
+    // would only survive until you looked at it, which in a room is
+    // immediately: the console sits 32° down and the attention cone is 36°, so
+    // a plain forward look already wakes it. Stashed on the element rather
+    // than passed, because the component is constructed by A-Frame, not by us.
+    if (L.d) el.dataset.vrExitDim = String(L.d);
 
     // ui-button still does the plate, the label, the hover feel and the
     // scene-wide minimum target size. What it can't do is a border or a
@@ -405,12 +450,12 @@
     el.setAttribute('ui-button', {
       label: CFG.label,
       width: CFG.width, height: CFG.height,
-      accent: CFG.fill,
+      accent: L.fill,
       variant: 'solid',
       // Always light. See the contrast note in the header — this must not
       // inherit ui-button's near-black solid label, which collapses to 2.1:1
       // in a room that has dimmed the key rack to 0.22.
-      labelColor: CFG.labelColor,
+      labelColor: L.labelColor,
       arrow: false,
       fontScale: CFG.labelScale
     });
@@ -424,7 +469,7 @@
     if (CFG.plateStyle === 'solid') {
       var plateGeo = VRScrollArrows.roundedRectGeometry(
         CFG.width, CFG.height, CFG.height * 0.5);
-      var plate = new THREE.Mesh(plateGeo, VRScrollArrows.litMaterial(CFG.fill, CFG.fillGlow, 1));
+      var plate = new THREE.Mesh(plateGeo, VRScrollArrows.litMaterial(L.fill, L.glow, 1));
       plate.position.z = 0.002;
       own(el, 'exit-plate', plate);
       el.addEventListener('loaded', function () {
@@ -440,7 +485,7 @@
     if (CFG.rule > 0) {
       var ringGeo = VRScrollArrows.roundedRectGeometry(
         CFG.width + CFG.rule * 2, CFG.height + CFG.rule * 2, (CFG.height + CFG.rule * 2) * 0.5);
-      var ringMat = VRScrollArrows.litMaterial(CFG.ring, CFG.restRing, 1);
+      var ringMat = VRScrollArrows.litMaterial(L.ring, CFG.restRing, 1);
       var ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.z = -0.003;
       own(el, 'exit-ring', ring);
@@ -452,7 +497,7 @@
     // a quarter turn anticlockwise to point left.
     if (CFG.showArrow) {
       var triGeo = VRScrollArrows.triangleGeometry(CFG.height * 0.42, CFG.height * 0.34, true);
-      var triMat = VRScrollArrows.litMaterial(CFG.arrow, CFG.restArrow, 1);
+      var triMat = VRScrollArrows.litMaterial(L.arrow, CFG.restArrow, 1);
       var tri = new THREE.Mesh(triGeo, triMat);
       tri.rotation.z = Math.PI / 2;
       // Inset from the left edge. The label is centred by ui-button and measures
@@ -494,8 +539,12 @@
     apply: function (k) {
       var ring = this.el.getObject3D('exit-ring');
       var tri = this.el.getObject3D('exit-arrow');
-      if (ring) ring.material.emissiveIntensity = CFG.restRing + (CFG.activeRing - CFG.restRing) * k;
-      if (tri) tri.material.emissiveIntensity = CFG.restArrow + (CFG.activeArrow - CFG.restArrow) * k;
+      // A dimmed exit still wakes, it just does not wake as far — the lift is
+      // what makes it findable, the ceiling is what stops it out-shouting the
+      // project. Rest stays where it is so the quiet state is unchanged.
+      var dz = 1 - (parseFloat(this.el.dataset.vrExitDim) || 0) * 0.55;
+      if (ring) ring.material.emissiveIntensity = CFG.restRing + (CFG.activeRing * dz - CFG.restRing) * k;
+      if (tri) tri.material.emissiveIntensity = CFG.restArrow + (CFG.activeArrow * dz - CFG.restArrow) * k;
       var s = CFG.restScale + (CFG.activeScale - CFG.restScale) * k;
       this.el.object3D.scale.set(s, s, s);
     },
@@ -530,6 +579,7 @@
   // 'loaded' to refresh the selection raycasters). Handing back the console
   // would fire that before the thing you can actually click exists.
   function mountConsole(root, opts) {
+    var L = look(opts);
     var eye = opts.eye != null ? opts.eye : 1.6;
     var d = CFG.consoleDistance;
     var down = CFG.consoleDownDeg;
@@ -547,14 +597,14 @@
     deck.setAttribute('rotation', { x: -(down + CFG.consoleTilt), y: 0, z: 0 });
 
     var deckGeo = VRScrollArrows.roundedRectGeometry(CFG.consoleW, CFG.consoleH, CFG.consoleH * 0.22);
-    var deckMesh = new THREE.Mesh(deckGeo, VRScrollArrows.litMaterial(CFG.consoleFill, 0.10, 1));
+    var deckMesh = new THREE.Mesh(deckGeo, VRScrollArrows.litMaterial(CFG.consoleFill, L.deckGlow, 1));
     own(deck, 'console-deck', deckMesh);
 
     if (CFG.consoleRule > 0) {
       var rimGeo = VRScrollArrows.roundedRectGeometry(
         CFG.consoleW + CFG.consoleRule * 2, CFG.consoleH + CFG.consoleRule * 2,
         (CFG.consoleH + CFG.consoleRule * 2) * 0.22);
-      var rimColor = CFG.consoleRuleColor != null ? CFG.consoleRuleColor : CFG.ring;
+      var rimColor = CFG.consoleRuleColor != null ? CFG.consoleRuleColor : L.ring;
       var rim = new THREE.Mesh(rimGeo, VRScrollArrows.litMaterial(rimColor, 0.10, 1));
       rim.position.z = -0.004;
       own(deck, 'console-rim', rim);

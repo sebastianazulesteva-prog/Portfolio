@@ -258,6 +258,15 @@
   var WAVE_AMP = 0.42;         // peak uHover; a hover is 1.0, so this stays a hint
   var VIDEO_RESUME_DEG = 120, VIDEO_PAUSE_DEG = 150;
 
+  // Arrival timing. The hero gets its own half-second with nothing competing,
+  // then the ring comes up behind it one stop at a time. Seven stations at
+  // 110 ms apart finish at 1.71 s, which is about as long as a reveal can run
+  // before it stops being a flourish and starts being a wait.
+  var ARRIVE_HERO_MS = 520;
+  var ARRIVE_STAGGER_FROM_MS = 430;   // first station starts before the hero finishes
+  var ARRIVE_STAGGER_MS = 110;
+  var ARRIVE_STATION_MS = 430;
+
   AFRAME.registerComponent('room-walk', {
     // `|| this.x` rather than plain assignment, because init is NOT guaranteed
     // to run before the room registers its stations. The room is built inside
@@ -284,6 +293,40 @@
       });
     },
     setVideo: function (rec) { this.video = rec; },
+    // The hero is registered separately from the stations because it is not
+    // one: it does not sit on the ring, it has no heading, and the arrival
+    // below reveals it first and alone.
+    setHero: function (el) { this.hero = el; this.armArrival(); },
+
+    // ── The room assembles around you ────────────────────────────────────
+    // Sebastian picked "a staged arrival" as one of two directions for making
+    // a room land. The dip-to-dark already hides the swap; what it hands you
+    // at the end is a finished room, all at once, which is the one moment in
+    // the whole experience with the most attention and the least happening.
+    //
+    // So: the hero resolves first and alone, then the stations come up one
+    // after another around the ring in walk order. It reads as the room
+    // building itself in the direction you are meant to travel, which makes
+    // the arrival and the direction cue the same gesture.
+    //
+    // Scale from zero, not opacity. Everything in a station is a different
+    // material — the plate is a ShaderMaterial, the prints are a second one,
+    // the lip is MeshBasic and the heading is troika — and there is no one
+    // opacity to turn. Scale is a transform on the entity, so it takes all
+    // four with it and costs nothing.
+    //
+    // Driven from THIS tick, not GSAP: every tween in the scene rides
+    // gsap.ticker, which is not serviced inside an immersive session without
+    // xr-frame's pump (§3.14). An arrival that sometimes does not happen is
+    // worse than no arrival, and room-walk already owns a per-frame clock.
+    armArrival: function () {
+      if (reducedMotion) { this.arriveT = null; return; }
+      this.arriveT = 0;
+      if (this.hero) this.hero.object3D.scale.setScalar(0.001);
+      (this.stations || []).forEach(function (st) {
+        if (st.at) st.at.object3D.scale.setScalar(0.001);
+      });
+    },
 
     // Off-axis angle between where the viewer faces and where `obj` is, both
     // flattened to the horizontal plane. Deliberately computed from vectors
@@ -313,6 +356,35 @@
       // this, a hand-pumped tick on a freshly attached room throws on
       // `stations.length` and takes the whole frame with it.
       if (!this.stations) return;
+
+      // Arrival owns the transforms until it is done, then hands back.
+      if (this.arriveT != null) {
+        this.arriveT += (dt || 16);
+        var t = this.arriveT;
+        var done = true;
+        // A little overshoot on the way in, so a panel settles rather than
+        // stopping dead. Standard back-ease, clamped so it can never go
+        // negative and flip the geometry inside out.
+        function easeBack(u) {
+          if (u <= 0) return 0;
+          if (u >= 1) return 1;
+          var c = 1.70158, p = u - 1;
+          return Math.max(0.001, 1 + (c + 1) * p * p * p + c * p * p);
+        }
+        if (this.hero) {
+          var hu = t / ARRIVE_HERO_MS;
+          this.hero.object3D.scale.setScalar(easeBack(hu));
+          if (hu < 1) done = false;
+        }
+        for (var a = 0; a < this.stations.length; a++) {
+          var sa = this.stations[a];
+          if (!sa.at) continue;
+          var su = (t - (ARRIVE_STAGGER_FROM_MS + a * ARRIVE_STAGGER_MS)) / ARRIVE_STATION_MS;
+          sa.at.object3D.scale.setScalar(easeBack(su));
+          if (su < 1) done = false;
+        }
+        if (done) this.arriveT = null;
+      }
       // The wave is motion, so reduced motion gets none of it — but it must
       // still leave the stations in a legible resting state rather than dark,
       // hence a flat low wake instead of zero.
@@ -1312,6 +1384,9 @@
       if (!walk) return;
       placed.forEach(function (p, i) { if (p) walk.addStation(p, i); });
       if (state.video) walk.setVideo(state.video);
+      // Last, because setHero arms the arrival and the arrival wants the full
+      // station list already registered.
+      walk.setHero(hero && hero.el);
     }, { once: true });
     // The document station swaps its page texture as you navigate, so the
     // resident one is not the one the room was built with. disposeSubtree only

@@ -210,6 +210,16 @@
     el.setEnabled = function (on) {
       if (enabled === !!on) return;
       enabled = !!on;
+      // `hideAtLimit`: gone rather than ghosted. Sebastian, 2026-09-20, on the
+      // document station: "there should be no up button if there are no up
+      // pages, and same with down." Ghosting answers "is it broken or am I at
+      // the end?" — which is the right answer for a CONTINUOUS scroll, where
+      // the pad's absence would make the rail jump as you moved. For a handful
+      // of discrete pages there is no ambiguity to resolve: page one has no
+      // previous page, and a control for it is just furniture.
+      //
+      // Opt-in, so each caller states which of those two it is.
+      if (opts.hideAtLimit) el.setAttribute('visible', enabled);
       triMat.opacity = enabled ? 1 : DISABLED_OPACITY;
       triMat.needsUpdate = true;
       // The whole bar recedes when it can't be used, not just its arrow — a
@@ -282,6 +292,11 @@
         up: up, width: W, height: padH, accent: accent, disposables: disposables,
         groundColor: '#1c1712', rim: true,
         triW: W * 0.62, triH: padH * 0.34,
+        // Forwarded so a rail CAN hide its pads at the limits, but left off by
+        // default. The reader scrolls continuously, and a pad that vanishes
+        // would make the rail jump as you reached either end; the document
+        // station, which has four discrete pages, opts in.
+        hideAtLimit: opts.hideAtLimit,
         onClick: onClick
       });
       el.setAttribute('position', { x: 0, y: y, z: 0 });

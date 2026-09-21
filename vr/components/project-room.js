@@ -616,26 +616,15 @@
   var PDF_FOCUS_DEG = 26;      // start growing inside this
   var PDF_BLUR_DEG = 40;       // start shrinking outside this (hysteresis)
   var PDF_EASE_MS = 260;
+  // Matched to makeRail's own pads (0.22 x 0.26) so the document station and
+  // the reading room are visibly the same control at the same size.
+  var PAD_W = 0.22, PAD_H = 0.26;
 
   function pageManifest(pdfPath) {
     if (!pdfPath || !window.VR_PAGES) return null;
     // Keyed by bare filename — data-loader roots the href, the manifest does not.
     var file = String(pdfPath).split('/').pop();
     return window.VR_PAGES[file] || null;
-  }
-
-  // A real triangle, not a glyph. The Syne subset has no Geometric Shapes
-  // block and would silently drop an arrow character — the same trap that
-  // makes the reader's own scroll arrows geometry (see §3.7).
-  function triangle(size, up, color) {
-    var g = new THREE.BufferGeometry();
-    var s = size, y = up ? 1 : -1;
-    g.setAttribute('position', new THREE.Float32BufferAttribute(
-      [-s, -s * 0.6 * y, 0, s, -s * 0.6 * y, 0, 0, s * 0.8 * y, 0], 3));
-    g.computeVertexNormals();
-    return new THREE.Mesh(g, new THREE.MeshBasicMaterial({
-      color: color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false
-    }));
   }
 
   function placePdfStation(container, project, index, total, angleDeg, radius, accent) {
@@ -681,7 +670,7 @@
     wrap.appendChild(pageEl);
 
     var st = {
-      page: 0, tex: null, loading: false,
+      page: 0, tex: null, loading: false, disposables: [],
       grown: 0,           // 0..1, eased in room-walk's tick
       focused: false
     };
@@ -704,6 +693,7 @@
         pageMat.needsUpdate = true;
         if (old) old.dispose();       // one page resident, per the header note
         if (label) label.setAttribute('troika-text', 'value', (i + 1) + ' / ' + man.files.length);
+        if (st.syncPads) st.syncPads();
       }, function () { st.loading = false; });
     }
 
@@ -767,27 +757,44 @@
     // Every other clickable in the scene already does this right (photo-cloud's
     // tiles, scroll-arrows' pads, notice, bio-card's toggle) — this was the one
     // place that used a raw add(), and it is the one control that did not work.
+    // ── The reading room's own pads, not a pair of bare triangles ──────────
+    // Sebastian, 2026-09-20: *"update all the pdf readers to update the
+    // reading room style more."* These were hand-rolled meshes — a raw
+    // triangle plus an invisible hit plane — which is why they read as two
+    // floating arrowheads next to a page that is otherwise framed like
+    // everything else in the room.
+    //
+    // scroll-arrows.js already IS the reading room's control: the dark ground
+    // that stays visible over white paper (its own header explains why the warm
+    // glass card was unreadable there), the rim, the hover lift, the enabled
+    // state, and object3DMap registration so the thing is actually hittable.
+    // Same pad geometry makeRail gives the reader, minus the scroll track,
+    // which a handful of discrete pages has no use for.
+    var pads = {};
     [{ up: true, d: -1 }, { up: false, d: 1 }].forEach(function (spec) {
-      var btn = document.createElement('a-entity');
-      btn.setObject3D('tri', triangle(0.035, spec.up, '#f5f5f0'));
-      // A generous invisible hit target around a small triangle — ui-button's
-      // scene-wide minimum applies to anything selectable, and a 3.5 cm arrow
-      // is far under it. 0.18 x 0.15 rather than 0.13 x 0.11: the wrap is
-      // authored at COVER size and scaled up to grow, so these are cover-size
-      // metres. At the cover scale the old target was 0.13 m ≈ 3.7° at 2 m,
-      // under the 6.9°/2.9° minimum ui-button enforces; grown it is fine, but
-      // the control only exists when grown, so size it for the state it is used
-      // in and let it be comfortably over at that scale.
-      btn.setObject3D('hit', new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.15),
-        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })));
-      btn.setAttribute('position', { x: w / 2 + 0.13, y: spec.up ? 0.10 : -0.10, z: 0.01 });
-      btn.classList.add('clickable');
-      btn.addEventListener('click', function (e) {
-        if (e && e.stopPropagation) e.stopPropagation();
-        showPage(st.page + spec.d);
+      var pad = window.VRScrollArrows.make({
+        up: spec.up,
+        width: PAD_W, height: PAD_H, accent: accent,
+        groundColor: '#1c1712', rim: true,
+        triW: PAD_W * 0.62, triH: PAD_H * 0.34,
+        // Gone, not ghosted, at the first and last page — see setEnabled's note.
+        hideAtLimit: true,
+        disposables: st.disposables,
+        onClick: function () { showPage(st.page + spec.d); }
       });
-      controls.appendChild(btn);
+      pad.setAttribute('position', { x: w / 2 + PAD_W * 0.92, y: spec.up ? PAD_H * 0.62 : -PAD_H * 0.62, z: 0.01 });
+      controls.appendChild(pad);
+      pads[spec.up ? 'up' : 'down'] = pad;
     });
+
+    // Called after every page change AND on first build, so page one opens
+    // with no up pad rather than with one that disappears on first use.
+    st.syncPads = function () {
+      if (pads.up) pads.up.setEnabled(st.page > 0);
+      if (pads.down) pads.down.setEnabled(st.page < man.files.length - 1);
+      refreshClickableRaycasters();
+    };
+
     controls.setAttribute('visible', false);
     wrap.appendChild(controls);
 
@@ -809,6 +816,7 @@
     outer.appendChild(inner);
     container.appendChild(outer);
     showPage(0);   // the cover, eagerly: it is on screen from the moment you arrive
+    st.syncPads();  // page one: no up pad at all, rather than one that vanishes on first use
 
     // Eased by room-walk rather than GSAP on purpose. Every tween in the scene
     // rides gsap.ticker, which is not serviced inside an immersive session
@@ -840,7 +848,11 @@
           refreshClickableRaycasters();
         }
       },
-      dispose: function () { if (st.tex) { st.tex.dispose(); st.tex = null; } }
+      dispose: function () {
+        if (st.tex) { st.tex.dispose(); st.tex = null; }
+        st.disposables.forEach(function (d) { try { d.dispose(); } catch (e) {} });
+        st.disposables.length = 0;
+      }
     };
   }
 

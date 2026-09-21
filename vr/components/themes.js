@@ -83,9 +83,10 @@
   //   • THE HORIZON BAND, which is bounded by FEATHER on both sides at ±14.4°
   //     and so does not touch the zenith at all. Chess's band in particular —
   //     hard-won, see its note below — measures the same after this as before.
-    // No `room` block on any theme by design — see the header. Every room uses
-    // DEFAULT_ROOM, so all five are identical in position and behaviour and
-    // differ only in colour.
+    // Each theme now carries a `room` block — see DEFAULT_ROOM for what the
+    // knobs are and why these five are the ones available. The uniform phase
+    // was for judging one layout once; that has happened, so the rooms are
+    // allowed to be different places again.
     pendant: { // Graduation Pendant — bright silver gallery (pendant.html --bg/--bg-panel/--ink)
       // THE ONE ACCENT NOT TAKEN FROM ITS PAGE, and it can't be: pendant.html
       // is genuinely achromatic — white, off-white, near-black ink, nothing
@@ -107,6 +108,13 @@
       // floor is still derived: captions go 1.02 -> 16.4, and the near-white
       // horizon band now has something to glow AGAINST, which is what makes
       // this room read as a bright gallery in the first place.
+      // A VITRINE. Pictures hang high and the light runs hard, the way a
+      // jewellery case is lit — this is the smallest object in the portfolio
+      // and the room should feel like it is leaning in on it. Only three
+      // stations, so the ring can come in close without crowding. Thin pale
+      // frames: a heavy moulding around a 40 mm silver pendant would be the
+      // frame showing off.
+      room: { stationY: 1.66, ringBias: 0.94, keyIntensity: 0.32, lipFace: 0.014, rugRadius: 0.95 },
       sky: '#3a3a38', horizon: '#f7f6f3', accent: '#d8c9a0', panel: '#161513', ink: '#161513',
       titleFont: 'serif'   // pendant.html .hero-title -> var(--serif), Playfair 700
     },
@@ -117,12 +125,23 @@
       // that page's :root, it's the VW blue) is the colour the page itself
       // accents with, and it's the only fully-saturated candidate of the three
       // — chroma 1.00 against 0.82, so it actually colours the light.
+      // A VEHICLE BAY. Everything sits LOW — a car door is a low object and
+      // the whole project is about getting into one — and the floor pool is the
+      // widest of the six. Heavier frames, because the subject is structural
+      // and steel. Only one station, so the ring comes in as close as the walk
+      // bound allows and the video hero carries the room.
+      room: { stationY: 1.40, ringBias: 0.92, keyIntensity: 0.20, lipFace: 0.026, rugRadius: 1.9 },
       sky: '#18323c', horizon: '#0091c8', accent: '#0091c8', panel: '#141414', ink: '#e3f6fc',
       // slipdoor.html's .hero-title sets NO font-family — it inherits Poppins
       // at weight 900. The only project page with no display face.
       titleFont: 'sans'
     },
     baston: { // Bastón — warm personal craft (baston.html --pink/--pink-deep/--cream)
+      // A WORKBENCH NOOK. Close and slightly below eye level, the height you
+      // actually look at something you are making. Warm key, small pool of
+      // floor — the most personal project in the set, and the room should feel
+      // like one person's hands rather than an institution.
+      room: { stationY: 1.50, ringBias: 0.95, keyIntensity: 0.26, lipFace: 0.022, rugRadius: 1.05 },
       sky: '#472337', horizon: '#b8066c', accent: '#e30887', panel: '#221018', ink: '#f4efe9',
       titleFont: 'serif'   // baston.html .hero-title -> var(--serif), Playfair 700
     },
@@ -135,6 +154,11 @@
       // more luminous: accent-on-floor contrast goes 5.67 → 7.59. Chose it
       // over --highlight-gold #f4c95d, which at chroma 0.87 reads gold-leaf
       // rather than brass mechanism.
+      // CLOCKWORK. Dead level and evenly spaced, which is the one room where
+      // precision IS the subject: six stops on one unwavering line, like teeth
+      // on an escapement. Brass frames at the default weight, and the warmest
+      // key of the six so the metal in the photographs has something to answer.
+      room: { stationY: 1.56, ringBias: 1.0, keyIntensity: 0.28, lipFace: 0.020, rugRadius: 1.4 },
       sky: '#3a2d12', horizon: '#a15c3e', accent: '#d69c47', panel: '#1a1408', ink: '#f6e3bd',
       titleFont: 'script'   // timecollector.html .hero-title -> var(--script), Fredericka the Great
     },
@@ -162,6 +186,11 @@
       // like a gallery wall rather than outdoors. #20201f sits between the
       // page's own --bg-panel (#0e0e0e) and --line (#252524), lands at L 0.014
       // — half the other rooms — and stays below the band's own tone.
+      // A FORMAL HALL. Seven stations already push the ring out; this pushes
+      // it further and drops the key, so the room keeps its distance and stays
+      // stark. Thin near-white frames on near-black walls, the largest floor
+      // pool, everything level. The one room where restraint is the character.
+      room: { stationY: 1.58, ringBias: 1.06, keyIntensity: 0.17, lipFace: 0.016, rugRadius: 1.7 },
       sky: '#20201f', horizon: '#252524', accent: '#f7f5f0', panel: '#0e0e0e', ink: '#f7f5f0',
       titleFont: 'serif'   // chess.html .hero-title -> var(--serif), Playfair 700
     },
@@ -201,6 +230,28 @@
   // 2.00 gives 0.40 m there and clears every station count from 1 to 6.
   var DEFAULT_ROOM = {
     rugRadius: 1.3,
+    // ── Per-room character (2026-09-20) ────────────────────────────────────
+    // Sebastian unlocked per-room geometry and then asked to go room by room.
+    // These are the levers that give a room a character WITHOUT building
+    // architecture, which he explicitly did not pick: how high the pictures
+    // hang, how close the ring stands, how hard the key light runs, how wide
+    // the pool of floor is, and how heavy the frames are.
+    //
+    // Each is a deliberate read of the project, not decoration for its own
+    // sake — a vitrine hangs high and lights hard, a vehicle bay hangs low and
+    // spreads out, a formal hall stands back and stays cool.
+    //
+    //   stationY     height of the ring's centre line (default ST_Y 1.56)
+    //   ringBias     multiplier on the radius derived from station count; < 1
+    //                pulls the walk in, > 1 pushes it back. Bounded in
+    //                project-room by the same walk-clearance floor, so this
+    //                cannot put a picture somewhere you can walk into.
+    //   keyIntensity the room's key light. Was a hardcoded 0.22 everywhere.
+    //   lipFace      frame thickness in metres (default 0.020)
+    stationY: 1.56,
+    ringBias: 1,
+    keyIntensity: 0.22,
+    lipFace: 0.020,
     gallery: { inner: 55, step: 25, radius: 2.00, height: 1.52, stagger: 0.07 }
   };
 
@@ -229,6 +280,9 @@
     var r = t.room || {};
     var g = r.gallery || {};
     var out = { rugRadius: r.rugRadius || DEFAULT_ROOM.rugRadius, gallery: {} };
+    ['stationY', 'ringBias', 'keyIntensity', 'lipFace'].forEach(function (k) {
+      out[k] = (typeof r[k] === 'number') ? r[k] : DEFAULT_ROOM[k];
+    });
     Object.keys(DEFAULT_ROOM.gallery).forEach(function (k) {
       out.gallery[k] = (typeof g[k] === 'number') ? g[k] : DEFAULT_ROOM.gallery[k];
     });

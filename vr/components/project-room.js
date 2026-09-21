@@ -451,7 +451,16 @@
   // bigger station and a crowded room can both be true.
   var ST_W = 1.6125, ST_H = 1.1625;
   var ST_GAP = 0.014;          // between mosaic cells
-  var ST_Y = 1.56;             // station centre height
+  var ST_Y = 1.56;             // station centre height — the DEFAULT; see roomStyle
+
+  // ── The current room's character ────────────────────────────────────────
+  // Set once per room in buildRoom from its theme, read by the builders below.
+  // Module state rather than a parameter threaded through placeStation ->
+  // buildStationBody -> framedPhoto -> frameLip, which is four signatures deep
+  // for two numbers. That is only safe because exactly ONE room can be live at
+  // a time, which is not an assumption here — place.js enforces it, and
+  // enforcing it is the entire reason that file exists.
+  var roomStyle = { stationY: ST_Y, lipFace: 0.020 };
 
   // How far out the ring has to stand for `n` stations of ST_W to sit side by
   // side with a real gap between them. Solves the same no-overlap rule the
@@ -521,19 +530,21 @@
   // catching the key rack overhead — the rack is above and slightly forward,
   // so that is the direction the light actually comes from.
   var LIP_PROUD = 0.017;   // how far the lip stands in front of the print
-  var LIP_FACE = 0.020;    // width of the lip face
+  // Frame weight is per-room now (roomStyle.lipFace): a 40 mm silver pendant
+  // wants a thin pale moulding, a structural steel door wants a heavy one.
 
   function frameLip(parent, w, h, x, y, z, accent) {
     var lit = new THREE.Color(accent).lerp(new THREE.Color('#000000'), 0.55);
     var dim = lit.clone().lerp(new THREE.Color('#000000'), 0.45);
     var mTop = new THREE.MeshBasicMaterial({ color: lit });
     var mBot = new THREE.MeshBasicMaterial({ color: dim });
-    var ow = w + LIP_FACE * 2, oh = h + LIP_FACE * 2;
+    var LF = roomStyle.lipFace;
+    var ow = w + LF * 2, oh = h + LF * 2;
     [
-      [ow, LIP_FACE, 0, (h + LIP_FACE) / 2, mTop],   // top
-      [ow, LIP_FACE, 0, -(h + LIP_FACE) / 2, mBot],  // bottom
-      [LIP_FACE, oh, -(w + LIP_FACE) / 2, 0, mTop],  // left
-      [LIP_FACE, oh, (w + LIP_FACE) / 2, 0, mBot]    // right
+      [ow, LF, 0, (h + LF) / 2, mTop],   // top
+      [ow, LF, 0, -(h + LF) / 2, mBot],  // bottom
+      [LF, oh, -(w + LF) / 2, 0, mTop],  // left
+      [LF, oh, (w + LF) / 2, 0, mBot]    // right
     ].forEach(function (s) {
       var box = new THREE.Mesh(new THREE.BoxGeometry(s[0], s[1], LIP_PROUD), s[4]);
       box.position.set(x + s[2], y + s[3], z + LIP_PROUD / 2);
@@ -630,9 +641,9 @@
     var outer = document.createElement('a-entity');
     outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
     var inner = document.createElement('a-entity');
-    inner.setAttribute('position', { x: 0, y: ST_Y, z: -radius });
+    inner.setAttribute('position', { x: 0, y: roomStyle.stationY, z: -radius });
     inner.setAttribute('rotation', {
-      x: THREE.MathUtils.radToDeg(Math.atan2(ST_Y - EYE_Y, radius)), y: 0, z: 0
+      x: THREE.MathUtils.radToDeg(Math.atan2(roomStyle.stationY - EYE_Y, radius)), y: 0, z: 0
     });
 
     // Authored at COVER size; the whole group is scaled up to grow, so the
@@ -970,11 +981,11 @@
     var outer = document.createElement('a-entity');
     outer.setAttribute('rotation', { x: 0, y: angleDeg, z: 0 });
     var inner = document.createElement('a-entity');
-    inner.setAttribute('position', { x: 0, y: ST_Y, z: -radius });
+    inner.setAttribute('position', { x: 0, y: roomStyle.stationY, z: -radius });
     // Same tilt-to-the-seated-eye as everything else in here: these are aimed
     // once, not sunflower-tracked (that is hub panels only).
     inner.setAttribute('rotation', {
-      x: THREE.MathUtils.radToDeg(Math.atan2(ST_Y - EYE_Y, radius)), y: 0, z: 0
+      x: THREE.MathUtils.radToDeg(Math.atan2(roomStyle.stationY - EYE_Y, radius)), y: 0, z: 0
     });
     outer.appendChild(inner);
     container.appendChild(outer);
@@ -1184,6 +1195,11 @@
   }
 
   function buildRoom(project) {
+    // FIRST: everything below reads roomStyle, so it has to be the room's own
+    // before a single station exists.
+    var rs = VRThemes.room(project.theme);
+    roomStyle.stationY = rs.stationY;
+    roomStyle.lipFace = rs.lipFace;
     var a11y = document.body.classList.contains('accessible');
     // ONE accent per room, from themes.js. This used to read project.accent
     // (projects.json) while retintLights() read theme.accent — two sources for
@@ -1345,7 +1361,11 @@
       var step = 360 / (ringCount + 1);
       // Derived, not themed: a bigger station has to stand further out in a
       // crowded room and may come closer in an empty one.
-      var ringR = ringRadiusFor(ringCount);
+      // The derived radius is the no-overlap MINIMUM; a room may push further
+      // out for formality or pull in for intimacy. Re-floored at RING_MIN
+      // afterwards so a bias can never put a picture inside the walk bound.
+      var rm = VRThemes.room(project.theme);
+      var ringR = Math.max(RING_MIN, ringRadiusFor(ringCount) * rm.ringBias);
       var slot = 0;
       stations.forEach(function (st, i) {
         if (i === ceilIdx) {
@@ -1532,7 +1552,9 @@
       rug.setColor(VRThemes.rug(project.theme));
       rug.setRadius(VRThemes.room(project.theme).rugRadius);
     }
-    retintLights(theme.accent, 0.22);
+    // Per-room, not a shared 0.22: a vitrine lights hard and a formal hall
+    // keeps its distance. See DEFAULT_ROOM in themes.js.
+    retintLights(theme.accent, VRThemes.room(project.theme).keyIntensity);
 
     var room = buildRoom(project);
     room.setAttribute('visible', true);

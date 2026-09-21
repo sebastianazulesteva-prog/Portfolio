@@ -218,7 +218,7 @@
       cap.setAttribute('troika-text', {
         value: shortCaption(image.alt), align: 'center', anchor: 'center', baseline: 'bottom',
         color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
-        fontSize: VRType.label(), maxWidth: w + 0.14, lineHeight: 1.2,
+        fontSize: VRType.label() * HEAD_SCALE * 0.8, maxWidth: (w + 0.14) * 1.5, lineHeight: 1.2,
         outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
         outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
       });
@@ -729,7 +729,7 @@
     label.setAttribute('troika-text', {
       value: '1 / ' + man.files.length, align: 'center', anchor: 'center', baseline: 'top',
       color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
-      fontSize: VRType.label() * 0.8, maxWidth: w,
+      fontSize: VRType.label() * 0.8 * HEAD_SCALE, maxWidth: w * 1.4,
       outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
       outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
     });
@@ -794,7 +794,7 @@
       value: (index + 1) + ' / ' + total + '   ' + (project.pdfLabel || 'Document'),
       align: 'center', anchor: 'center', baseline: 'bottom',
       color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
-      fontSize: VRType.label(), maxWidth: ST_W + 0.2, lineHeight: 1.2,
+      fontSize: VRType.label() * HEAD_SCALE, maxWidth: ST_W + 0.2, lineHeight: 1.2,
       outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
       outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
     });
@@ -887,7 +887,7 @@
       value: (index + 1) + ' / ' + total + (station.label ? '   ' + station.label : ''),
       align: 'center', anchor: 'center', baseline: 'bottom',
       color: '#f5f5f0', fillOpacity: 1, font: VRFonts.body(),
-      fontSize: VRType.label(), maxWidth: ST_W + 0.2, lineHeight: 1.2,
+      fontSize: VRType.label() * HEAD_SCALE, maxWidth: ST_W + 0.2, lineHeight: 1.2,
       outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
       outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
     });
@@ -916,7 +916,7 @@
         // the room. Not lower — the tags measured 3.45:1 at 0.9 opacity over a
         // pale themed floor, which is what ROOM_HALO exists for.
         color: '#f5f5f0', fillOpacity: 0.88, font: VRFonts.body(),
-        fontSize: VRType.body(), maxWidth: ST_W, lineHeight: 1.32,
+        fontSize: VRType.body() * BODY_SCALE, maxWidth: ST_W, lineHeight: 1.32,
         outlineWidth: ROOM_HALO.outlineWidth, outlineColor: ROOM_HALO.outlineColor,
         outlineOpacity: ROOM_HALO.outlineOpacity, outlineBlur: ROOM_HALO.outlineBlur
       });
@@ -1082,7 +1082,38 @@
   }
   // Budget for the title's own block (one line plus slack) and the breathing
   // gap either side, both measured at the text plane.
-  var TITLE_BLOCK = 0.14, TEXT_GAP = 0.06;
+  // ── Room type scale ─────────────────────────────────────────────────────
+  // The pictures grew 50% and the type did not, so every word in a room ended
+  // up half the size it used to be RELATIVE to the thing it labels. Sebastian,
+  // looking at the live Time Collector room: "it's not very wow — and the
+  // title texts should be WAY bigger."
+  //
+  // He is right and the numbers agree. VRType.title() is 0.052 m, which at the
+  // 2.0 m text plane subtends about 1.7 degrees — the angular size of body
+  // copy — while the hero beside it spans forty. A room title was being set at
+  // caption size.
+  //
+  // These multiply the scene's shared scale rather than replacing it, so a
+  // room stays in the same type SYSTEM as the hub and the reader (fonts.js
+  // still owns the faces, the a11y swap and the 1.25x accessibility bump); it
+  // just uses it at the size a room's distances actually call for.
+  var TITLE_SCALE = 2.8;   // 0.052 -> 0.146 m, ~4.2 deg at the text plane
+  var HEAD_SCALE  = 2.0;   // station headings, read from across the room
+  var BODY_SCALE  = 1.6;   // the blurb and each station's prose
+  var TAG_SCALE   = 1.7;
+
+  // Vertical budget for the title block when clearing the hero. Derived from
+  // the real size now — it was a flat 0.14, which was a fair guess for a
+  // 0.052 m title and is under half of what a 0.146 m one occupies.
+  //
+  // ONE line of budget, which is an assumption worth stating: at 0.146 m and
+  // maxWidth 2.6 the longest title that can actually open a room is
+  // "Graduation Pendant" at about 1.31 m, and all six fit on one line. The
+  // 44-character essay titles never reach here — a writing piece opens the
+  // reader, not a room. Give a long-titled project a room and this needs a
+  // second line, or the title grows DOWN into the hero.
+  function titleBlock() { return VRType.title() * TITLE_SCALE * 1.15 + 0.06; }
+  var TEXT_GAP = 0.06;
 
   // A y at the hero's distance -> the y at the TEXT distance that sits at the
   // same angle from the eye. This is the conversion that makes the clearances
@@ -1239,7 +1270,7 @@
     var titleSpec = withHalo({
       value: project.title, align: 'center',
       font: VRFonts.titleFor(VRThemes.get(project.theme).titleFont),
-      fontSize: VRType.title(), maxWidth: 2.2, lineHeight: 1.15, gapAfter: 0.05
+      fontSize: VRType.title() * TITLE_SCALE, maxWidth: 2.6, lineHeight: 1.15, gapAfter: 0.09
     });
     var belowSpecs = [];
     if (project.blurb) {
@@ -1247,13 +1278,13 @@
       // position, not a bespoke size (§5: hierarchy through weight/colour/
       // position, not a fourth text size).
       belowSpecs.push(withHalo({ value: project.blurb, align: 'center', font: VRFonts.body(),
-        fillOpacity: 0.95, fontSize: VRType.body(), maxWidth: 1.9, lineHeight: 1.35, gapAfter: 0.05 }));
+        fillOpacity: 0.95, fontSize: VRType.body() * BODY_SCALE, maxWidth: 2.3, lineHeight: 1.35, gapAfter: 0.07 }));
     }
     if (project.tags && project.tags.length) {
       // Full opacity, not 0.9: the tags were the worst-measured line in a room
       // and dimming accent-coloured text was costing contrast it didn't have.
       belowSpecs.push(withHalo({ value: project.tags.join('  ·  '), align: 'center', font: VRFonts.body(),
-        color: accent, fillOpacity: 1, fontSize: VRType.label(), maxWidth: 1.9 }));
+        color: accent, fillOpacity: 1, fontSize: VRType.label() * TAG_SCALE, maxWidth: 2.3 }));
     }
 
     // ── The hero, dead ahead on arrival ──────────────────────────────────
@@ -1291,7 +1322,7 @@
       // pay for it. Whichever is more restrictive wins: the hero's own edge,
       // or the band's — see BAND_DEG.
       var bandHalf = TEXT_Z * Math.tan(bandAvoidDeg() * Math.PI / 180);
-      var titleTop = Math.max(heroYToTextY(hero.top), EYE_Y + bandHalf) + TEXT_GAP + TITLE_BLOCK;
+      var titleTop = Math.max(heroYToTextY(hero.top), EYE_Y + bandHalf) + TEXT_GAP + titleBlock();
       var belowTop = Math.min(heroYToTextY(hero.bottom), EYE_Y - bandHalf) - TEXT_GAP;
       VRTextFlow.stack(room, [titleSpec], { startY: titleTop, z: -TEXT_Z });
       if (belowSpecs.length) VRTextFlow.stack(room, belowSpecs, { startY: belowTop, z: -TEXT_Z });

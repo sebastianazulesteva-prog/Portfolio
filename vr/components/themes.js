@@ -326,9 +326,16 @@
     return [0, 1, 2].map(function (i) { return a[i] + (b[i] - a[i]) * t; });
   }
 
-  window.VRThemes.rug = function (key) {
+  // `against` overrides the floor colour the rug is measured on. It exists
+  // because the floor is no longer one colour: project-room lights it with a
+  // pool (dome.js setPool), so the ground UNDER the rug is the pool's warm
+  // centre, not theme.panel. Derived against panel, the rug came out darker
+  // than what now surrounds it and read as a hole punched in a lit floor —
+  // the same failure as the original dark-pad-on-white-floor bug, inverted.
+  // Anything measuring a rug must measure it against what it actually sits on.
+  window.VRThemes.rug = function (key, against) {
     var t = window.VRThemes.get(key);
-    var panel = hex2rgb(t.panel);
+    var panel = hex2rgb(against || t.panel);
     // Direction depends on the floor: you cannot lift a pad off a near-white
     // floor, and darkening a near-black one does nothing. Pendant's floor is
     // #f7f6f3, so its rug goes DOWN toward its own ink; every other theme's

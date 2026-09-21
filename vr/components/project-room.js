@@ -54,6 +54,11 @@
   // Resolved per call, never cached: the rug is authored in index.html but its
   // component may not have initialised when this file loads, and a cached null
   // would silently disable rug theming for the whole session.
+  function mixHex(a, b, t) {
+    var ca = new THREE.Color(a), cb = new THREE.Color(b);
+    return '#' + ca.lerp(cb, Math.max(0, Math.min(1, t))).getHexString();
+  }
+
   function rugComponent() {
     var el = document.querySelector('[dusk-rug]');
     var c = el && el.components && el.components['dusk-rug'];
@@ -1563,6 +1568,7 @@
   }
 
   function applyEnter(project) {
+    var poolCentre = null;   // set when the floor pool is painted, below
     setHubVisible(false);
     captureBaseLights(); // before the retint below, so it records the hub's own
     var scene = document.querySelector('a-scene');
@@ -1570,7 +1576,23 @@
     var sky = document.querySelector('[dusk-sky]');
     var floor = document.querySelector('[dusk-floor]');
     if (sky) sky.components['dusk-sky'].setTheme(theme.sky, theme.horizon);
-    if (floor) floor.components['dusk-floor'].setColor(theme.panel);
+    if (floor) {
+      // A POOL, not a flat fill. See dusk-floor.setPool — the room reads as
+      // pictures floating in black without something underfoot, and the floor
+      // is the one surface big enough to fix that with no new geometry.
+      //
+      // The lift is the theme's own accent, which is what makes the ground
+      // belong to the room rather than being generically warm; and the
+      // strength tracks the room's key light, so the vitrine's bright floor
+      // and the formal hall's restrained one come from the same decision that
+      // set their lamps rather than from a second set of numbers to keep in
+      // sync. keyIntensity runs 0.17–0.32, mapped onto a sane pool range.
+      var rmF = VRThemes.room(project.theme);
+      var lift = mixHex(theme.panel, theme.accent, 0.55);
+      var strength = 0.45 + (rmF.keyIntensity - 0.17) / (0.32 - 0.17) * 0.45;
+      floor.components['dusk-floor'].setPool(theme.panel, lift, 13, strength);
+      poolCentre = mixHex(theme.panel, lift, strength);   // what the rug will sit on
+    }
     // The rug was the one ground surface a room didn't retint, so the hub's
     // dark brown pad stayed put on top of the room's own floor colour: a
     // stain on the near-white Pendant floor, invisible on the dark ones. Its
@@ -1580,7 +1602,9 @@
     // change and the size hook is simply ready for later.
     var rug = rugComponent();
     if (rug) {
-      rug.setColor(VRThemes.rug(project.theme));
+      // Measured against the POOL'S CENTRE, not theme.panel — that is what
+      // the rug actually sits on now. See VRThemes.rug's `against`.
+      rug.setColor(VRThemes.rug(project.theme, poolCentre || undefined));
       rug.setRadius(VRThemes.room(project.theme).rugRadius);
     }
     // Per-room, not a shared 0.22: a vitrine lights hard and a formal hall

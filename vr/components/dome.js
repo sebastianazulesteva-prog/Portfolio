@@ -388,8 +388,73 @@
       this._baseColor = '#0c0b0a';
     },
     setColor: function (hex) { this.mesh.material.color.set(hex); },
-    resetColor: function () { this.mesh.material.color.set(this._baseColor); },
+
+    // ── A pool of light on the ground ───────────────────────────────────────
+    // Sebastian, looking at a finished room: *"it's not very wow."* The frames
+    // were good, the pictures were big, the type was fixed, and it still read
+    // as a gallery wall floating in black — because below the horizon there
+    // was nothing. `panel` painted all 40 m of floor ONE flat unlit colour, so
+    // there was no ground under you and nothing behind the ring.
+    //
+    // This paints the same mesh with a radial gradient instead: warm where you
+    // stand, falling away into the room's own dark. No new geometry, nothing
+    // transparent, and the floor is opaque and drawn before everything else —
+    // so none of the scene-graph sort hazards (§3.6) are in play.
+    //
+    // THE OUTER STOP IS EXACTLY `base`, which is not a detail. The floor's rim
+    // has to keep landing on the dome's horizon band or a dark seam opens
+    // between ground and sky at the one place the whole shared-radius contract
+    // exists to close (ISSUE-09). Ending the gradient on the same colour the
+    // flat floor used means the rim is unchanged by construction rather than
+    // by measurement.
+    //
+    // CircleGeometry's UVs put the centre at (0.5, 0.5) and the rim at UV
+    // radius 0.5, so one metre is 0.5/DOME_RADIUS in UV — which is why the
+    // pool occupies such a small fraction of the texture and why it is drawn
+    // at 1024 with a smooth multi-stop ramp. A tight two-stop gradient over
+    // ~150 px bands visibly on a surface this large.
+    setPool: function (base, lift, worldRadius, strength) {
+      var S = 1024;
+      if (!this._poolCanvas) {
+        this._poolCanvas = document.createElement('canvas');
+        this._poolCanvas.width = this._poolCanvas.height = S;
+        this._poolTex = new THREE.CanvasTexture(this._poolCanvas);
+        this._poolTex.colorSpace = THREE.SRGBColorSpace;
+      }
+      var ctx = this._poolCanvas.getContext('2d');
+      var c = S / 2;
+      var px = (worldRadius / DOME_RADIUS) * c;   // world metres -> texture px
+      ctx.fillStyle = base;
+      ctx.fillRect(0, 0, S, S);
+      var g = ctx.createRadialGradient(c, c, 0, c, c, Math.max(8, px));
+      var k = Math.max(0, Math.min(1, strength == null ? 1 : strength));
+      // Eased rather than linear: a linear ramp reads as a visible disc edge,
+      // and the point is a pool that has no edge at all.
+      [[0, 1], [0.25, 0.72], [0.5, 0.40], [0.75, 0.16], [1, 0]].forEach(function (st) {
+        g.addColorStop(st[0], lerpColor(base, lift, st[1] * k));
+      });
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, S, S);
+      this._poolTex.needsUpdate = true;
+      this.mesh.material.color.set('#ffffff');   // the map carries the colour now
+      this.mesh.material.map = this._poolTex;
+      this.mesh.material.needsUpdate = true;
+    },
+
+    resetColor: function () {
+      // Back to the hub's flat floor: drop the map as well as the colour, or
+      // the dome keeps a room's pool under it after you leave.
+      if (this.mesh.material.map) {
+        this.mesh.material.map = null;
+        this.mesh.material.needsUpdate = true;
+      }
+      this.mesh.material.color.set(this._baseColor);
+    },
+
     remove: function () {
+      if (this._poolTex) this._poolTex.dispose();
+      this.mesh.geometry.dispose();
+      this.mesh.material.dispose();
       this.el.removeObject3D('dusk-floor');
     }
   });

@@ -1,3 +1,13 @@
+> **ARCHIVED — historical record. Not current instructions.**
+>
+> **What it was.** A one-off investigation brief: `/vr` worked on desktop and was badly broken inside an immersive session on Apple Vision Pro. It named a leading hypothesis and explicitly asked for it to be tested rather than assumed.
+>
+> **Superseded by** [`docs/VR_AI_BUILD_GUIDE.md`](../VR_AI_BUILD_GUIDE.md), which is current implementation reality. Where this file disagrees with the guide or with the code, the guide wins and this file is simply old.
+>
+> **Why it is kept.** The investigation it launched found the frame-clock bug. The brief is a good model for how to ask for a root cause instead of a guess.
+>
+> Index: [`docs/README.md`](../README.md)
+
 # Deep dive: /vr is broken inside an immersive WebXR session on Apple Vision Pro
 
 You are picking up a WebXR portfolio scene that works on desktop and is badly

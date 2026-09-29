@@ -1,8 +1,12 @@
-> ⚠️ **SUPERSEDED IN PART — read [`VR_AI_BUILD_GUIDE.md`](VR_AI_BUILD_GUIDE.md) FIRST.**
-> That file is the current implementation reality (component map, dev tooling,
-> and the debugging traps that produce silently-wrong results). This document
-> remains valid as historical intent, but where it disagrees with the code or
-> the guide, it is out of date.
+> **ARCHIVED — historical record. Not current instructions.**
+>
+> **What it was.** The numbered ISSUE-01..ISSUE-NN list transcribed from an in-headset walkthrough recording, with reference frames in `screenshots/`.
+>
+> **Superseded by** [`docs/VR_AI_BUILD_GUIDE.md`](../VR_AI_BUILD_GUIDE.md), which is current implementation reality. Where this file disagrees with the guide or with the code, the guide wins and this file is simply old.
+>
+> **Why it is kept.** Those ISSUE numbers are cited by code comments that are still in the shipped scene — `vr/index.html` and `vr/components/pdf-reader.js` both point at ISSUE-07 and ISSUE-11. This file is the only place they are defined.
+>
+> Index: [`docs/README.md`](../README.md)
 
 # Spatial Portfolio — Build & Fix Notes
 

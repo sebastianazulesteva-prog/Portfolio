@@ -2,6 +2,11 @@
 
 > **Read this first, before touching anything in `vr/`.**
 >
+> *This file moved to `docs/` in the 2026-09-28 reorganisation. Its content is
+> unchanged apart from §8's links. Repo-wide rules that are not `/vr`-specific are
+> now in [`docs/AI_BUILD_GUIDE.md`](AI_BUILD_GUIDE.md); the short per-session
+> operating contract is [`CLAUDE.md`](../CLAUDE.md) at the repo root.*
+>
 > This is the practical, current-state guide: how the scene is put together, the
 > rules that must not be broken, the dev tooling that already exists, and — most
 > valuably — the **traps that have already cost real debugging time**. Several of
@@ -248,7 +253,7 @@ you write linear values straight to an sRGB framebuffer: everything renders
 `MeshBasicMaterial` gave `[186,186,185]` where the custom shader gave
 `[135,117,78]` — blue crushed by 107.
 
-This was the real cause of `BUILD_NOTES.md` ISSUE-07 ("thumbnails render
+This was the real cause of [`BUILD_NOTES.md`](archive/BUILD_NOTES.md) ISSUE-07 ("thumbnails render
 dark/tinted as if a colour grade is applied"), which had been closed by removing
 the tone grading — treating the symptom. Both `glass-material.js` (image shader)
 and `mosaic-reveal.js` now include the chunk. `CARD_FRAG` deliberately does
@@ -1029,7 +1034,7 @@ decays within a frame or two.
 
 ## 9. Agreed work order — 2026-08-27 walkthrough
 
-Source: the `BUILD_NOTES.md` walkthrough notes dated 2026-08-27, plus the
+Source: the [`BUILD_NOTES.md`](archive/BUILD_NOTES.md) walkthrough notes dated 2026-08-27, plus the
 ambiguities Sebastian resolved directly afterwards. **This section is the
 current spec for the items it covers** — where it conflicts with §4/§6 above,
 it wins (those describe the state before this pass).
@@ -4317,19 +4322,25 @@ that still needs work.
 
 ## 8. Document precedence
 
+> **All ten documents below now live in [`docs/archive/`](archive/).** They are
+> kept as the record of how this was built and of the decisions that were
+> reversed along the way — not as instructions. Code comments throughout `vr/`
+> still cite them by bare filename (`BUILD_NOTES ISSUE-11`), which is why they
+> are kept rather than deleted. Index: [`docs/README.md`](README.md).
+
 Oldest → newest. **Later wins.**
 
-1. `VR_KICKOFF_PROMPT.md`, `VR_BUILD_SPEC.md` — original spec
-2. `VR_SPEC_ADDENDUM.md`, `VR_DESIGN_RESOURCES.md`
-3. `VR_POLISH_PROMPT.md` — first polish critique
-4. `VR_IPHONE_FALLBACK_ADDENDUM.md`
-5. `BUILD_NOTES.md` — visionOS-flavoured issue tracker (all 11 items ☑; the
+1. [`VR_KICKOFF_PROMPT.md`](archive/VR_KICKOFF_PROMPT.md), [`VR_BUILD_SPEC.md`](archive/VR_BUILD_SPEC.md) — original spec
+2. [`VR_SPEC_ADDENDUM.md`](archive/VR_SPEC_ADDENDUM.md), [`VR_DESIGN_RESOURCES.md`](archive/VR_DESIGN_RESOURCES.md)
+3. [`VR_POLISH_PROMPT.md`](archive/VR_POLISH_PROMPT.md) — first polish critique
+4. [`VR_IPHONE_FALLBACK_ADDENDUM.md`](archive/VR_IPHONE_FALLBACK_ADDENDUM.md)
+5. [`BUILD_NOTES.md`](archive/BUILD_NOTES.md) — visionOS-flavoured issue tracker (all 11 items ☑; the
    stack later became A-Frame/WebXR, so treat its framework talk as historical)
-6. `VR_BUGFIX_NOTES.md` — in-headset walkthrough fixes. **Explicitly reverses**
+6. [`VR_BUGFIX_NOTES.md`](archive/VR_BUGFIX_NOTES.md) — in-headset walkthrough fixes. **Explicitly reverses**
    the "connective link-lines" feature: they were built, then removed as visual
    clutter. **Do not rebuild them.**
-7. `VR_FINAL_BUILD_PROMPT.md`
-8. `VR_POLISH_STANDARDS.md` — single key light, one easing curve
+7. [`VR_FINAL_BUILD_PROMPT.md`](archive/VR_FINAL_BUILD_PROMPT.md)
+8. [`VR_POLISH_STANDARDS.md`](archive/VR_POLISH_STANDARDS.md) — single key light, one easing curve
    (`power2.inOut`), strict 3-size type scale, moderate focus dimming
 9. **This file** — current implementation reality. Within it, **§9 (the
    2026-08-27 work order) is the newest layer** and supersedes §4/§6 for the

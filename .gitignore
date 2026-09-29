@@ -31,3 +31,8 @@ vr/_dev-*
 # so a stray `git add -A` would publish a duplicate of the whole site. Ignored
 # rather than merely untracked, for the same reason the /vr audio is.
 portfolio-sharp/
+
+# JetBrains project config. These were TRACKED — six files describing one
+# person's IDE setup, on a repo with one contributor and no IDE requirement.
+# Untracked 2026-09-28.
+.idea/

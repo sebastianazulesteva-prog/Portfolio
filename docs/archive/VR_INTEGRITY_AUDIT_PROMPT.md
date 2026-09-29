@@ -1,3 +1,13 @@
+> **ARCHIVED — historical record. Not current instructions.**
+>
+> **What it was.** A one-off audit brief, written once `/vr` worked: is this codebase actually sound, and is it as fast and as light as it can be without changing what it is?
+>
+> **Superseded by** [`docs/VR_AI_BUILD_GUIDE.md`](../VR_AI_BUILD_GUIDE.md), which is current implementation reality. Where this file disagrees with the guide or with the code, the guide wins and this file is simply old.
+>
+> **Why it is kept.** It asked for measurements and for an explicit list of what was deliberately left alone — the habit that most of the debugging traps in the build guide came out of.
+>
+> Index: [`docs/README.md`](../README.md)
+
 # Integrity audit and performance pass: make `/vr` run as well as it can
 
 You are picking up a WebXR portfolio scene that **works**. Three headset

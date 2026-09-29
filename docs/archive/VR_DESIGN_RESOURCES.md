@@ -1,8 +1,12 @@
-> ⚠️ **SUPERSEDED IN PART — read [`VR_AI_BUILD_GUIDE.md`](VR_AI_BUILD_GUIDE.md) FIRST.**
-> That file is the current implementation reality (component map, dev tooling,
-> and the debugging traps that produce silently-wrong results). This document
-> remains valid as historical intent, but where it disagrees with the code or
-> the guide, it is out of date.
+> **ARCHIVED — historical record. Not current instructions.**
+>
+> **What it was.** The vetted library and asset list written alongside VR_BUILD_SPEC.md — environment component, troika text, super-hands, HDRI skies, glass material settings, model optimisation.
+>
+> **Superseded by** [`docs/VR_AI_BUILD_GUIDE.md`](../VR_AI_BUILD_GUIDE.md), which is current implementation reality. Where this file disagrees with the guide or with the code, the guide wins and this file is simply old.
+>
+> **Why it is kept.** The no-build / pin-exact-versions / test-on-both-headsets rule started here. The rule is still live; the specific list is not, because what actually shipped is in the build guide's file map.
+>
+> Index: [`docs/README.md`](../README.md)
 
 # VR Design Resources — companion to VR_BUILD_SPEC.md
 

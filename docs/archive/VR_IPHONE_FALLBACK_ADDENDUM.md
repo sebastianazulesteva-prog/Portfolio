@@ -1,8 +1,12 @@
-> ⚠️ **SUPERSEDED IN PART — read [`VR_AI_BUILD_GUIDE.md`](VR_AI_BUILD_GUIDE.md) FIRST.**
-> That file is the current implementation reality (component map, dev tooling,
-> and the debugging traps that produce silently-wrong results). This document
-> remains valid as historical intent, but where it disagrees with the code or
-> the guide, it is out of date.
+> **ARCHIVED — historical record. Not current instructions.**
+>
+> **What it was.** The phone-fallback addendum. iPhone Safari has no WebXR at all, on any iOS browser, so this made the non-headset path an explicit design target rather than a degradation.
+>
+> **Superseded by** [`docs/VR_AI_BUILD_GUIDE.md`](../VR_AI_BUILD_GUIDE.md), which is current implementation reality. Where this file disagrees with the guide or with the code, the guide wins and this file is simply old.
+>
+> **Why it is kept.** The WebKit limitation it documents has not changed, and the fallback it specified is still what `vr/components/fallback.js` implements.
+>
+> Index: [`docs/README.md`](../README.md)
 
 # VR Spec — iPhone / Phone Fallback Addendum
 

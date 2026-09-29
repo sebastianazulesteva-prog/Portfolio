@@ -117,6 +117,18 @@ not in a TODO comment and not in a doc.
   than expanding scope — then keep going on the original task.
 - Closing an issue happens in the commit that actually fixes it.
 
+**Name the session after the issue.** Set the chat title to the issue number
+and roughly three words:
+
+> `#4 Host-only teleprompter`
+> `#2 Docs off domain`
+> `#9 Writing hero art`
+
+Do it at the start, not the end — the point is that a sidebar full of sessions
+reads as a list of what is being worked on, and that any chat can be traced
+back to the issue that explains why it happened. Work with no issue behind it
+gets the three words alone.
+
 ## 8. Working style he has asked for
 
 - **Ask up front, then run to completion.** Put open decisions in a

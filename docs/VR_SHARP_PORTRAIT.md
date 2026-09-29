@@ -545,6 +545,89 @@ use: stage and percentage while loading, and the reason held on screen for five
 seconds if it fails. And `?portrait=splat` **restores the spatial photo** if the
 splat cannot load, so the hero is never simply missing.
 
+## The lab changes subject — the Time Collector (2026-09-28, issue #1)
+
+Sebastian: four photos of him, one per depth technique, "just feels a bit
+wrong". The hub keeps its spatial photo of him, unchanged. The button under it
+now reads **How was this depth made?**, and the room behind it shows the same
+four techniques applied to `images/timecollector-hero-side.png`. Chosen from
+three of his own project photos (the chess board and the bastón were the
+others): gears at a dozen depths on a dark, seamless sweep is a better specimen
+than a face, which is one smooth surface in front of a wall.
+
+**Crop first, then bake.** The photo is 882 × 1182, not 2:3. It is cropped
+centrally to 788 × 1182 (x 47..835, the subject is well inside) and **SHARP
+runs on the crop**, so the gaussian grid and the displayed image are the same
+pixels. No alignment window to measure, which is the step that went wrong for
+the portrait (§ "The depth map was misaligned"). The export tools take
+`--window full` for this and `--name` for the file stem; their defaults are
+exactly the portrait's, so the portrait's assets regenerate unchanged.
+
+**No reveal, no grey.** There is no mosaic for the machine, and a grey machine
+would hide the one thing that makes it legible. `mosaic-reveal` and
+`spatial-photo` gained opt-in `reveal` / `desaturate` switches, default to the
+old behaviour, so the hero and `?portrait=relief` are byte-for-byte the same
+shading. `parallax-photo` and `splat-portrait` already had both knobs. Held
+gaze on every lab panel: `revealOn` 0.000 throughout.
+
+**Depth.** Subject z 0.87–1.74 m under SHARP's 30 mm fallback — 0.87 m of
+relief across a frame that is 1.44 m tall at the machine and is drawn 1.08 m
+tall, so its *true* depth on the panel would be ~0.65 m, three times the
+portrait's 0.195. The relief panel and the stereo pair are both set to
+**0.30 m** (`SHOW_DEPTH`): past that the relief's single surface stretches
+visibly off every gear tooth. The parallax map stays at its own 0.085 ceiling.
+Stereo pair baked for the lab slot's 2.26 m: per-eye shift 0.87–4.62 px,
+7.50 px relative, the same order as the portrait's 7.18.
+
+### The splat seemed to have a face in it — it did not
+
+From ~30° off axis, at ~1.3 m, the gap between the machine's two boards read
+unmistakably as a dim human face. The obvious story — SHARP's inpainted second
+layer filling an unseen interior with the thing it has seen most of — was
+**wrong, and nearly shipped as a fix**. Recorded because it fooled a
+before/after comparison.
+
+* Dropping layer 1 entirely (282,892 gaussians instead of 339,618) and
+  re-rendering from a *slightly different pitch* showed no face, which read as
+  confirmation. Rendered from the SAME vantage as the original, with and
+  without layer 1, the two frames were nearly identical. The change was
+  reverted.
+* A point render of the raw gaussians' own colours, orbited ±25°, shows no
+  face from either side. So it is not stored colour.
+* Closer (0.8 m) it resolves: the cream hexagonal block and axle that sit
+  behind the front board, plainly in the photograph right of the big gear,
+  stretched across the depth step by the renderer. Two dark bearings and a
+  light block at 1.3 m are a face to a human visual system and nothing else.
+
+**Lessons:** compare before/after from the IDENTICAL camera, and move closer
+before believing an artefact has semantic content. The layer is kept, as for
+the portrait. It is still worth a look in the headset, because what reads as a
+face from a monitor at 1.3 m may read that way through lenses too — and the
+honest fix for that would be the vantage, not the bake.
+
+**Two smaller splat settings:** `splatScale 0.75` (the panel's 1.08 / 1.44
+frame scale, so it matches the other three in size), and `trimBottom 0` — the
+trim was for his bust's torn hem at the chest, and the machine does not end,
+it stands on the floor. The bake keeps the floor strip in front of the back
+wall (z < 1.75 m), so it stands on something.
+
+**Relief `tearFade 0.9`.** Opens the relief's silhouette spans into gaps
+instead of streaks; against the dark sweep a gap reads as backdrop. The
+portrait never needed it.
+
+```bash
+# from the scratchpad holding sharp-env, sharp.pt and a 2:3 crop of the photo
+./sharp-env/bin/python vr/tools/sharp/bake.py --image tc-crop.png --f35 30 --ckpt sharp.pt --out bake
+# bake/fit_f30.json: {"thr": 1.75, ...}  — the back wall is 2.3-2.5 m, subject + floor < 1.75
+./sharp-env/bin/python vr/tools/sharp/export_assets.py --bake bake --out vr/assets --name lab-timecollector
+./sharp-env/bin/python vr/tools/sharp/export_relief.py --bake bake --out vr/assets --window full --name lab-timecollector
+./sharp-env/bin/python vr/tools/sharp/export_spatial.py --bake bake --colour vr/assets/lab-timecollector.jpg \
+    --prefix lab-timecollector-eye --out vr/assets --window full --view-distance 2.26 --relief-depth 0.30
+```
+
+(`bake.py` writes no `fit_*.json`; the portrait's was written by hand in the
+original session and this one was too. It holds the subject/backdrop cut.)
+
 ## Reproducing the assets
 
 `vr/tools/sharp/` is an **offline** pipeline. It is not a build step for the

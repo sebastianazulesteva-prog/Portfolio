@@ -32,6 +32,9 @@ from scipy.ndimage import map_coordinates
 # tools/sharp/align_crop.py if either source image is ever replaced.
 WINDOW = {"u0": 0.09828629032258064, "u1": 0.8762862903225808,
           "v0": 0.024193548387096774, "v1": 0.8029540566959923}
+# No crop at all. The lab subject was baked from the exact image the panels
+# display, so there is nothing to align.
+FULL = {"u0": 0.0, "u1": 1.0, "v0": 0.0, "v1": 1.0}
 
 
 def main():
@@ -41,14 +44,16 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--tex-w", type=int, default=512)
     ap.add_argument("--tex-h", type=int, default=768)
-    ap.add_argument("--window", default=None, help="JSON override for the crop window")
+    ap.add_argument("--window", default=None, help="JSON override for the crop window; "
+                    "'full' when SHARP ran on the displayed image itself (the lab subject)")
+    ap.add_argument("--name", default="portrait", help="output stem: <name>-relief.png/.json")
     a = ap.parse_args()
 
     bake, out = Path(a.bake), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     z = np.load(bake / f"z_{a.tag}.npy")
     fit = json.load(open(bake / f"fit_{a.tag}.json"))
-    w = json.loads(a.window) if a.window else WINDOW
+    w = (FULL if a.window == "full" else json.loads(a.window)) if a.window else WINDOW
     G = z.shape[-1]
 
     # Sub-pixel resample of the crop window straight to the texture grid. This
@@ -78,13 +83,13 @@ def main():
     e99 = float(np.percentile(edge, 99.5)) or 1.0
 
     rgb = np.stack([rel, sub.astype(np.float32), np.clip(edge / e99, 0, 1)], axis=-1)
-    p = out / "portrait-relief.png"
+    p = out / f"{a.name}-relief.png"
     Image.fromarray((np.clip(rgb, 0, 1) * 255).astype(np.uint8), "RGB").save(p, optimize=True)
 
     meta = {"aligned_window": w, "z_near_m": z_near, "z_far_m": z_far,
             "relief_m": span, "tex": [a.tex_w, a.tex_h], "edge_norm": e99,
             "subject_frac": float(sub.mean()), "png_bytes": p.stat().st_size}
-    (out / "portrait-relief.json").write_text(json.dumps(meta, indent=2))
+    (out / f"{a.name}-relief.json").write_text(json.dumps(meta, indent=2))
     print(f"  {p.name}: {a.tex_w}x{a.tex_h}  relief span = {span:.4f} m "
           f"(z {z_near:.3f}..{z_far:.3f})  subject {sub.mean()*100:.1f}%  "
           f"{p.stat().st_size/1024:.0f} KB")

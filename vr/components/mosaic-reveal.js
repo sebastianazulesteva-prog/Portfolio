@@ -105,7 +105,8 @@
     'uniform float revealOn;',
     'uniform vec2 uSize;',        // panel size in metres, for the rounded-corner mask
     'uniform float uCornerRadius;',
-    'uniform float uLitAmt;',     // 0 = untouched image (default); >0 dials in the shared light rig, for comparison
+    'uniform float uLitAmt;',
+    'uniform float uDesaturate;', // 1 = the portrait's grey (default); 0 = the photo's own colour     // 0 = untouched image (default); >0 dials in the shared light rig, for comparison
     'uniform vec3 uLightPos[' + LIGHT_MAX + '];',
     'uniform vec3 uCamPos;',
     'uniform vec3 uLightColor[' + LIGHT_MAX + '];',
@@ -133,7 +134,7 @@
     // dome and reads as needlessly murky at the same value.
     '  vec4 grayColor = texture2D(tGray, vUv);',
     '  float lum = dot(grayColor.rgb, vec3(0.299, 0.587, 0.114));',
-    '  vec4 gray = vec4(vec3(lum * 0.84), grayColor.a);',
+    '  vec4 gray = vec4(mix(grayColor.rgb, vec3(lum * 0.84), uDesaturate), grayColor.a);',
     // The revealed side is the RAW mosaic artwork, unprocessed — no tint, no
     // rolloff, no vignette. This is deliberately unlike a project thumbnail's
     // `imagetone` grading (BUILD_NOTES ISSUE-07 territory): the point of the
@@ -324,6 +325,14 @@
       // the whole face amber and fights the point of a grayscale reveal —
       // Sebastian's call after seeing it. Kept, at a fraction of that.
       litAmt: { type: 'number', default: 0.12 },
+      // ── Two switches for a panel that is NOT the portrait (issue #1) ──
+      // The lab shows its depth techniques on the Time Collector, which has no
+      // mosaic artwork and no reason to be grey. `reveal: false` never loads a
+      // second texture and never runs the wash; `desaturate: 0` shows the photo
+      // in its own colour. Both default to exactly what the portrait does, so
+      // every existing caller is untouched.
+      reveal: { type: 'boolean', default: true },
+      desaturate: { type: 'number', default: 1 },
 
       // ── Relief (opt-in). Unset = the flat panel this component has always
       // been; the shaders, the geometry and the material flags are all
@@ -410,7 +419,11 @@
       // the home panel, i.e. first in view. It sets colorSpace + anisotropy
       // itself, so only the mosaic's own 8 needs re-asserting on arrival.
       var tGray = VRGlass.loadTexture(this.data.gray, function (t) { t.anisotropy = 8; });
-      var tColor = VRGlass.loadTexture(this.data.color, function (t) { t.anisotropy = 8; });
+      // No reveal: the colour slot is never sampled at a non-zero weight, so
+      // hand it the grey texture rather than paying for a second download.
+      var tColor = this.data.reveal
+        ? VRGlass.loadTexture(this.data.color, function (t) { t.anisotropy = 8; })
+        : tGray;
       tGray.anisotropy = 8;
       tColor.anisotropy = 8;
 
@@ -456,6 +469,7 @@
               : Math.min(this.data.width, this.data.height) * 0.03
           },
           uLitAmt: { value: this.data.litAmt },
+          uDesaturate: { value: this.data.desaturate },
           tRelief: { value: tRelief },
           uReliefDepth: { value: hasRelief ? this.data.reliefDepth : 0 },
           uReliefTexel: { value: new THREE.Vector2(1 / 512, 1 / 768) },
@@ -722,6 +736,7 @@
       // Where is the gaze/pointer ray hitting the portrait right now? (null if
       // no ray is on it.) This is read fresh every frame, so the reveal tracks
       // a moving gaze rather than freezing at one spot (ISSUE-04).
+      if (!this.data.reveal) return;
       var hitUv = this._findHitUv();
       this._targetOn = hitUv ? 1 : 0;
       var wasHidden = this._currentOn < 0.06; // captured BEFORE the strength ramp below

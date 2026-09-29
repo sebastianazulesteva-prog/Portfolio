@@ -108,6 +108,7 @@ def main():
     ap.add_argument("--min-opacity", type=float, default=0.04)
     ap.add_argument("--lod", type=int, default=2, help="also emit a NxN-decimated splat")
     ap.add_argument("--lod-scale", type=float, default=1.45, help="gaussian widening for the LOD")
+    ap.add_argument("--name", default="portrait", help="output stem for every file written")
     a = ap.parse_args()
 
     bake = Path(a.bake); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
@@ -117,7 +118,7 @@ def main():
     print(f"bake {a.tag}: {z.shape} grid, threshold z<{fit['thr']}")
 
     meta = {"tag": a.tag, "fit": fit}
-    meta["relief"] = relief_png(z, op, fit, out / "portrait-relief.png", a.tex_w, a.tex_h)
+    meta["relief"] = relief_png(z, op, fit, out / f"{a.name}-relief.png", a.tex_w, a.tex_h)
 
     xyz, rgb, opa, scl, quat = load_ply_raw(bake / f"seb_{a.tag}.ply")
     L = xyz.shape[0] // (G * G)
@@ -144,7 +145,7 @@ def main():
     centre = np.array([(np.percentile(hp[:, i], 1) + np.percentile(hp[:, i], 99)) / 2
                        for i in range(3)], dtype=np.float32)
     print(f"  centre (three.js axes) = {centre.round(4).tolist()}")
-    meta["splat"] = write_splat(sel, xyz, rgb, opa, scl, quat, out / "portrait.splat", centre)
+    meta["splat"] = write_splat(sel, xyz, rgb, opa, scl, quat, out / f"{a.name}.splat", centre)
     meta["splat"]["centre"] = centre.tolist()
 
     if a.lod > 1:
@@ -159,11 +160,11 @@ def main():
         # holes without turning him to soup.
         scl_lod = scl * a.lod_scale
         meta["splat_lod"] = write_splat(sel_lod, xyz, rgb, opa, scl_lod, quat,
-                                        out / "portrait-lod.splat", centre)
+                                        out / f"{a.name}-lod.splat", centre)
         meta["splat_lod"]["lod"] = k
 
-    (out / "portrait-bake.json").write_text(json.dumps(meta, indent=2))
-    print(f"  wrote {out/'portrait-bake.json'}")
+    (out / f"{a.name}-bake.json").write_text(json.dumps(meta, indent=2))
+    print(f"  wrote {out / (a.name + '-bake.json')}")
 
 
 if __name__ == "__main__":

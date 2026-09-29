@@ -1,0 +1,37 @@
+{
+  "width": 768,
+  "height": 1152,
+  "ipd": 0.063,
+  "view_distance": 2.26,
+  "relief_depth": 0.3,
+  "inset": 0.06,
+  "aligned_window": {
+    "u0": 0.0,
+    "u1": 1.0,
+    "v0": 0.0,
+    "v1": 1.0
+  },
+  "z_near_m": 0.8615318536758423,
+  "z_far_m": 1.7352880239486694,
+  "layer1": "gaussian",
+  "colour_source": "lab-timecollector.jpg",
+  "eyeL": {
+    "bytes": 124409,
+    "shift_px_range": [
+      -4.62,
+      -0.95
+    ]
+  },
+  "eyeR": {
+    "bytes": 124739,
+    "shift_px_range": [
+      0.95,
+      4.62
+    ]
+  },
+  "disparity_px": {
+    "near": 0.87,
+    "far": 4.62,
+    "relative": 7.5
+  }
+}

@@ -1,6 +1,14 @@
 /* ═══ portrait-lab.js ═══
-   A room holding all three depth treatments of the contact photo, side by side,
-   so they can be compared in a headset instead of argued about on a monitor.
+   A room holding four depth treatments of ONE photograph, side by side, so
+   they can be compared in a headset instead of argued about on a monitor.
+
+   The photograph is the Time Collector, not the portrait (issue #1). It used
+   to be him, four times over, beside the hub portrait that is already him —
+   and a room explaining how depth is made read as a gallery of one face. The
+   hub keeps the spatial photo of him; the button under it asks how that depth
+   was made, and this room answers on a different subject. The machine is also
+   simply the better specimen: gears at a dozen depths on a dark sweep, where a
+   face is one smooth surface in front of a wall.
 
      spatial photo   stereo pair, one image per eye. Binocular depth only —
                      move your head and nothing new appears.
@@ -8,7 +16,7 @@
                      Real geometry, so it re-projects as you move.
      splat           SHARP's 3D gaussians. Knows what is behind an edge.
 
-   All three are built from the SAME SHARP reconstruction of the same
+   All four are built from the SAME SHARP reconstruction of the same
    photograph, at the same size, with the same feathered opening, so the only
    thing that differs between them is the depth technique. That is the entire
    point; matching them was more work than building them.
@@ -65,48 +73,35 @@
   // are for.
   var SITE_WALK_RADIUS = 1.35;
 
-  // ── One photograph, four techniques, and the reveal on three of them ─────
-  // This went back and forth, so the reasoning is worth keeping whole.
+  // ── One photograph, four techniques, no reveal and no grey ───────────────
+  // Every panel here used to wear the flat site's gaze-driven mosaic reveal
+  // over a greyed photo, because the photo was his and the mosaic is his. The
+  // Time Collector has no mosaic, and a grey machine would be hiding the one
+  // thing that makes it legible — cream parts against brown board against a
+  // dark sweep. So all four panels show the photo in its own colour
+  // (`desaturate: 0`) and none of them builds a reveal (`reveal: false`, or no
+  // `mosaic`). That also retires the one asymmetry this room had to explain:
+  // the splat was the panel that could not carry the reveal, and now none do.
   //
-  // `spatial-photo` and `mosaic-reveal` both carry the flat site's signature
-  // gaze-driven mosaic reveal and both default it ON, so two of the four
-  // panels bloomed colour wherever you looked while the other two stayed
-  // grey — and his hair came out GINGER. Reading that as one problem, I turned
-  // the reveal off in here and cited this file's own docblock: *the only thing
-  // that differs between them is the depth technique.*
+  // `litAmt: 0` on the relief panel stays, for the reason it was first set: the
+  // sheen is ADDITIVE, and a comparison of depth techniques wants the
+  // untouched image.
   //
-  // It was two problems. The ginger was never the mosaic: it was
-  // mosaic-reveal's `litAmt`, an ADDITIVE sheen that is invisible on a lit
-  // face and enormous on dark hair (its own shader documents 0 as "untouched
-  // image"). The mosaic's hair is navy. Turning the reveal off fixed the
-  // ginger by accident and cost the room the best thing on the site.
-  //
-  // So `litAmt: 0` STAYS — that is the actual fix, and it is what makes the
-  // grey state of every panel identical. The reveal is back on both photo
-  // panels, and parallax-photo.js gained one (its mosaic is sampled at the
-  // PARALLAXED uv, so the tiles march with the depth map instead of sitting
-  // on the glass).
-  //
-  // THE SPLAT IS THE EXCEPTION, and it is a measured one rather than an
-  // omission. Projecting the mosaic back through the camera SHARP assumed
-  // registers exactly head-on — and this is a room whose own hint tells you to
-  // lean side to side, which is where it turns to per-splat colour noise. A
-  // front-surface depth guard, a graze fade derived off that map, and explicit
-  // mip sampling each improved it and none was enough; the long note in
-  // splat-portrait.js has the numbers and the reason it is not a filtering
-  // problem. Sebastian, after four angles: *"if you can't — just remove the
-  // feature."* So three panels bloom and the gaussians stay grey, which at
-  // least leaves that panel making exactly one claim: depth.
-  //
-  // The image is named once here because "the same picture in all four" should
-  // be something this file states rather than a coincidence of three separate
-  // defaults. `VRGlass.loadTexture` rewrites `../images/` to the downscaled
-  // `assets/tex/` derivative, so these paths cost 50 KB and 347 KB, not 88 KB
-  // and 2.9 MB. The spatial panel is the exception it has to be: a stereo pair
-  // is a different asset by definition (assets/portrait-eye-*, and its own
-  // mosaic pair), baked from this same photograph.
-  var SHOW_PHOTO = '../images/contact-photo-framed-for-mosaic.jpg';
-  var SHOW_MOSAIC = '../images/contact-photo-mosaic.jpg';
+  // Baked by vr/tools/sharp from images/timecollector-hero-side.png, cropped
+  // centrally to 2:3 (788 x 1182, x 47..835) so it fills the same 0.72 x 1.08
+  // panel the portrait did and nothing about the room's geometry moves. SHARP
+  // ran on that crop, not on the original, so there is no alignment window to
+  // carry — the gaussian grid and the displayed image are the same pixels.
+  // vr/assets/lab-timecollector-bake.json has the numbers.
+  var SHOW_PHOTO = 'assets/lab-timecollector.jpg';
+  var SHOW_RELIEF = 'assets/lab-timecollector-relief.png';
+  // How deep the machine is drawn, in metres behind each opening. Its TRUE
+  // depth at this panel's scale is ~0.65 m (0.87 m of SHARP relief across a
+  // 1.44 m frame drawn 1.08 m tall), more than three times the portrait's
+  // 0.195 — a face is shallow for its size, a machine seen three-quarter on is
+  // not. The stereo pair is baked at the same number, so the spatial and
+  // relief panels agree about the one thing being compared.
+  var SHOW_DEPTH = 0.30;
   // The relief panel builds its interior for one reference viewpoint, and that
   // has to be where the panel actually is or the box does not fill its opening.
   // The home portrait's default is 1.5 m; in here they hang at 1.85 m — but
@@ -163,7 +158,7 @@
       // full-resolution splat — see the long note in init() for why that
       // flipped, and why the decimated one is a fallback rather than the
       // sensible choice it looks like.
-      splat: { type: 'string', default: 'assets/portrait-lod.splat' }
+      splat: { type: 'string', default: 'assets/lab-timecollector-lod.splat' }
     },
 
     init: function () {
@@ -215,7 +210,11 @@
     buildButton: function () {
       var btn = document.createElement('a-entity');
       btn.setAttribute('ui-button', {
-        label: 'Compare portrait depth', width: 0.62, height: 0.13, variant: 'ghost', arrow: true
+        // 0.62 -> 0.74 with the new label (issue #1): the old 0.62 wrapped
+        // "How was this depth made?" onto two lines. 0.74 is the portrait's
+        // own 0.72 width to within the button's rounding, so it still reads as
+        // belonging to the photo above it.
+        label: 'How was this depth made?', width: 0.74, height: 0.13, variant: 'ghost', arrow: true
       });
       // Under the portrait, inside the home cluster, so it is hidden along with
       // everything else when a room or the reader takes over.
@@ -283,67 +282,58 @@
         var art = document.createElement('a-entity');
         if (v.key === 'spatial') {
           art.setAttribute('spatial-photo', {
-            width: PANEL_W, height: PANEL_H
-            // Reveal left at its default (on), with its own stereo mosaic
-            // pair. See the note above SHOW_PHOTO.
+            width: PANEL_W, height: PANEL_H,
+            left: 'assets/lab-timecollector-eye-L.jpg',
+            right: 'assets/lab-timecollector-eye-R.jpg',
+            reveal: false, desaturate: 0,
+            // The pair's own `disparity_px.far` (lab-timecollector-eye.json),
+            // baked for this slot's 2.26 m rather than the hub's 1.5 m.
+            farDisparityPx: 4.62
           });
         } else if (v.key === 'relief') {
           art.setAttribute('mosaic-reveal', {
             gray: SHOW_PHOTO,
-            color: SHOW_MOSAIC,
-            // ── The amber sheen stays OFF ──────────────────────────────────
-            // THIS is what made his hair ginger, not the mosaic — proved by
-            // the fact that it survived turning the reveal off.
-            // mosaic-reveal's own shader documents the uniform as "0 =
-            // untouched image; >0 dials in the shared light rig, FOR
-            // COMPARISON" — and the term is ADDITIVE (`col += spec * ... *
-            // uLitAmt`). Additive light is invisible on a lit face and
-            // enormous on dark hair, so 0.12 read as a wash on the one part of
-            // the picture that had no headroom.
-            //
-            // The default stays 0.12 where it belongs: that number is
-            // Sebastian's own call for the HUB portrait, which hangs alone with
-            // nothing to be compared against. A controlled comparison of four
-            // depth techniques wants the untouched image, which is what the
-            // shader says 0 gives.
+            reveal: false, desaturate: 0,
             litAmt: 0,
             width: PANEL_W, height: PANEL_H,
-            relief: 'assets/portrait-relief.png',
+            relief: SHOW_RELIEF,
+            reliefDepth: SHOW_DEPTH,
+            // A relief panel has to span every depth step with one continuous
+            // surface, and a machine is nothing BUT depth steps: every gear
+            // tooth against the backdrop 0.3 m behind it. Seen from the side
+            // those spans stretched into streaks off every tooth. tearFade
+            // opens them into gaps along the bake's silhouette channel instead,
+            // and against this photo's near-black backdrop a gap reads as the
+            // backdrop. The portrait never needed it — one face, one outline.
+            tearFade: 0.9,
             viewDistance: slotDist
           });
         } else if (v.key === 'parallax') {
-          // Same depth map and the same metric span as the relief panel beside
-          // it (parallax-photo.js's depthM defaults to the bake's relief_m), so
-          // the only thing differing between those two is the technique.
+          // Same depth map as the relief panel beside it. Its depth stays at
+          // the component's 0.085 m, not SHOW_DEPTH: that is the ceiling of the
+          // technique rather than a property of the subject — past it a 30°
+          // view marches off the photograph (see parallax-photo.js).
           art.setAttribute('parallax-photo', {
             width: PANEL_W, height: PANEL_H, photo: SHOW_PHOTO,
-            // The mosaic marches with the depth map here, because it is
-            // sampled at the same parallaxed uv as the photograph. That makes
-            // this the one panel where you can watch the reveal itself move.
-            mosaic: SHOW_MOSAIC
+            depth: SHOW_RELIEF, desaturate: 0
           });
         } else {
-          // The splat is a free-standing bust, not something behind an opening —
-          // it has no backdrop to frame, because the bake prunes it away. Sized
-          // to the panels so the comparison is about depth and not about scale.
-          // The gaussian WIDTH goes with the asset, not with the component's
-          // default: the LOD's own gaussians were already widened 1.45x by the
-          // bake to cover the neighbours it dropped, so the two assets need
-          // different screen-space multipliers to look the same. Both numbers
-          // were measured in this room — see the long note on `splatWidth` in
-          // splat-portrait.js.
+          // The splat is a free-standing object, not something behind an
+          // opening: the bake prunes the back wall (z > 1.75 m) and keeps the
+          // machine plus the strip of floor it stands on. Sized to the panels
+          // so the comparison is about depth and not about scale — SHARP's
+          // metric frame is 1.44 m tall at the machine and the panels draw it
+          // 1.08 m, so 0.75. The gaussian WIDTH goes with the asset (see the
+          // long note on `splatWidth` in splat-portrait.js).
+          //
+          // `trimBottom: 0`: the trim exists because his bust ended in a torn
+          // fringe at the chest. The machine does not end, it stands on the
+          // floor, and trimming the lowest 5% would cut its feet off.
           var hi = this.quality !== 'low';
           art.setAttribute('splat-portrait', {
-            src: hi ? 'assets/portrait.splat' : this.data.splat,
-            splatWidth: hi ? 1.3 : 1.4
-            // No mosaic here, and it is the one panel without one. Tried and
-            // measured from four angles: projecting the mosaic back through
-            // SHARP's camera registers beautifully head-on and turns to
-            // per-splat colour noise the moment you lean, which is the one
-            // thing this room asks you to do. A front-surface depth guard, a
-            // derived graze fade and explicit mip sampling each helped and
-            // none was enough — see the long note in splat-portrait.js. The
-            // panel's own claim is depth, and depth is what it shows.
+            src: hi ? 'assets/lab-timecollector.splat' : this.data.splat,
+            splatWidth: hi ? 1.3 : 1.4,
+            splatScale: 0.75, trimBottom: 0, desaturate: 0
           });
         }
         slot.appendChild(art);

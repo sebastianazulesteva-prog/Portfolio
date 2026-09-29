@@ -206,6 +206,10 @@
       texWidthPx: { type: 'number', default: 768 },
       gaze: { type: 'boolean', default: true },
       gazeMargin: { type: 'number', default: 0.12 },
+      // Off for the lab's Time Collector (issue #1): no mosaic pair exists for
+      // it. The mosaic URLs are then never fetched, the wash never runs, and
+      // with `desaturate: 0` the pair shows in its own colour.
+      reveal: { type: 'boolean', default: true },
       fadeMs: { type: 'number', default: 260 }
     },
 
@@ -242,16 +246,20 @@
       var convergeUv = converge * (d.farDisparityPx / d.texWidthPx);
 
       function plate(photoUrl, mosaicUrl, layer, eyeSign) {
+        // No reveal: sample the eye's own photo in the mosaic slot. revealOn
+        // never leaves 0, so it is never seen — but a sampler must be bound.
+        if (!d.reveal) mosaicUrl = null;
         function tex(url) {
           var t = VRGlass.loadTexture(url, function (tt) { tt.anisotropy = 8; });
           t.anisotropy = 8;
           return t;
         }
+        var eyeTex = tex(photoUrl);
         var mat = new THREE.ShaderMaterial({
           uniforms: {
             uConverge: { value: eyeSign * convergeUv },
-            tEye: { value: tex(photoUrl) },
-            tMosaic: { value: tex(mosaicUrl) },
+            tEye: { value: eyeTex },
+            tMosaic: { value: mosaicUrl ? tex(mosaicUrl) : eyeTex },
             uSize: { value: new THREE.Vector2(d.width, d.height) },
             uCornerRadius: { value: radius },
             uEdgeFeather: { value: d.edgeFeather },
@@ -383,6 +391,7 @@
     },
 
     tick: function (time, delta) {
+      if (!this.data.reveal) return;
       var hitUv = this._findHitUv();
       this._targetOn = hitUv ? 1 : 0;
       if (hitUv) this.shared.revealUv.value.set(hitUv.x, hitUv.y);
@@ -409,7 +418,7 @@
           var u = o.material.uniforms;
           if (u) {
             if (u.tEye && u.tEye.value) u.tEye.value.dispose();
-            if (u.tMosaic && u.tMosaic.value) u.tMosaic.value.dispose();
+            if (u.tMosaic && u.tMosaic.value && u.tMosaic.value !== u.tEye.value) u.tMosaic.value.dispose();
           }
           o.material.dispose();
         }

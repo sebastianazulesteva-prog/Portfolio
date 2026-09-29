@@ -41,6 +41,7 @@ from scipy.ndimage import gaussian_filter, map_coordinates
 SH_C0 = 0.28209479177387814
 WINDOW = {"u0": 0.09828629032258064, "u1": 0.8762862903225808,
           "v0": 0.024193548387096774, "v1": 0.8029540566959923}
+FULL = {"u0": 0.0, "u1": 1.0, "v0": 0.0, "v1": 1.0}   # see export_relief.py
 
 
 def crop_to_texture(plane, w, h, window=WINDOW, order=1):
@@ -103,6 +104,7 @@ def main():
     ap.add_argument("--view-distance", type=float, default=1.5)
     ap.add_argument("--relief-depth", type=float, default=0.1951)
     ap.add_argument("--inset", type=float, default=0.06)
+    ap.add_argument("--window", default=None, help="'full' for the lab subject, else the portrait crop")
     ap.add_argument("--quality", type=int, default=90)
     ap.add_argument("--blur", type=float, default=4.0,
                     help="gaussian sigma on the DISPARITY field, in px. Removes per-strand "
@@ -116,11 +118,12 @@ def main():
     G = z.shape[-1]
     W = a.width
     H = int(round(W * 3 / 2))
+    win = FULL if a.window == "full" else WINDOW
 
     # Relief over the ALIGNED crop, normalised over the crop, exactly as
     # export_relief.py does it so the two treatments share one depth field.
-    z0 = crop_to_texture(z[0], W, H)
-    z1 = crop_to_texture(z[1], W, H)
+    z0 = crop_to_texture(z[0], W, H, win)
+    z1 = crop_to_texture(z[1], W, H, win)
     sub = z0 < fit["thr"]
     z_near = float(np.percentile(z0[sub], 0.2))
     z_far = float(np.percentile(z0[sub], 99.0))
@@ -132,14 +135,14 @@ def main():
         v = PlyData.read(bake / f"seb_{a.tag}.ply")["vertex"]
         rgb = np.stack([v[f"f_dc_{i}"] for i in range(3)], 1).astype(np.float32) * SH_C0 + 0.5
         g1 = np.clip(rgb.reshape(2, G, G, 3)[1], 0, 1)
-        c1 = np.clip(np.stack([crop_to_texture(g1[..., k], W, H) for k in range(3)], -1), 0, 1)
+        c1 = np.clip(np.stack([crop_to_texture(g1[..., k], W, H, win) for k in range(3)], -1), 0, 1)
     else:
         # No meaningful "behind" for flat artwork — fill from itself.
         c1 = c0
 
     px_per_m = W / a.panel_width
     meta = {"width": W, "height": H, "ipd": a.ipd, "view_distance": a.view_distance,
-            "relief_depth": a.relief_depth, "inset": a.inset, "aligned_window": WINDOW,
+            "relief_depth": a.relief_depth, "inset": a.inset, "aligned_window": win,
             "z_near_m": z_near, "z_far_m": z_far, "layer1": a.layer1,
             "colour_source": Path(a.colour).name}
     print(f"{a.prefix}: {W}x{H}  crop-aligned  z {z_near:.3f}..{z_far:.3f}")

@@ -50,6 +50,9 @@
 
 (function () {
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Clearance kept between the pad's centre and the reach of a floor hole:
+  // the pad's own half-diagonal (0.78 × 0.34 plate, below) plus its rim.
+  var KEEP_OUT = 0.45;
 
   AFRAME.registerComponent('leave-vr', {
     schema: {
@@ -201,6 +204,24 @@
       if (pitch <= -this.data.showDeg) this.shown = true;
       else if (pitch >= -this.data.hideDeg) this.shown = false;
 
+      // Never open over an opening in the floor. The roof lever's pit
+      // (floor-lever.js) is on the floor too, and taking hold of it means
+      // looking straight down at it from about a stride away — which is
+      // exactly "looking at my feet", so the pad used to land on top of the
+      // lever at the one moment you were reaching for it. The holes are
+      // already listed in world metres for dome.js, so they double as the
+      // keep-out list: no second registry to forget to update.
+      var yaw = Math.atan2(-this._f.x, -this._f.z);
+      var px = this._camPos.x - Math.sin(yaw) * this.data.ahead;
+      var pz = this._camPos.z - Math.cos(yaw) * this.data.ahead;
+      if (this.shown && window.VRDome && VRDome.getFloorHoles) {
+        var holes = VRDome.getFloorHoles();
+        for (var h = 0; h < holes.length; h++) {
+          var keep = Math.hypot(holes[h].w, holes[h].d) / 2 + KEEP_OUT;
+          if (Math.hypot(px - holes[h].x, pz - holes[h].z) < keep) { this.shown = false; break; }
+        }
+      }
+
       var want = this.shown ? 1 : 0;
       if (reducedMotion) this.k = want;
       else this.k += (want - this.k) * Math.min(1, (delta || 16) / this.data.fadeMs);
@@ -214,12 +235,7 @@
       // under the visitor's feet rather than under the origin they started at.
       // Yawed to the heading so the label is upright from where they are
       // standing however they have turned.
-      var yaw = Math.atan2(-this._f.x, -this._f.z);
-      this.root.object3D.position.set(
-        this._camPos.x - Math.sin(yaw) * this.data.ahead,
-        0.015,
-        this._camPos.z - Math.cos(yaw) * this.data.ahead
-      );
+      this.root.object3D.position.set(px, 0.015, pz);
       this.root.object3D.rotation.set(-Math.PI / 2, 0, -yaw);
 
       this.deck.material.opacity = 0.92 * this.k;

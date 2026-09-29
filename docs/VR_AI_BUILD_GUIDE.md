@@ -4311,6 +4311,57 @@ entry is the change to make, and `VRSkylight.close()` is already there for it.
 
 ---
 
+### 9.30 The roof lever (2026-09-20 → 2026-09-28)
+
+*"Instead of 'open roof' can we design a switch like the one in the image, which
+will sit in the floor — sorta between my experience and the bio … I only want
+one lever, and I want the handle part to change colour slowly as the arm moves
+from the open to close position."* (With a photograph of a Victorian railway
+ground frame.)
+
+New file **`vr/components/floor-lever.js`** (`floor-lever`), bench
+`vr/_dev-lever.html` (gitignored). Touches **`dome.js`** (holes in the floor and
+the rug), **`skylight.js`** (no scene pill when a lever exists), **`leave-vr.js`**
+(keep-out) and one entity in **`index.html`**. Design chosen from rendered
+options on 2026-09-20: set into the floor, square to the viewer, fast throw with
+the roof following. The HUD ☀ pill is unchanged.
+
+* **Set into the floor is literal.** The machinery is in a pit below y=0, so the
+  floor disc and the rug (an opaque disc 2 mm above it) both get an opening:
+  `VRDome.setFloorHoles(list)` in world metres, rebuilt as a `ShapeGeometry`.
+  A hole must lie **wholly inside** a disc: earcut cannot cut one that crosses
+  the rim, so those are dropped with a warning. That is what fixes the
+  placement: 42° right of forward, 1.15 m out (the gap between the bio card's
+  edge at ~37° and the experience column at ~46°), and ≤ ~1.2 m on that bearing
+  keeps the pit inside the 1.3 m rug. It is `.hub-cluster`, and uncuts its hole
+  whenever it is hidden (a room or the reader), recutting on return.
+* **The pull.** In a headset the press is the session's own
+  `selectstart`/`squeezestart`, hit-tested with xr-select's `rayFrom` and
+  `targets()`, so it grabs exactly when a click would land. The hand's grip-space
+  position (ray space on a Vision Pro pinch with no grip) then drives the arm:
+  displacement along the crown's arc × `pullGain` 2.0, so ~0.45 m of pull is a
+  full throw. On a flat screen it is a drag down the canvas, with look-controls
+  suspended. **The roof fires at the end stop, while still held**, with a
+  haptic pulse. Release settles to the nearer end, and a tap throws it. Clicks
+  from cursor/xr-select are ignored for 700 ms after a press it handled.
+* **The Leave VR pad collided with it.** Taking hold of the lever means looking
+  > 45° down from a stride away, which is exactly the pad's trigger, and the pad
+  landed on the lever. `leave-vr.js` now refuses to show where its centre would
+  fall within a floor hole's reach + 0.45 m, reading `VRDome.getFloorHoles()`,
+  so the holes double as the keep-out list.
+* **The X-brace is off (`CFG.brace`).** It was rendered both ways, from arrival
+  and from the side through a slot widened to 0.42 m, and the two were
+  indistinguishable: the standards run fore-and-aft and stop 13 cm below the
+  floor. The grip now swells (`handleSwell` 1.4) and the pit is cooler and
+  ~30% dimmer.
+* **Verified (headless Chrome, Metal, full scene).** Real CDP mouse drag: t rose
+  0.1 → 1.0 over 12 steps, the roof opened on reaching the stop, the HUD pill
+  went `is-on` and look-controls came back. A tap closed it, and the HUD pill
+  threw the lever. A simulated XR source against the real `xrPress`/`tick`:
+  a 0.18 m pull reached 0.40 and sprang back with the roof shut, a 0.5 m pull
+  opened it with one pulse, a ray aimed away did not grab, and a transient
+  source vanishing mid-pull released. **Not yet tried on a headset.**
+
 ### 9.11 Deferred
 
 **Project rooms need a dedicated rebuild.** They don't look good yet and are

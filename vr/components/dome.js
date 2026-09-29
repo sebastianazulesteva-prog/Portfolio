@@ -274,7 +274,32 @@
     // can size its cloud decks against the real number instead of keeping a
     // second copy of it — the visible ground radius of a deck at altitude H is
     // H / tan(CUT_ELEV_DEG), and that is what decides where the drift may wrap.
-    CUT_ELEV_DEG: 90 - CUT_FRAC * 180
+    CUT_ELEV_DEG: 90 - CUT_FRAC * 180,
+
+    // Cut openings in the floor disc. `holes` is the complete list, in world
+    // metres: { x, z, w, d, r, rotY }. Returns false if the floor has not
+    // initialised yet, so a caller can retry rather than silently do nothing.
+    //
+    // The rug gets the same list: it is an opaque disc 2 mm above the floor,
+    // so an opening under it is no opening at all. Each rug keeps only the
+    // holes that lie wholly inside it (see discGeometry for why a hole that
+    // crosses the rim is dropped rather than cut).
+    setFloorHoles: function (holes) {
+      var el = document.querySelector('[dusk-floor]');
+      var c = el && el.components && el.components['dusk-floor'];
+      if (!c) return false;
+      c.setHoles(holes);
+      [].slice.call(document.querySelectorAll('[dusk-rug]')).forEach(function (r) {
+        var rc = r.components && r.components['dusk-rug'];
+        if (rc) rc.setHoles(holes);
+      });
+      return true;
+    },
+    getFloorHoles: function () {
+      var el = document.querySelector('[dusk-floor]');
+      var c = el && el.components && el.components['dusk-floor'];
+      return c ? c.getHoles() : [];
+    }
   };
 
   AFRAME.registerComponent('dusk-sky', {
@@ -367,6 +392,78 @@
     }
   });
 
+  // ── A floor with holes in it ────────────────────────────────────────────
+  // The floor is one flat disc, so anything that wants to be set INTO it (the
+  // roof lever's pit, floor-lever.js) needs the disc itself to have an opening
+  // — an opaque plane hides everything under it, and no amount of depth
+  // trickery changes that. Holes are given in WORLD metres and are rebuilt
+  // into the geometry; the list is owned by the caller, one call replaces it.
+  //
+  // Shape space is XY and the disc is laid down with rotateX(-90°), which maps
+  // shape-y to world -z. A hole meant for world (x, z) is therefore authored
+  // at (x, -z) — the sign that is easy to get wrong and hard to see, because a
+  // mirrored hole in a symmetric room still looks like a hole.
+  function roundedRectPath(w, d, r, cx, cy, rot) {
+    var hw = w / 2, hd = d / 2;
+    r = Math.min(r, hw, hd);
+    var pts = [], i, k = 8;
+    var corners = [[hw - r, hd - r, 0], [-hw + r, hd - r, Math.PI / 2],
+                   [-hw + r, -hd + r, Math.PI], [hw - r, -hd + r, -Math.PI / 2]];
+    corners.forEach(function (c) {
+      for (i = 0; i <= k; i++) {
+        var a = c[2] + (Math.PI / 2) * i / k;
+        pts.push([c[0] + r * Math.cos(a), c[1] + r * Math.sin(a)]);
+      }
+    });
+    var path = new THREE.Path();
+    var co = Math.cos(rot || 0), si = Math.sin(rot || 0);
+    pts.forEach(function (p, idx) {
+      var x = cx + p[0] * co - p[1] * si, y = cy + p[0] * si + p[1] * co;
+      if (idx === 0) path.moveTo(x, y); else path.lineTo(x, y);
+    });
+    path.closePath();
+    return path;
+  }
+
+  // A flat disc of `radius`, centred at world (ox, oz), with `holes` (world
+  // metres) cut out of it. Shared by the floor and the rug.
+  //
+  // A hole that crosses the disc's own rim cannot be cut: earcut expects every
+  // hole to lie inside the outline, and one that pokes out triangulates into
+  // shards. Those are dropped, with a warning, rather than drawn wrong — the
+  // lever is placed so its opening sits wholly inside the rug, and the one
+  // time this fires is a room resizing the rug while a hole is still open.
+  function discGeometry(radius, segments, holes, ox, oz) {
+    ox = ox || 0; oz = oz || 0;
+    var inside = (holes || []).filter(function (h) {
+      var reach = Math.hypot(h.w, h.d) / 2;
+      var dist = Math.hypot(h.x - ox, h.z - oz);
+      if (dist + reach <= radius) return true;
+      if (dist - reach < radius) {
+        console.warn('[vr] dome: a floor hole crosses the rim of a ' + radius +
+                     ' m disc and was not cut into it');
+      }
+      return false;
+    });
+    if (!inside.length) return new THREE.CircleGeometry(radius, segments);
+    var shape = new THREE.Shape();
+    shape.absarc(0, 0, radius, 0, Math.PI * 2, false);
+    inside.forEach(function (h) {
+      // world (x, z) → shape (x, -z). Under that mapping a world yaw of θ is
+      // the SAME sign in shape space, not the opposite: with sx = x, sy = -z,
+      // the world Y-rotation [cosθ,sinθ; -sinθ,cosθ] comes out as a plain CCW
+      // rotation by +θ in (sx, sy). Negating it put the hole 84° away from the
+      // pit it was cut for, which read as a pale halo of open sky beside the
+      // slot rather than as a mis-cut hole.
+      shape.holes.push(roundedRectPath(h.w, h.d, h.r || 0, h.x - ox, -(h.z - oz), h.rotY || 0));
+    });
+    // No rotation here: the mesh itself carries rotation.x = -90°, and the
+    // CircleGeometry it replaces was authored in XY for exactly that reason.
+    return new THREE.ShapeGeometry(shape, segments);
+  }
+
+  function floorGeometry(holes) { return discGeometry(DOME_RADIUS, 64, holes, 0, 0); }
+
   AFRAME.registerComponent('dusk-floor', {
     init: function () {
       // MeshBasicMaterial (unlit), not MeshStandardMaterial — this is a
@@ -379,14 +476,24 @@
       // any posture (ISSUE-09). Dropped a hair below y=0 so its rim tucks just
       // under the dome's equator: the ember horizon reads cleanly just above
       // the ground line, with no coincident-plane z-fighting along that circle.
-      var geometry = new THREE.CircleGeometry(DOME_RADIUS, 64);
+      this._holes = [];
       var material = new THREE.MeshBasicMaterial({ color: '#0c0b0a' });
-      this.mesh = new THREE.Mesh(geometry, material);
+      this.mesh = new THREE.Mesh(floorGeometry(this._holes), material);
       this.mesh.rotation.x = -Math.PI / 2;
       this.mesh.position.y = -0.02;
       this.el.setObject3D('dusk-floor', this.mesh);
       this._baseColor = '#0c0b0a';
     },
+    // Replace the whole hole list (floor-lever.js's pit is the only caller).
+    // Callers pass the COMPLETE set and tag their own entry, so nothing can
+    // leave a stale opening behind after a remove().
+    setHoles: function (holes) {
+      this._holes = holes || [];
+      var old = this.mesh.geometry;
+      this.mesh.geometry = floorGeometry(this._holes);
+      old.dispose();
+    },
+    getHoles: function () { return this._holes.slice(); },
     setColor: function (hex) { this.mesh.material.color.set(hex); },
 
     // ── A pool of light on the ground ───────────────────────────────────────
@@ -475,6 +582,20 @@
       this.el.setObject3D('dusk-rug', this.mesh);
       this._baseColor = '#1a140f';
       this._baseRadius = this._radius = this.data.radius;
+      this._holes = [];
+    },
+    // The floor's hole list, handed on by VRDome.setFloorHoles. The rug sits at
+    // the scene root and never rotates, so its own position is the whole
+    // world → local transform.
+    setHoles: function (holes) {
+      this._holes = holes || [];
+      this._rebuild();
+    },
+    _rebuild: function () {
+      var p = this.el.object3D.position;
+      var old = this.mesh.geometry;
+      this.mesh.geometry = discGeometry(this._radius, 48, this._holes, p.x, p.z);
+      old.dispose();
     },
     // Themed per project room (project-room.js). The rug used to be the one
     // ground surface a room DIDN'T retint, which left the hub's dark brown
@@ -491,8 +612,7 @@
     setRadius: function (r) {
       if (!r || r === this._radius) return;
       this._radius = r;
-      this.mesh.geometry.dispose();
-      this.mesh.geometry = new THREE.CircleGeometry(r, 48);
+      this._rebuild();
     },
     resetRadius: function () { this.setRadius(this._baseRadius); },
     remove: function () {

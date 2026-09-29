@@ -1174,6 +1174,22 @@
     buildControls: function () {
       var self = this;
 
+      // The roof lever (floor-lever.js, 2026-09-28) IS the in-scene control
+      // now: a railway lever set into the floor between the bio card and the
+      // experience column, which drives setOpen itself and follows skychange.
+      // The pill stays as the fallback for a scene that has no lever in it.
+      if (!document.querySelector('[floor-lever]')) this.buildScenePill();
+
+      var hud = document.getElementById('skyBtn');
+      if (hud) {
+        this.hudBtn = hud;
+        hud.addEventListener('click', function () { self.setOpen(!self.isOpen()); });
+      }
+      this.refreshControls();
+    },
+
+    buildScenePill: function () {
+      var self = this;
       var btn = document.createElement('a-entity');
       btn.setAttribute('ui-button', {
         label: 'Open roof', width: 0.46, height: 0.13,
@@ -1195,13 +1211,6 @@
 
       var host = document.querySelector('#homeCluster') || this.el.sceneEl;
       host.appendChild(btn);
-
-      var hud = document.getElementById('skyBtn');
-      if (hud) {
-        this.hudBtn = hud;
-        hud.addEventListener('click', function () { self.setOpen(!self.isOpen()); });
-      }
-      this.refreshControls();
     },
 
     refreshControls: function () {

@@ -243,7 +243,7 @@
   <script src="components/place.js?v=3"></script>
   <script src="components/fonts.js?v=6"></script>
   <script src="components/themes.js?v=11"></script>
-  <script src="components/dome.js?v=11"></script>
+  <script src="components/dome.js?v=12"></script>
   <script src="components/glass-material.js?v=20"></script>
   <script src="components/text-flow.js?v=3"></script>
   <script src="components/ui-button.js?v=16"></script>
@@ -252,7 +252,14 @@
        setAperture), ui-button.js (it builds one) and glass-material.js (it
        reads that file's shared light uniforms and calls the vr-key-light
        system's syncRack while the roof is open). -->
-  <script src="components/skylight.js?v=19"></script>
+  <script src="components/skylight.js?v=20"></script>
+  <!-- floor-lever.js — the roof's in-scene control since 2026-09-28: a railway
+       ground-frame lever set into the floor. You pull it toward you and the
+       roof opens at the end stop. AFTER dome.js (it cuts its pit into the floor
+       and the rug with VRDome.setFloorHoles) and skylight.js (it drives
+       VRSkylight). Its presence is what stops skylight.js building the old
+       "Open roof" pill under the bio card. -->
+  <script src="components/floor-lever.js?v=3"></script>
   <!-- Shared controls, loaded before every consumer: the one exit button
        (exit-button.js) and the one scroll bar (scroll-arrows.js). Both are used
        at build time by focus-stage, project-room, pdf-reader and the writing
@@ -265,7 +272,7 @@
        flat site. Deliberately NOT one of the ".hub-cluster" things a room or
        the reader hides — read leave-vr.js's header for why, and for what
        visionOS's own Digital Crown does and does not do. -->
-  <script src="components/leave-vr.js?v=2"></script>
+  <script src="components/leave-vr.js?v=3"></script>
   <!-- Transient in-scene message card. Above the three files that call it
        (hub-panel, focus-stage, photo-cloud) and below glass-material, whose
        card shader and lit-text helper it uses. -->
@@ -374,6 +381,17 @@
     <a-entity dusk-sky></a-entity>
     <a-entity dusk-floor position="0 0 0"></a-entity>
     <a-entity dusk-rug="radius: 1.3" position="0 0 -0.4"></a-entity>
+
+    <!-- The roof lever (floor-lever.js). On the floor between the bio card's
+         right edge (~37° right of forward from the arrival spot) and the
+         experience column (~46°): 42° right, 1.15 m out, turned so it faces
+         the arrival spot square-on (rotation = atan2(-x, -z)). 1.15 m is not
+         arbitrary: the pit's opening has to lie WHOLLY inside the rug or the
+         rug cannot be cut (dome.js discGeometry), and that caps it at ~1.2 m
+         on this bearing. .hub-cluster so a room or the reader puts it away,
+         and it takes its hole with it when it goes. -->
+    <a-entity id="roofLever" class="hub-cluster clickable" floor-lever
+              position="0.7695 0 -0.8546" rotation="0 -42 0"></a-entity>
 
     <!-- The skylight (skylight.js). Nothing is built until the button is
          pressed for the first time; until then this entity is a toggle and two

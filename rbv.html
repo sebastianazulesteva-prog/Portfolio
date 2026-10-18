@@ -647,6 +647,7 @@
        than its one-line caption; cap it. Three-up rows crop to one 4:3 shape
        so a portrait photo does not make its row ragged. */
     .tiles.single{ grid-template-columns:1fr; max-width:560px; }
+    .tiles.single.sketch{ max-width:320px; margin-bottom:1.5rem; }
     .tiles.three .tile-media{ aspect-ratio:4/3; }
     .tiles.three .tile-media img, .tiles.three .tile-media video{ height:100%; object-fit:cover; }
 
@@ -654,6 +655,37 @@
        "Becomes" at full size, which ran into the video. */
     .hero{ grid-template-columns:auto 1fr; }
     @media(max-width:768px){ .hero{ grid-template-columns:1fr; } }
+
+    .tiles.two{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+    .tiles.two .tile-media{ aspect-ratio:1/1; }
+    .tiles.two .tile-media img{ height:100%; object-fit:cover; object-position:top; }
+
+    /* ─── OCCLUSION SWITCH ─── a two-state pill above one video frame. */
+    .occ{ max-width:560px; }
+    .occ-switch{ display:flex; align-items:center; gap:0.4rem; margin-bottom:0.75rem; }
+    .occ-label{ font-size:0.72rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin-right:0.3rem; }
+    .occ-btn{
+      padding:0.4rem 1.1rem;
+      border:2px solid var(--accent);
+      border-radius:100px;
+      background:var(--white);
+      color:var(--accent);
+      font-size:0.8rem;
+      font-weight:700;
+      cursor:pointer;
+      transition:background 0.2s, color 0.2s;
+    }
+    .occ-btn[aria-pressed="true"]{ background:var(--accent); color:var(--white); }
+    .occ-stage video{ width:100%; height:auto; display:block; }
+    .occ-stage video[hidden], .occ-note[hidden]{ display:none; }
+    .occ-note{ margin-top:0.55rem; font-size:0.92rem!important; font-weight:600; }
+
+    /* ─── RELIABLE: three facts ─── */
+    .facts{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; }
+    .fact{ background:var(--white); border-radius:12px; padding:1.4rem 1.2rem; }
+    .fact svg{ width:34px; height:34px; fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-bottom:0.7rem; }
+    .fact-title{ font-size:1.2rem!important; font-weight:800!important; margin-bottom:0.15rem!important; }
+    .fact-line{ font-size:0.92rem!important; color:var(--ink-soft)!important; margin:0!important; }
 
     .tiles + .tiles{ margin-top:1.5rem; }
     .sub-label{ margin:2rem 0 0.75rem; font-size:1.05rem; font-weight:800; }
@@ -686,10 +718,9 @@
     </div>
 
     <!-- ═══ HERO — the Disco beat ═══
-         Tour 11 of the 2026-10-18 tour demo, 2 s to 33 s: the lights come on,
-         dancers are added one by one with the music going, then the host hits
-         Pause and walks through the frozen crowd. He asked for the whole arc,
-         not just the freeze. 5.3 MB, the price of the full sequence. Re-encoded to 848x478
+         Tour 11 of the 2026-10-18 tour demo, 8 s to 28 s: about ten seconds of
+         the party going, then the host hits Pause and walks through the frozen
+         crowd for about ten more. 3.5 MB. Re-encoded to 848x478
          H.264 with Swift AVFoundation (no ffmpeg on this Mac), no audio track.
          MP4 only, no WebM: there is no WebM encoder available here, and every
          current browser plays H.264. The same file loops on the index card. -->
@@ -718,16 +749,31 @@
   <div class="block">
     <h2 class="block-label">Shared</h2>
     <div class="block-body">
-      <div class="tiles single">
-        <figure class="tile">
-          <div class="tile-media">
-            <video class="rbv-video" aria-label="The RBV Camera iPad view: a virtual puppy sitting on the real lab carpet beside a visitor" width="848" height="584" loop muted playsinline disableRemotePlayback preload="none">
-              <source src="images/rbv-camera.mp4" type="video/mp4">
-            </video>
-          </div>
-          <figcaption><strong>RBV Camera.</strong> An iPad window into the tour, so guests can watch and take a photo home.</figcaption>
-        </figure>
+      <p class="block-lede">RBV Camera: an iPad window into the tour.</p>
+      <!-- ═══ OCCLUSION ON / OFF ═══
+           Two real iPad captures, same room, same angle, minutes apart on
+           2026-10-06: someone walks past the virtual puppy with occlusion on
+           (the legs hide it) and off (it is drawn over the legs). One switch
+           teaches the idea to someone who has never heard the word. Both clips sit in one frame; the switch shows
+           one and restarts it so the walk-past is never missed. -->
+      <div class="occ">
+        <div class="occ-switch" role="group" aria-label="Occlusion">
+          <span class="occ-label">Occlusion</span>
+          <button type="button" class="occ-btn" data-occ="off" aria-pressed="false">Off</button>
+          <button type="button" class="occ-btn" data-occ="on" aria-pressed="true">On</button>
+        </div>
+        <div class="tile-media occ-stage">
+          <video class="occ-video" data-occ="on" aria-label="iPad view with occlusion on: a person walks past the virtual puppy and their legs hide it, like a real dog" width="848" height="584" poster="images/rbv-camera-occlusion-on.jpg" loop muted playsinline disableRemotePlayback preload="none">
+            <source src="images/rbv-camera-occlusion-on.mp4" type="video/mp4">
+          </video>
+          <video class="occ-video" data-occ="off" aria-label="iPad view with occlusion off: a person walks past the virtual puppy and it is drawn on top of their legs" width="848" height="584" poster="images/rbv-camera-occlusion-off.jpg" loop muted playsinline disableRemotePlayback preload="none" hidden>
+            <source src="images/rbv-camera-occlusion-off.mp4" type="video/mp4">
+          </video>
+        </div>
+        <p class="occ-note" data-occ="on">On: real people hide virtual things.</p>
+        <p class="occ-note" data-occ="off" hidden>Off: the puppy floats in front of everyone.</p>
       </div>
+      <p class="detail" style="margin-top:1rem">So guests can watch, and take a photo home.</p>
     </div>
   </div>
 
@@ -735,16 +781,25 @@
     <h2 class="block-label">Reliable</h2>
     <div class="block-body">
       <p class="block-lede">As close to one button as possible.</p>
-      <div class="tiles single">
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-auto-end.jpg" alt="Two countdown cards reading Ending tour for 5 headsets, at 5 and at 2 seconds, each with a Cancel button" width="1400" height="375" loading="lazy">
-          </div>
-          <figcaption><strong>Auto end.</strong> No headset left running.</figcaption>
-        </figure>
+      <!-- Three facts, no screenshots: the renders that were here were design
+           sheets, and they read as paperwork rather than as "it just works". -->
+      <div class="facts">
+        <div class="fact">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+          <p class="fact-title">One click</p>
+          <p class="fact-line">Host, sound, build.</p>
+        </div>
+        <div class="fact">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
+          <p class="fact-title">Auto end</p>
+          <p class="fact-line">No headset left running.</p>
+        </div>
+        <div class="fact">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
+          <p class="fact-title">Live logs</p>
+          <p class="fact-line">Every headset. No cable.</p>
+        </div>
       </div>
-      <p class="detail" style="margin-top:1.25rem"><span class="accent">One-click start:</span> host, sound and build.</p>
-      <p class="detail"><span class="accent">Live logs</span> from every headset. No cable.</p>
     </div>
   </div>
 
@@ -755,21 +810,29 @@
       <div class="tiles single">
         <figure class="tile">
           <div class="tile-media">
-            <img src="images/rbv-wheel-before-after.jpg" alt="The host's control wheel before and after the redesign, side by side: repeated icons and mixed colours on the left, one icon per action and colours by category on the right" width="1314" height="1600" loading="lazy">
+            <img src="images/rbv-printouts.jpg" alt="Printed sheets of the host's control wheel in every state, spread on a desk and marked up by hand" width="1050" height="1400" loading="lazy">
           </div>
-          <figcaption>Host wheel, before and after.</figcaption>
+          <figcaption>Printed, marked up, redrawn.</figcaption>
+        </figure>
+      </div>
+      <div class="tiles two">
+        <figure class="tile">
+          <div class="tile-media">
+            <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colours on the left, buttons with their own icons and colours by meaning on the right" width="1600" height="1591" loading="lazy">
+          </div>
+          <figcaption>Before, after.</figcaption>
+        </figure>
+        <figure class="tile">
+          <div class="tile-media">
+            <img src="images/rbv-icons.jpg" alt="A grid of all 61 tour icons, white glyphs on dark, one per action" width="1400" height="1313" loading="lazy">
+          </div>
+          <figcaption>61 icons, one per action.</figcaption>
         </figure>
       </div>
 
       <h3 class="sub-label">Experience path</h3>
       <p class="detail">Line up the tour, then press Next.</p>
-      <div class="tiles three">
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-printouts.jpg" alt="Printed sheets of the wheel's icon states on a desk, marked up by hand" width="1050" height="1400" loading="lazy">
-          </div>
-          <figcaption>Printed.</figcaption>
-        </figure>
+      <div class="tiles two">
         <figure class="tile">
           <div class="tile-media">
             <img src="images/rbv-paper-icons.jpg" alt="A hand arranging paper cut-out icons in a row on a desk beside a laptop" width="1400" height="1050" loading="lazy">
@@ -790,6 +853,14 @@
     <h2 class="block-label">New</h2>
     <div class="block-body">
       <p class="block-lede">Chorus: headsets see better together.</p>
+      <div class="tiles single sketch">
+        <figure class="tile">
+          <div class="tile-media">
+            <img src="images/rbv-ball-sketch.jpg" alt="Ink sketch on an open palm: a real ball splitting into virtual copies, with the words Ball, Real, Fake and Occlusion" width="900" height="1200" loading="lazy">
+          </div>
+          <figcaption>Where it started.</figcaption>
+        </figure>
+      </div>
       <div class="tiles three">
         <figure class="tile">
           <div class="tile-media">
@@ -978,6 +1049,54 @@
         });
       }, { threshold: 0.25 });
       clips.forEach(function (v) { io.observe(v); });
+    })();
+
+    /* ─── OCCLUSION SWITCH ───
+       Shows one of the two iPad clips and its one-line note. Switching
+       restarts the shown clip from 0, because the walk-past is the whole
+       point and it happens a few seconds in. The visible clip plays only
+       while the frame is on screen; under reduced motion it never plays on
+       its own and gets controls, matching the clips above. */
+    (function () {
+      var stage = document.querySelector('.occ-stage');
+      if (!stage) return;
+      var vids = document.querySelectorAll('.occ-video');
+      var notes = document.querySelectorAll('.occ-note');
+      var btns = document.querySelectorAll('.occ-btn');
+      var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var onScreen = false;
+      var current = 'on';
+
+      function shown() { return stage.querySelector('.occ-video[data-occ="' + current + '"]'); }
+
+      function show(which) {
+        current = which;
+        vids.forEach(function (v) {
+          var on = v.dataset.occ === which;
+          v.hidden = !on;
+          if (!on) v.pause();
+          if (still) v.controls = true;
+        });
+        notes.forEach(function (n) { n.hidden = n.dataset.occ !== which; });
+        btns.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.occ === which ? 'true' : 'false'); });
+        var v = shown();
+        try { v.currentTime = 0; } catch (e) {}
+        if (onScreen && !still) v.play().catch(function () {});
+      }
+
+      btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.occ); }); });
+      if (still) vids.forEach(function (v) { v.controls = true; });
+
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          onScreen = entries[0].isIntersecting;
+          if (still) return;
+          if (onScreen) shown().play().catch(function () {});
+          else shown().pause();
+        }, { threshold: 0.25 }).observe(stage);
+      } else if (!still) {
+        onScreen = true; shown().play().catch(function () {});
+      }
     })();
   </script>
 </body>

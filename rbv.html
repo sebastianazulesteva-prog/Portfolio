@@ -36,9 +36,9 @@
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,600;1,700;1,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
 
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -48,14 +48,26 @@
     :root{
       --base-font-size: 17px;
       --white:#ffffff;
-      --panel:#f1ebff;
-      --panel-soft:#f8f4ff;
+      --wash:#eef2f8;
+      --wash-soft:#f6f8fb;
       --ink:#141414;
       --ink-soft:rgba(20,20,20,0.68);
       --ink-faint:rgba(20,20,20,0.5);
-      --accent:#6b2fe0;
+      --accent:#185fa5;
+      /* RBV's own palette, from HostPalette.cs in the Unity project (Floor,
+         Spiders, Puppy, Place, Avatars, Booth, the path gold, the panel). */
+      --rbv-floor:#185fa5;
+      --rbv-spiders:#18768c;
+      --rbv-puppy:#0f6e56;
+      --rbv-place:#ba7517;
+      --rbv-place-ink:#8c5414;
+      --rbv-avatars:#67388b;
+      --rbv-booth:#8a346e;
+      --rbv-plan:#ffc857;
+      --rbv-panel:#12141c;
+      --rbv-utility:#383d47;
       --gold:#e0a83e;
-      --sans:'Poppins', system-ui, sans-serif;
+      --sans:'Arimo', 'Liberation Sans', Arial, sans-serif;
     }
 
     html{font-size:var(--base-font-size);scroll-behavior:smooth}
@@ -113,9 +125,9 @@
          Borders/rules are deliberately NOT raised: they are decorative
          boundaries, not text, and 1.4.3 does not apply to them. */
       --ink-faint:rgba(20,20,20,0.62);
-      /* No accent override, unlike Slip Door: this page's violet (#6b2fe0)
-         was picked to clear 4.5:1 on every ground it sits on in the default
-         palette already, so accessible mode has nothing to raise. */
+      /* No accent override, unlike Slip Door: this page's accent is RBV's
+         Floor blue (#185fa5), which clears 4.5:1 on every ground it sits on
+         in the default palette already (white 6.4, --wash 5.7), so accessible mode has nothing to raise. */
 
       --sans:'Atkinson Hyperlegible', sans-serif;
       letter-spacing:0.01em;
@@ -216,7 +228,7 @@
       right:1.5rem;
       z-index:150;
       width:min(280px, calc(100vw - 3rem));
-      background:var(--panel-soft);
+      background:var(--wash-soft);
       border:2px solid var(--accent);
       border-radius:12px;
       padding:1rem 1.1rem;
@@ -279,7 +291,7 @@
       position:relative;
       border-radius:6px;
       overflow:hidden;
-      background:var(--panel-soft);
+      background:var(--wash-soft);
     }
 
     .hero-img-wrap img, .hero-img-wrap video{ width:100%; height:auto; display:block; }
@@ -328,11 +340,11 @@
       grid-template-columns:220px 1fr;
       gap:2.5rem;
       align-items:start;
-      background:var(--panel);
+      background:var(--wash);
       border-top:2px solid var(--white);
     }
 
-    .block:nth-of-type(odd){ background:var(--panel-soft); }
+    .block:nth-of-type(odd){ background:var(--wash-soft); }
 
     .block-label{
       /* margin:0 because these are <h2> now (they were <div>, which left the
@@ -674,7 +686,7 @@
       position:absolute; top:0.9rem; right:0.9rem;
       width:1.6rem; height:1.6rem; border-radius:50%;
       display:flex; align-items:center; justify-content:center;
-      background:var(--panel); color:var(--accent);
+      background:var(--wash); color:var(--accent);
       font-size:0.8rem; font-weight:800;
     }
     .step svg{ width:34px; height:34px; fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-bottom:0.7rem; }
@@ -684,7 +696,7 @@
        sits over it. One 4:3 shape so the row lines up. */
     .steps.media .step{ padding:0 0 1.1rem; overflow:hidden; }
     .steps.media .step::before{ z-index:2; background:var(--white); }
-    .steps.media .tile-media{ aspect-ratio:4/3; border-radius:0; margin-bottom:0.9rem; background:var(--panel-soft); }
+    .steps.media .tile-media{ aspect-ratio:4/3; border-radius:0; margin-bottom:0.9rem; background:var(--wash-soft); }
     .steps.media .tile-media img, .steps.media .tile-media video{ height:100%; object-fit:cover; }
     .steps.media .step-title, .steps.media .step-line{ padding:0 1.1rem; }
     /* The experience path step shows two phone screens side by side,
@@ -726,6 +738,77 @@
 
     .sub-label{ margin:2rem 0 0.75rem; font-size:1.05rem; font-weight:800; }
     .block-body > .sub-label:first-child{ margin-top:0; }
+
+    /* ═══ RBV LOOK ═══
+       He found the page "too similar to Slip Door": same fonts, same pill
+       buttons, one purple everywhere. This block makes it look like RBV
+       itself, without copying the headset UI wholesale:
+       - Type: Arimo, the metric twin of Liberation Sans, the one font
+         ADR-0003 allows in the headset.
+       - Color by meaning, from HostPalette: each contribution takes one
+         category color (01 Floor blue, 02 Place amber, 03 Puppy green), and
+         everything inside it (number, icons, pills, switch) follows. Text on
+         amber uses Caution, the darker amber, so it clears 4.5:1.
+       - Buttons: RBV's "style B", small rounded corners instead of pills,
+         and step icons sit in filled round bubbles like the control wheel.
+       - The path gold (#FFC857) marks Beta, as it marks "added to path".
+       - A segmented strip of category colors tops the story card, borrowed
+         from the frame around the plan builder's QR code. */
+    #reliable{ --cat:var(--rbv-floor); --cat-ink:var(--rbv-floor); }
+    #designed{ --cat:var(--rbv-place); --cat-ink:var(--rbv-place-ink); }
+    #new{ --cat:var(--rbv-puppy); --cat-ink:var(--rbv-puppy); }
+
+    .hero-title{ font-weight:700; letter-spacing:-0.03em; }
+    .hero-title em{ font-weight:700; color:var(--rbv-floor); }
+    .hero-img-wrap{ border-radius:10px; }
+
+    /* Site chrome and the VHIL link: style B corners, not pills. */
+    .back-link, .a11y-toggle, .back-bottom, .quick-link-mini{ border-radius:8px; }
+    .report-link{ border-radius:8px; background:var(--rbv-panel); }
+    .report-link:hover{ background:var(--rbv-floor); }
+
+    .story{ position:relative; overflow:hidden; border-radius:10px; box-shadow:0 12px 40px rgba(18,20,28,0.08); }
+    .story::before{
+      content:""; position:absolute; left:0; right:0; top:0; height:6px;
+      background:linear-gradient(90deg,
+        var(--rbv-puppy) 0 16%, var(--rbv-spiders) 16% 34%, var(--rbv-place) 34% 58%,
+        var(--rbv-avatars) 58% 74%, var(--rbv-booth) 74% 86%, var(--rbv-floor) 86% 100%);
+    }
+
+    .block{ background:var(--wash); }
+    .block:nth-of-type(odd){ background:var(--wash-soft); }
+    .block-label .num{
+      display:flex; align-items:center; justify-content:center;
+      width:2.2rem; height:2.2rem; margin-bottom:0.6rem; border-radius:50%;
+      background:var(--cat-ink); color:var(--white); font-size:0.85rem; letter-spacing:0;
+    }
+    .block-lede{ color:var(--cat-ink); }
+
+    .step{ border-radius:10px; border:1px solid rgba(18,20,28,0.06); }
+    .step::before{ background:var(--cat-ink); color:var(--white); }
+    .steps.media .step::before{ background:var(--cat-ink); }
+    .step svg{
+      box-sizing:content-box; width:26px; height:26px; padding:12px;
+      border-radius:50%; background:var(--cat); stroke:var(--white);
+    }
+
+    a.jump{ border:none; border-radius:6px; background:var(--rbv-floor); color:var(--white); padding:0.1rem 0.55rem; }
+    a.jump[href="#designed"], #designed a.jump{ background:var(--rbv-place-ink); }
+    a.jump[href="#new"], #new a.jump{ background:var(--rbv-puppy); }
+    a.jump:hover{ background:var(--rbv-panel); color:var(--white); }
+
+    .beta{ border:none; border-radius:5px; background:var(--rbv-plan); color:var(--rbv-panel); }
+
+    .tile-media{ border-radius:10px; }
+    .tile figcaption strong{ color:var(--cat-ink); }
+
+    /* The occlusion switch, dressed like RBV's floating host buttons:
+       rounded-rect fills with white text, gray when off, category color when
+       picked, with a check on the picked one. */
+    .occ-btn{ border:none; border-radius:7px; background:var(--rbv-utility); color:var(--white); padding:0.45rem 1rem; }
+    .occ-btn[aria-pressed="true"]{ background:var(--cat-ink); }
+    .occ-btn[aria-pressed="true"]::after{ content:" ✓"; }
+    .occ-label{ color:var(--cat-ink); }
   </style>
 </head>
 <body>

@@ -429,6 +429,19 @@
       position: relative;
     }
 
+    /* A link inside a bullet (the first is RBV, under VHIL). Nothing styled
+       one before, so it fell back to the browser's #0000ee on near-black.
+       Brighter than the bullet text with a quiet underline, matching the
+       .exp-company link above it rather than inventing a new accent. */
+    .exp-bullets a {
+      color: var(--text);
+      text-decoration: underline;
+      text-decoration-color: var(--muted);
+      text-underline-offset: 0.2em;
+    }
+
+    .exp-bullets a:hover { text-decoration-color: var(--text); }
+
     .exp-bullets li::before {
       content: '—';
       position: absolute;
@@ -548,7 +561,7 @@
       <a href="https://vhil.stanford.edu/" target="_blank" class="exp-company">Virtual Human Interaction Lab (VHIL)<span class="exp-company-arrow">↗</span></a>
       <ul class="exp-bullets">
         <li>Researched how virtual and augmented reality (VR/AR) shape human behavior, psychological processes, and real-world decision-making</li>
-        <li>Supported Virtual Reality Lab demo development and maintenance</li>
+        <li>Supported Virtual Reality Lab demo development and maintenance, including the <a href="rbv.html">Reality Becomes Virtual</a> mixed-reality tour</li>
         <li>Developed and executed customized components (via 3D printing) to enhance laboratory operations</li>
       </ul>
     </div>

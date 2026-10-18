@@ -647,18 +647,12 @@
        than its one-line caption; cap it. Three-up rows crop to one 4:3 shape
        so a portrait photo does not make its row ragged. */
     .tiles.single{ grid-template-columns:1fr; max-width:560px; }
-    .tiles.single.sketch{ max-width:320px; margin-bottom:1.5rem; }
-    .tiles.three .tile-media{ aspect-ratio:4/3; }
-    .tiles.three .tile-media img, .tiles.three .tile-media video{ height:100%; object-fit:cover; }
 
     /* Slip Door's 340px title column fits "Slip"; it does not fit
        "Becomes" at full size, which ran into the video. */
     .hero{ grid-template-columns:auto 1fr; }
     @media(max-width:768px){ .hero{ grid-template-columns:1fr; } }
 
-    .tiles.two{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
-    .tiles.two .tile-media{ aspect-ratio:1/1; }
-    .tiles.two .tile-media img{ height:100%; object-fit:cover; object-position:top; }
 
     /* ─── OCCLUSION SWITCH ─── a two-state pill above one video frame. */
     .occ{ max-width:560px; }
@@ -680,12 +674,37 @@
     .occ-stage video[hidden], .occ-note[hidden]{ display:none; }
     .occ-note{ margin-top:0.55rem; font-size:0.92rem!important; font-weight:600; }
 
-    /* ─── RELIABLE: three facts ─── */
-    .facts{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:1rem; }
-    .fact{ background:var(--white); border-radius:12px; padding:1.4rem 1.2rem; }
-    .fact svg{ width:34px; height:34px; fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-bottom:0.7rem; }
-    .fact-title{ font-size:1.2rem!important; font-weight:800!important; margin-bottom:0.15rem!important; }
-    .fact-line{ font-size:0.92rem!important; color:var(--ink-soft)!important; margin:0!important; }
+    /* ─── NUMBERED CONTRIBUTIONS ───
+       Each block label carries its number (01, 02, 03), and inside it the
+       work is an ordered row of white cards, numbered 1, 2, 3 by a CSS
+       counter, so the page reads as steps rather than a pile of media. */
+    .block-label .num{ display:block; font-size:0.9rem; font-weight:800; letter-spacing:0.08em; color:var(--accent); margin-bottom:0.35rem; }
+    .steps{ list-style:none; counter-reset:step; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; }
+    .step{ counter-increment:step; position:relative; background:var(--white); border-radius:12px; padding:1.3rem 1.2rem 1.2rem; }
+    .step::before{
+      content:counter(step);
+      position:absolute; top:0.9rem; right:0.9rem;
+      width:1.6rem; height:1.6rem; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      background:var(--panel); color:var(--accent);
+      font-size:0.8rem; font-weight:800;
+    }
+    .step svg{ width:34px; height:34px; fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-bottom:0.7rem; }
+    .step-title{ font-size:1.15rem!important; font-weight:800!important; margin-bottom:0.15rem!important; }
+    .step-line{ font-size:0.92rem!important; color:var(--ink-soft)!important; margin:0!important; }
+    /* Media steps: the picture fills the top of the card, the number badge
+       sits over it. One 4:3 shape so the row lines up. */
+    .steps.media .step{ padding:0 0 1.1rem; overflow:hidden; }
+    .steps.media .step::before{ z-index:2; background:var(--white); }
+    .steps.media .tile-media{ aspect-ratio:4/3; border-radius:0; margin-bottom:0.9rem; background:var(--panel-soft); }
+    .steps.media .tile-media img, .steps.media .tile-media video{ height:100%; object-fit:cover; }
+    .steps.media .step-title, .steps.media .step-line{ padding:0 1.1rem; }
+    /* The experience path step shows two phone screens side by side,
+       contained rather than cropped so the whole page and the QR read. */
+    .steps.media .tile-media.phone{ display:flex; justify-content:center; gap:0.6rem; padding:0.7rem; }
+    .steps.media .tile-media.phone img{ width:auto; height:100%; object-fit:contain; border-radius:8px; box-shadow:0 1px 6px rgba(20,20,20,0.12); }
+    .tiles.two-up{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+    .sub-label .beta, .step-title .beta{ margin-left:0.3rem; }
 
     .tiles + .tiles{ margin-top:1.5rem; }
     .sub-label{ margin:2rem 0 0.75rem; font-size:1.05rem; font-weight:800; }
@@ -718,21 +737,24 @@
     </div>
 
     <!-- ═══ HERO — the Disco beat ═══
-         Tour 11 of the 2026-10-18 tour demo, 8 s to 28 s: about ten seconds of
+         Tour 11 of the 2026-10-18 tour demo, 13 s to 35 s: a few seconds of
          the party going, then the host hits Pause and walks through the frozen
-         crowd for about ten more. 3.5 MB. Re-encoded to 848x478
-         H.264 with Swift AVFoundation (no ffmpeg on this Mac), no audio track.
-         MP4 only, no WebM: there is no WebM encoder available here, and every
-         current browser plays H.264. The same file loops on the index card. -->
+         crowd for the rest. He asked for "three or four seconds of the party,
+         then way longer walking through". 3.8 MB, 848x478 H.264 cut with Swift
+         AVFoundation (no ffmpeg on this Mac), no audio track. MP4 only: nothing
+         here encodes WebM, and every current browser plays H.264. -->
     <div class="hero-img-wrap">
-      <video class="rbv-video" aria-label="Inside the headset: a crowd of virtual dancers under disco balls and coloured light beams, in the real lab room" width="848" height="478" poster="images/rbv-disco-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
+      <video class="rbv-video" aria-label="Inside the headset: virtual dancers under disco balls and coloured light beams in the real lab room, then frozen mid-move as the host walks between them" width="848" height="478" poster="images/rbv-disco-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
         <source src="images/rbv-disco.mp4" type="video/mp4">
       </video>
     </div>
   </div>
 
-  <p class="hero-caption">A mixed-reality tour you take together. Up to six headsets, one room.</p>
-  <p class="hero-caption">Foundation built Summer 2026 by Emmanuel Corona, Noe Chicas-Aranda and Dina Kim Hashash, advised by Prof. Jeremy Bailenson, with support from the whole <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">VHIL</a> team. I joined in Autumn 2026 to make it reliable and build what's next.</p>
+  <!-- Credits in Slip Door's form: who builds it now, then where it came from.
+       The summer foundation was Emmanuel and Noé; Dina was not part of it.
+       Noé and Dina build it with him now. -->
+  <p class="hero-caption">By Sebastian Esteva, Noé Chicas-Aranda, Dina Kim Hashash</p>
+  <p class="hero-caption">Built on a foundation by Emmanuel Corona and Noé Chicas-Aranda, advised by Prof. Jeremy Bailenson, with support from the <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">VHIL</a> team. A mixed-reality tour for up to six headsets in one room.</p>
 
   <div class="link-bar">
     <a href="https://vhil.stanford.edu/" class="report-link" target="_blank" rel="noopener">
@@ -743,19 +765,131 @@
 
   <div style="height:3rem"></div>
 
-  <!-- Videos below the hero have no autoplay attribute: the script at the
-       bottom plays each one only while it is on screen, so a visitor who never
-       scrolls down never downloads them. -->
+  <!-- ═══ MY THREE CONTRIBUTIONS ═══
+       He asked for the page to stop being "willy-nilly": three numbered
+       contributions, each a short run of numbered steps, one idea per card.
+       Videos below the hero have no autoplay attribute: the script at the
+       bottom plays each one only while it is on screen. -->
+
   <div class="block">
-    <h2 class="block-label">Shared</h2>
+    <h2 class="block-label"><span class="num">01</span>Reliable</h2>
     <div class="block-body">
-      <p class="block-lede">RBV Camera: an iPad window into the tour.</p>
+      <p class="block-lede">As close to one button as possible.</p>
+      <ol class="steps">
+        <li class="step">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+          <p class="step-title">One click</p>
+          <p class="step-line">Host, sound and build start together.</p>
+        </li>
+        <li class="step">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
+          <p class="step-title">Auto end</p>
+          <p class="step-line">Tours end themselves. No headset left running.</p>
+        </li>
+        <li class="step">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
+          <p class="step-title">Live logs</p>
+          <p class="step-line">Every headset streams to the host. No cable.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2 class="block-label"><span class="num">02</span>Designed</h2>
+    <div class="block-body">
+      <p class="block-lede">One icon per action. Colour by meaning. No silent actions.</p>
+      <ol class="steps media">
+        <li class="step">
+          <div class="tile-media">
+            <img src="images/rbv-printouts.jpg" alt="Printed sheets of the host's control wheel in every state, spread on a desk and marked up by hand" width="1050" height="1400" loading="lazy">
+          </div>
+          <p class="step-title">Print</p>
+          <p class="step-line">Every state, on paper, marked up.</p>
+        </li>
+        <li class="step">
+          <div class="tile-media">
+            <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colours on the left, buttons with their own icons and colours by meaning on the right" width="1600" height="1591" loading="lazy">
+          </div>
+          <p class="step-title">Redesign</p>
+          <p class="step-line">Before, after.</p>
+        </li>
+        <li class="step">
+          <div class="tile-media phone">
+            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page on a phone: a tour named Lab tour with eight beats lined up at the top, chosen from rows of coloured icon buttons" width="390" height="844" loading="lazy">
+            <img src="images/rbv-plan-builder-qr.jpg" alt="The same page after Generate: a QR code for the Lab tour, ready for the host headset to scan" width="390" height="844" loading="lazy">
+          </div>
+          <p class="step-title">Experience path</p>
+          <p class="step-line">Plan the tour on a phone. The host headset scans it, then Next runs it.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="block">
+    <h2 class="block-label"><span class="num">03</span>New</h2>
+    <div class="block-body">
+      <p class="block-lede">Chorus: headsets see better together.</p>
+      <ol class="steps media">
+        <li class="step">
+          <div class="tile-media">
+            <img src="images/rbv-ball-sketch.jpg" alt="Ink sketch on an open palm: a real ball splitting into virtual copies, with the words Ball, Real, Fake and Occlusion" width="900" height="1200" loading="lazy">
+          </div>
+          <p class="step-title">Sketch</p>
+          <p class="step-line">Where it started.</p>
+        </li>
+        <li class="step">
+          <div class="tile-media">
+            <video class="rbv-video" aria-label="A real ball held in a hand, with a virtual ring locked onto it" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
+              <source src="images/rbv-ball.mp4" type="video/mp4">
+            </video>
+          </div>
+          <p class="step-title">Ball <span class="beta">Beta</span></p>
+          <p class="step-line">Tracked from every angle.</p>
+        </li>
+        <li class="step">
+          <div class="tile-media">
+            <video class="rbv-video" aria-label="Looking around the lab: white wireframe cubes fill the real chairs, tables and walls" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
+              <source src="images/rbv-room-objects.mp4" type="video/mp4">
+            </video>
+          </div>
+          <p class="step-title">Room objects <span class="beta">Beta</span></p>
+          <p class="step-line">The furniture, mapped together.</p>
+        </li>
+      </ol>
+
+      <!-- Old against new Dance troupe. Day 1 is 2:24 of the 10/13 two-headset
+           test, Day 3 the 10/18 moonwalk; really a few weeks apart, but about
+           two days of building, which is how he wants it labelled. Both are
+           cropped 17% off the top so the floating headset-ID label never
+           shows, and so the pair matches. -->
+      <h3 class="sub-label">Dance troupe <span class="beta">Beta</span></h3>
+      <div class="tiles two-up">
+        <figure class="tile">
+          <div class="tile-media">
+            <video class="rbv-video" aria-label="Day 1: avatar copies stand around a person in a headset and only roughly follow their kicks" width="848" height="396" loop muted playsinline disableRemotePlayback preload="none">
+              <source src="images/rbv-dance-troupe-day1.mp4" type="video/mp4">
+            </video>
+          </div>
+          <figcaption><strong>Day 1.</strong></figcaption>
+        </figure>
+        <figure class="tile">
+          <div class="tile-media">
+            <video class="rbv-video" aria-label="Day 3: avatar copies follow a person in a headset through a moonwalk" width="848" height="396" loop muted playsinline disableRemotePlayback preload="none">
+              <source src="images/rbv-dance-troupe.mp4" type="video/mp4">
+            </video>
+          </div>
+          <figcaption><strong>Day 3.</strong> Copies that follow you.</figcaption>
+        </figure>
+      </div>
+
       <!-- ═══ OCCLUSION ON / OFF ═══
            Two real iPad captures, same room, same angle, minutes apart on
            2026-10-06: someone walks past the virtual puppy with occlusion on
            (the legs hide it) and off (it is drawn over the legs). One switch
-           teaches the idea to someone who has never heard the word. Both clips sit in one frame; the switch shows
-           one and restarts it so the walk-past is never missed. -->
+           teaches the idea to someone who has never heard the word. -->
+      <h3 class="sub-label">RBV Camera</h3>
+      <p class="detail">An iPad window into the tour, so guests can watch and take a photo home.</p>
       <div class="occ">
         <div class="occ-switch" role="group" aria-label="Occlusion">
           <span class="occ-label">Occlusion</span>
@@ -773,122 +907,8 @@
         <p class="occ-note" data-occ="on">On: real people hide virtual things.</p>
         <p class="occ-note" data-occ="off" hidden>Off: the puppy floats in front of everyone.</p>
       </div>
-      <p class="detail" style="margin-top:1rem">So guests can watch, and take a photo home.</p>
-    </div>
-  </div>
 
-  <div class="block">
-    <h2 class="block-label">Reliable</h2>
-    <div class="block-body">
-      <p class="block-lede">As close to one button as possible.</p>
-      <!-- Three facts, no screenshots: the renders that were here were design
-           sheets, and they read as paperwork rather than as "it just works". -->
-      <div class="facts">
-        <div class="fact">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
-          <p class="fact-title">One click</p>
-          <p class="fact-line">Host, sound, build.</p>
-        </div>
-        <div class="fact">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
-          <p class="fact-title">Auto end</p>
-          <p class="fact-line">No headset left running.</p>
-        </div>
-        <div class="fact">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
-          <p class="fact-title">Live logs</p>
-          <p class="fact-line">Every headset. No cable.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="block">
-    <h2 class="block-label">Designed</h2>
-    <div class="block-body">
-      <p class="block-lede">One icon per action. Colour by meaning. No silent actions.</p>
-      <div class="tiles single">
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-printouts.jpg" alt="Printed sheets of the host's control wheel in every state, spread on a desk and marked up by hand" width="1050" height="1400" loading="lazy">
-          </div>
-          <figcaption>Printed, marked up, redrawn.</figcaption>
-        </figure>
-      </div>
-      <div class="tiles two">
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colours on the left, buttons with their own icons and colours by meaning on the right" width="1600" height="1591" loading="lazy">
-          </div>
-          <figcaption>Before, after.</figcaption>
-        </figure>
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-icons.jpg" alt="A grid of all 61 tour icons, white glyphs on dark, one per action" width="1400" height="1313" loading="lazy">
-          </div>
-          <figcaption>61 icons, one per action.</figcaption>
-        </figure>
-      </div>
-
-      <h3 class="sub-label">Experience path</h3>
-      <p class="detail">Line up the tour, then press Next.</p>
-      <div class="tiles two">
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-paper-icons.jpg" alt="A hand arranging paper cut-out icons in a row on a desk beside a laptop" width="1400" height="1050" loading="lazy">
-          </div>
-          <figcaption>Cut out.</figcaption>
-        </figure>
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-experience-path.jpg" alt="Four versions of the experience path prototype side by side, each with six tour beats lined up on a board" width="1600" height="960" loading="lazy">
-          </div>
-          <figcaption>Prototyped, four at a time.</figcaption>
-        </figure>
-      </div>
-    </div>
-  </div>
-
-  <div class="block">
-    <h2 class="block-label">New</h2>
-    <div class="block-body">
-      <p class="block-lede">Chorus: headsets see better together.</p>
-      <div class="tiles single sketch">
-        <figure class="tile">
-          <div class="tile-media">
-            <img src="images/rbv-ball-sketch.jpg" alt="Ink sketch on an open palm: a real ball splitting into virtual copies, with the words Ball, Real, Fake and Occlusion" width="900" height="1200" loading="lazy">
-          </div>
-          <figcaption>Where it started.</figcaption>
-        </figure>
-      </div>
-      <div class="tiles three">
-        <figure class="tile">
-          <div class="tile-media">
-            <video class="rbv-video" aria-label="A real ball held in a hand, with a virtual ring locked onto it" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
-              <source src="images/rbv-ball.mp4" type="video/mp4">
-            </video>
-          </div>
-          <figcaption><strong>Ball.</strong> Tracked from every angle.<span class="beta">Beta</span></figcaption>
-        </figure>
-        <figure class="tile">
-          <div class="tile-media">
-            <video class="rbv-video" aria-label="White wireframe cubes filling the real chairs and tables in the lab" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
-              <source src="images/rbv-room-objects.mp4" type="video/mp4">
-            </video>
-          </div>
-          <figcaption><strong>Room objects.</strong> Furniture, mapped together.<span class="beta">Beta</span></figcaption>
-        </figure>
-        <figure class="tile">
-          <div class="tile-media">
-            <video class="rbv-video" aria-label="A person in a headset moonwalking, with a circle of avatar copies mirroring the move" width="848" height="476" loop muted playsinline disableRemotePlayback preload="none">
-              <source src="images/rbv-dance-troupe.mp4" type="video/mp4">
-            </video>
-          </div>
-          <figcaption><strong>Dance troupe.</strong> Copies that follow you.<span class="beta">Beta</span></figcaption>
-        </figure>
-      </div>
-      <p class="detail" style="margin-top:1.25rem"><span class="accent">Body:</span> one skeleton from many views.<span class="beta">Beta</span></p>
-      <p class="detail">Built with Claude Code, for fast iteration.</p>
+      <p class="detail" style="margin-top:2rem">Built with Claude Code, for fast iteration.</p>
     </div>
   </div>
 

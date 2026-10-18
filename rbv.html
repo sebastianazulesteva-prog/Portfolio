@@ -587,18 +587,6 @@
        kept deliberately minimal; Sebastian expands it item by item. */
     .hero-caption a{ color:var(--accent); }
 
-    .status-pill{
-      display:inline-block;
-      margin-top:1rem;
-      padding:0.3rem 0.85rem;
-      border-radius:100px;
-      background:var(--accent);
-      color:var(--white);
-      font-size:0.7rem;
-      font-weight:700;
-      letter-spacing:0.08em;
-      text-transform:uppercase;
-    }
 
     .block-lede{ font-size:1.15rem!important; font-weight:700!important; }
 
@@ -707,6 +695,35 @@
     .sub-label .beta, .step-title .beta{ margin-left:0.3rem; }
 
     .tiles + .tiles{ margin-top:1.5rem; }
+    /* ─── META ROW + STORY ─── in loading.html's form: the who and what
+       facts in one ruled row, then his own account on a white card, with
+       jump pills down to the numbered section each sentence is about. */
+    .meta-row{ display:flex; flex-wrap:wrap; justify-content:center; max-width:1000px; margin:2.5rem auto; border-top:1px solid rgba(20,20,20,0.12); border-bottom:1px solid rgba(20,20,20,0.12); }
+    .meta-item{ flex:1; min-width:150px; padding:1.3rem 1rem; text-align:center; border-left:1px solid rgba(20,20,20,0.12); }
+    .meta-item:first-child{ border-left:none; }
+    .meta-item.wide{ flex:2; }
+    .meta-label{ font-size:0.65rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:0.45rem; }
+    .meta-value{ font-size:0.95rem; font-weight:600; line-height:1.4; }
+    /* The live dot, as on Loading: a red dot whose ring pulses outward.
+       Reduced motion stops the pulse; the solid dot stays. */
+    .live-dot{ position:relative; display:inline-block; width:0.55rem; height:0.55rem; margin-right:0.5rem; border-radius:50%; background:#d93a2b; vertical-align:0.08em; }
+    .live-dot::after{ content:""; position:absolute; inset:0; border-radius:50%; background:#d93a2b; animation:livePulse 1.8s ease-out infinite; }
+    @keyframes livePulse{ 0%{ transform:scale(1); opacity:0.6 } 100%{ transform:scale(2.6); opacity:0 } }
+    .story{ max-width:760px; margin:0 auto 1rem; padding:2.5rem 3rem; background:var(--white); border-radius:12px; box-shadow:0 12px 40px rgba(107,47,224,0.08); }
+    .story p, .prose p{ font-size:1.02rem; font-weight:400; line-height:1.75; color:var(--ink-soft); }
+    .story p + p{ margin-top:1rem; }
+    .prose{ max-width:680px; margin:0 0 1.5rem; }
+    .prose p{ margin-bottom:0.9rem; }
+    a.jump{ display:inline-block; margin-left:0.25rem; padding:0.02rem 0.6rem; border:1.5px solid var(--accent); border-radius:99px; font-size:0.7rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--accent); text-decoration:none; vertical-align:0.1em; line-height:1.6; transition:background 0.2s, color 0.2s; }
+    a.jump:hover{ background:var(--accent); color:var(--white); }
+    #reliable, #designed, #new, #experience-path, #sketch, #ball, #room{ scroll-margin-top:6.5rem; }
+    @media(max-width:768px){
+      .meta-row{ margin:2rem 1rem; }
+      .meta-item{ min-width:45%; padding:1rem 0.5rem; }
+      .meta-item:nth-child(3){ border-left:none; }
+      .story{ margin:0 1rem 1rem; padding:1.8rem 1.4rem; }
+    }
+
     .sub-label{ margin:2rem 0 0.75rem; font-size:1.05rem; font-weight:800; }
     .block-body > .sub-label:first-child{ margin-top:0; }
   </style>
@@ -733,7 +750,6 @@
   <div class="hero">
     <div>
       <h1 class="hero-title">Reality<br><em>Becomes</em><br>Virtual</h1>
-      <span class="status-pill">Ongoing</span>
     </div>
 
     <!-- ═══ HERO — the Disco beat ═══
@@ -744,7 +760,7 @@
          AVFoundation (no ffmpeg on this Mac), no audio track. MP4 only: nothing
          here encodes WebM, and every current browser plays H.264. -->
     <div class="hero-img-wrap">
-      <video class="rbv-video" aria-label="Inside the headset: virtual dancers under disco balls and coloured light beams in the real lab room, then frozen mid-move as the host walks between them" width="848" height="478" poster="images/rbv-disco-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
+      <video class="rbv-video" aria-label="Inside the headset: virtual dancers under disco balls and colored light beams in the real lab room, then frozen mid-move as the host walks between them" width="848" height="478" poster="images/rbv-disco-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
         <source src="images/rbv-disco.mp4" type="video/mp4">
       </video>
     </div>
@@ -753,8 +769,21 @@
   <!-- Credits in Slip Door's form: who builds it now, then where it came from.
        The summer foundation was Emmanuel and Noé; Dina was not part of it.
        Noé and Dina build it with him now. -->
-  <p class="hero-caption">By Sebastian Esteva, Noé Chicas-Aranda, Dina Kim Hashash</p>
-  <p class="hero-caption">Built on a foundation by Emmanuel Corona and Noé Chicas-Aranda, advised by Prof. Jeremy Bailenson, with support from the <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">VHIL</a> team. A mixed-reality tour for up to six headsets in one room.</p>
+  <!-- ═══ META ROW ═══ the who / what facts, in loading.html's form. -->
+  <div class="meta-row">
+    <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value"><span class="live-dot" aria-hidden="true"></span>Ongoing</div></div>
+    <div class="meta-item wide"><div class="meta-label">Team</div><div class="meta-value">Sebastian Esteva, Noé Chicas-Aranda, Dina Kim Hashash</div></div>
+    <div class="meta-item"><div class="meta-label">Platform</div><div class="meta-value">Meta Quest 3, iPad</div></div>
+    <div class="meta-item"><div class="meta-label">Built with</div><div class="meta-value">Unity, Claude Code</div></div>
+  </div>
+
+  <!-- ═══ STORY ═══ His own account, dictated and tightened; keep his voice
+       if editing. Each jump pill drops to the numbered section it names. -->
+  <div class="story">
+    <p>Prof. Jeremy Bailenson carried the idea for Reality Becomes Virtual in his head for many years, and this past summer he brought it to life with a wonderful team (Emmanuel Corona and Noé Chicas-Aranda). The idea: networked headsets in one room, creating a social way to experience virtual reality, and a glimpse of the augmented reality that is coming.</p>
+    <p>Every big tech company is working on the future of wearables. Meta's Ray-Bans are the most prominent example, with Snap's Spectacles and many more pushing the same way, and Apple rumored to have glasses of its own. He wanted an experience of what that future could be, backed by research on what to consider before it arrives.</p>
+    <p>Building from that foundation, I've been completely captivated by the project since I stepped in this school year. In the last four weeks I've focused on making it more reliable <a class="jump" href="#reliable">01 ↓</a>, polishing its design language <a class="jump" href="#designed">02 ↓</a>, and adding many new features <a class="jump" href="#new">03 ↓</a>.</p>
+  </div>
 
   <div class="link-bar">
     <a href="https://vhil.stanford.edu/" class="report-link" target="_blank" rel="noopener">
@@ -771,10 +800,14 @@
        Videos below the hero have no autoplay attribute: the script at the
        bottom plays each one only while it is on screen. -->
 
-  <div class="block">
+  <div class="block" id="reliable">
     <h2 class="block-label"><span class="num">01</span>Reliable</h2>
     <div class="block-body">
       <p class="block-lede">As close to one button as possible.</p>
+      <div class="prose">
+        <p>The original summer build needed tons of orchestrating to give a seamless experience. The team and I wanted a system robust enough to never fail silently.</p>
+        <p>So I built one click that starts the host, the sound system and the build. Running it from a computer also gave us a far more efficient log repository, streamed live from every headset. And a few creature comforts, like auto end: when someone takes off their headset for long enough, the tour ends itself, which keeps everything running reliably.</p>
+      </div>
       <ol class="steps">
         <li class="step">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
@@ -795,10 +828,14 @@
     </div>
   </div>
 
-  <div class="block">
+  <div class="block" id="designed">
     <h2 class="block-label"><span class="num">02</span>Designed</h2>
     <div class="block-body">
-      <p class="block-lede">One icon per action. Colour by meaning. No silent actions.</p>
+      <p class="block-lede">One icon per action. Color by meaning. No silent actions.</p>
+      <div class="prose">
+        <p>I went through the entire design language of the system, making simple, common-sense additions: every action gets its own icon, and the colors follow one consistent language. Every action the host takes now gives visual feedback on what others are experiencing, because in mixed reality you don't always know what others are seeing.</p>
+        <p>From there I designed a new way to control the tour, the experience path (working title). In the original system the host had to look down at their hands to set off each moment. Now you pre-program a path, in the headset or online, send it over with a QR code <a class="jump" href="#experience-path">See ↓</a>, and press one button, even with your hands behind your back while you talk with people. The host stays connected to the group, and a favorite path can be run again and again.</p>
+      </div>
       <ol class="steps media">
         <li class="step">
           <div class="tile-media">
@@ -809,14 +846,14 @@
         </li>
         <li class="step">
           <div class="tile-media">
-            <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colours on the left, buttons with their own icons and colours by meaning on the right" width="1600" height="1591" loading="lazy">
+            <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colors on the left, buttons with their own icons and colors by meaning on the right" width="1600" height="1591" loading="lazy">
           </div>
           <p class="step-title">Redesign</p>
           <p class="step-line">Before, after.</p>
         </li>
-        <li class="step">
+        <li class="step" id="experience-path">
           <div class="tile-media phone">
-            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page on a phone: a tour named Lab tour with eight beats lined up at the top, chosen from rows of coloured icon buttons" width="390" height="844" loading="lazy">
+            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page on a phone: a tour named Lab tour with eight beats lined up at the top, chosen from rows of colored icon buttons" width="390" height="844" loading="lazy">
             <img src="images/rbv-plan-builder-qr.jpg" alt="The same page after Generate: a QR code for the Lab tour, ready for the host headset to scan" width="390" height="844" loading="lazy">
           </div>
           <p class="step-title">Experience path</p>
@@ -826,19 +863,24 @@
     </div>
   </div>
 
-  <div class="block">
+  <div class="block" id="new">
     <h2 class="block-label"><span class="num">03</span>New</h2>
     <div class="block-body">
       <p class="block-lede">Chorus: headsets see better together.</p>
+      <div class="prose">
+        <p>What I'm most proud of lately is a foundational system with three pillars, built to be used by many other experiences. It started midway through class, when I sketched an idea on my hand <a class="jump" href="#sketch">Sketch ↓</a>: throw a real ball, and it splits into virtual balls, more every time the real one hits something.</p>
+        <p>The catch: object tracking isn't very good on these headsets. But from biomechanical engineering and body tracking, I knew multiple cameras give you lots and lots of data. And we already had them: several cameras, several angles, on people's heads, moving and networked. They just had to work together.</p>
+        <p>That's Chorus. Like a chorus, everyone works together to get better data and make something greater than any single headset. Its three pillars are tracking, starting with a ball <a class="jump" href="#ball">Ball ↓</a>, room, which finds the objects in a room and paints them <a class="jump" href="#room">Room ↓</a>, and body. If I look away from the ball and someone else is looking at it, we still know where it is. Little things like that are just the kernel of what's possible. Eventually the pillars can melt into one, and bring more of the real world into the virtual.</p>
+      </div>
       <ol class="steps media">
-        <li class="step">
+        <li class="step" id="sketch">
           <div class="tile-media">
             <img src="images/rbv-ball-sketch.jpg" alt="Ink sketch on an open palm: a real ball splitting into virtual copies, with the words Ball, Real, Fake and Occlusion" width="900" height="1200" loading="lazy">
           </div>
           <p class="step-title">Sketch</p>
           <p class="step-line">Where it started.</p>
         </li>
-        <li class="step">
+        <li class="step" id="ball">
           <div class="tile-media">
             <video class="rbv-video" aria-label="A real ball held in a hand, with a virtual ring locked onto it" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
               <source src="images/rbv-ball.mp4" type="video/mp4">
@@ -847,7 +889,7 @@
           <p class="step-title">Ball <span class="beta">Beta</span></p>
           <p class="step-line">Tracked from every angle.</p>
         </li>
-        <li class="step">
+        <li class="step" id="room">
           <div class="tile-media">
             <video class="rbv-video" aria-label="Looking around the lab: white wireframe cubes fill the real chairs, tables and walls" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
               <source src="images/rbv-room-objects.mp4" type="video/mp4">
@@ -864,6 +906,9 @@
            cropped 17% off the top so the floating headset-ID label never
            shows, and so the pair matches. -->
       <h3 class="sub-label">Dance troupe <span class="beta">Beta</span></h3>
+      <div class="prose">
+        <p>The Dance troupe is one example. Full-body tracking from a Quest's own cameras, legs and hands included, is impossible to keep consistent. With Chorus, the headsets people already wear help track each other, with no special equipment. We're only on iteration two, and you can already see the jump from Day 1 to Day 3.</p>
+      </div>
       <div class="tiles two-up">
         <figure class="tile">
           <div class="tile-media">
@@ -908,7 +953,6 @@
         <p class="occ-note" data-occ="off" hidden>Off: the puppy floats in front of everyone.</p>
       </div>
 
-      <p class="detail" style="margin-top:2rem">Built with Claude Code, for fast iteration.</p>
     </div>
   </div>
 
@@ -1042,7 +1086,7 @@
       });
     }
 
-    initA11yLineHighlight('.hero-title, .hero-caption, .block-label, .block-body p, .tile figcaption');
+    initA11yLineHighlight('.hero-title, .meta-value, .story p, .block-label, .block-body p, .tile figcaption');
 
     /* ─── CLIPS: PLAY ONLY WHILE ON SCREEN ───
        Five muted loops (~8 MB together) would all download at once if every

@@ -3974,6 +3974,16 @@ a screenshot instead of with trigonometry.
 The hole went from 49.9° of angular radius to **57.9°** — 2.24 → 2.95
 steradians, a third more sky.
 
+**Lower again — 34° → 33° (2026-10-18).** *"Make the opening up the sky appear
+even lower, cutting down all the way to basically a bit above my name."*
+Re-shot from the arrival spot at 34, 32, 30 and 28. At 32 the feathered edge
+already touches the tops of the capitals, and at 30 and below it runs through
+them. 34 left a full band of dark dome between the sky and the title. 33 puts
+the soft edge just over the letters, and that is as low as it goes without
+touching the name. The a11y worst case no longer applies here: `VRType.display()`
+grows only 0.21 → 0.214 in accessible mode, not ×1.25. Hole now
+**57°** of angular radius, 2.86 sr.
+
 Two knock-ons, both real:
 
 * **The cut no longer lands in `ZENITH_PLATEAU`.** At 0.2678 of the texture it
@@ -4331,9 +4341,15 @@ the roof following. The HUD ☀ pill is unchanged.
   `VRDome.setFloorHoles(list)` in world metres, rebuilt as a `ShapeGeometry`.
   A hole must lie **wholly inside** a disc: earcut cannot cut one that crosses
   the rim, so those are dropped with a warning. That is what fixes the
-  placement: 42° right of forward, 1.15 m out (the gap between the bio card's
-  edge at ~37° and the experience column at ~46°), and ≤ ~1.2 m on that bearing
-  keeps the pit inside the 1.3 m rug. It is `.hub-cluster`, and uncuts its hole
+  placement: 42° right of forward (the gap between the bio card's edge at ~37°
+  and the experience column at ~46°), and on that bearing the pit is either
+  inside the 1.3 m rug (≤ ~1.2 m out) or outside it (≥ ~1.93 m). It shipped at
+  1.15 m and Sebastian found it intruding on the middle of the room
+  (2026-10-18), so it is now **1.94 m out**, its hole 1.664 m from the rug's
+  centre against 1.3 + 0.328. "Half in, half out" is possible for the rim plate
+  only, never the hole. From there most visitors take hold of it with a ray, not
+  a hand, and the pull still works because it is driven by hand DISPLACEMENT,
+  not hand position. It is `.hub-cluster`, and uncuts its hole
   whenever it is hidden (a room or the reader), recutting on return.
 * **The pull.** In a headset the press is the session's own
   `selectstart`/`squeezestart`, hit-tested with xr-select's `rayFrom` and

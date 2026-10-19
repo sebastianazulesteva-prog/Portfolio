@@ -139,6 +139,14 @@
   //   grows upward with it. Clear there too, with room. If the title ever
   //   moves, re-shoot it — don't re-derive it. `?cut=<latitude>` is the knob.
   //
+  //   33 since 2026-10-18: "make the opening even lower, cutting down all the
+  //   way to basically a bit above my name". Re-shot from the arrival spot at
+  //   34, 32, 30 and 28: at 32 the feathered edge already touches the tops of
+  //   the capitals, at 30 and below it runs through them, and 34 left a full
+  //   band of dark dome between sky and title. 33 puts the soft edge just over
+  //   the letters. (The display size only grows 0.21 → 0.214 in a11yMode, so
+  //   the accessible title is no taller in any way that matters here.)
+  //
   // Two consequences of coming down from 41.81°, both real:
   //
   //   * The cut used to land INSIDE ZENITH_PLATEAU (0.222 → latitude 40°),
@@ -162,7 +170,7 @@
   // The material below is transparent and depth-free for this: it is now the
   // MASK over skylight.js's daylight layer, not an opaque backdrop. See the
   // paint-order note in skylight.js's build() for the full chain.
-  var CUT_LATITUDE_DEG = 34;
+  var CUT_LATITUDE_DEG = 33;
   var CUT_FRAC = (90 - CUT_LATITUDE_DEG) / 180;
   var CUT_FEATHER = 0.013;   // ×180° = 2.4° of softness on the cut edge
 

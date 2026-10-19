@@ -49,7 +49,7 @@
     button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
 
     /* ─── PALETTE ───
-       Taken from the app icon (images/loading-icon.jpg): cream paper, navy
+       Taken from the app icon (images/loading-icon-back.jpg and -front.png): cream paper, navy
        wire, copper hub. Every colour on the page comes from here. */
     :root{
       --base-font-size: 17px;
@@ -170,7 +170,19 @@
 
     .hero-shot{ position:relative; max-width:880px; margin:3rem auto 0; padding:0 3rem; }
     .hero-shot img.plate{ width:100%; height:auto; display:block; border-radius:6px; box-shadow:0 30px 60px rgba(29,40,80,0.22); }
-    .seal{ position:absolute; width:6.5rem; height:6.5rem; border-radius:50%; right:1.5rem; top:-2.5rem; border:3px solid var(--paper); box-shadow:0 10px 30px rgba(29,40,80,0.2); }
+    .seal{ position:absolute; width:6.5rem; height:6.5rem; border-radius:50%; right:1.5rem; top:-2.5rem; border:3px solid var(--paper); box-shadow:0 10px 30px rgba(29,40,80,0.2); overflow:hidden; z-index:2;
+      --rx:0deg; --ry:0deg; --px:0; --py:0; --lift:0;
+      transform:perspective(420px) rotateX(var(--rx)) rotateY(var(--ry)) scale(calc(1 + var(--lift) * 0.1));
+      transition:transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease; }
+    .seal img{ position:absolute; inset:0; width:100%; height:100%; display:block; transition:transform 0.5s cubic-bezier(0.22,1,0.36,1), filter 0.5s ease; }
+    /* Parallax: the paper drifts a little against the pointer, the spiral
+       a lot with it, and the spiral grows and casts a shadow as it lifts. */
+    .seal-back{ transform:translate(calc(var(--px) * -2px), calc(var(--py) * -2px)) scale(1.06); }
+    .seal-front{ transform:translate(calc(var(--px) * 5px), calc(var(--py) * 5px)) scale(calc(1 + var(--lift) * 0.06)); filter:drop-shadow(0 calc(var(--lift) * 4px) calc(var(--lift) * 5px) rgba(14,20,40,0.35)); }
+    .seal-sheen{ position:absolute; inset:0; border-radius:50%; pointer-events:none; opacity:var(--lift); transition:opacity 0.5s ease;
+      background:radial-gradient(circle at calc(50% + var(--px) * 30%) calc(40% + var(--py) * 30%), rgba(255,255,255,0.45), rgba(255,255,255,0) 55%); mix-blend-mode:soft-light; }
+    .seal.is-looking{ box-shadow:0 18px 40px rgba(29,40,80,0.32); }
+    .seal.is-looking, .seal.is-looking img{ transition-duration:0.18s; }
 
     /* ─── STORY ─── the short description, as on pendant.html. */
     .story{ max-width:760px; margin:0 auto 4rem; padding:3rem 3.5rem; background:#fffdf8; border-radius:6px; box-shadow:0 12px 40px rgba(29,40,80,0.08); }
@@ -477,7 +489,15 @@
 
     <figure class="hero-shot">
       <img class="plate" src="images/loading-headset-gold.jpg" alt="Seen through the headset at night: a gold web of spheres and lines radiating from one bright node across a dark attic room, with a blue web around it and the search window floating to the left" width="1600" height="900">
-      <img class="seal" src="images/loading-icon.jpg" alt="The app icon: navy wire spirals and small cream, blue and copper beads orbiting a copper hub, on cream paper" width="360" height="360">
+      <!-- ✎ EASTER EGG. The app icon is built as a visionOS layered icon
+           (Back: cream paper; Front: the spiral), and here it moves the way
+           it does on the headset when you look at it: it lifts, tilts
+           toward you, and the spiral floats off the paper. -->
+      <div class="seal" id="seal" role="img" aria-label="The Loading app icon: navy wire spirals and small cream, blue and copper beads orbiting a copper hub, on cream paper">
+        <img class="seal-back" src="images/loading-icon-back.jpg" alt="" width="360" height="360">
+        <img class="seal-front" src="images/loading-icon-front.png" alt="" width="360" height="360">
+        <span class="seal-sheen" aria-hidden="true"></span>
+      </div>
       <figcaption>In the headset.</figcaption>
     </figure>
 
@@ -856,6 +876,39 @@
         a.addEventListener('click', hide);
       });
       window.addEventListener('scroll', function () { if (current) hide(); }, { passive: true });
+    })();
+
+    /* ═══ THE ICON, LOOKED AT ═══ the visionOS hover lift for the seal. The
+       pointer's position over it drives the tilt and the layer parallax;
+       leaving eases it back. A tap on a touch screen gives one short lift.
+       Off entirely under reduced motion. */
+    (function () {
+      var seal = document.getElementById('seal');
+      if (!seal || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+      function set(px, py, lift) {
+        seal.style.setProperty('--px', px.toFixed(3));
+        seal.style.setProperty('--py', py.toFixed(3));
+        seal.style.setProperty('--rx', (-py * 12).toFixed(2) + 'deg');
+        seal.style.setProperty('--ry', (px * 12).toFixed(2) + 'deg');
+        seal.style.setProperty('--lift', lift);
+      }
+      seal.addEventListener('pointermove', function (e) {
+        if (e.pointerType === 'touch') return;
+        var r = seal.getBoundingClientRect();
+        var px = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1));
+        var py = Math.max(-1, Math.min(1, (e.clientY - r.top) / r.height * 2 - 1));
+        seal.classList.add('is-looking');
+        set(px, py, 1);
+      });
+      seal.addEventListener('pointerleave', function () {
+        seal.classList.remove('is-looking');
+        set(0, 0, 0);
+      });
+      seal.addEventListener('pointerdown', function (e) {
+        if (e.pointerType !== 'touch') return;
+        set(0.35, -0.35, 1);
+        setTimeout(function () { set(0, 0, 0); }, 700);
+      });
     })();
 
     /* ═══ CARD PICKER ═══ a plain WAI-ARIA tablist: click or arrow keys. */

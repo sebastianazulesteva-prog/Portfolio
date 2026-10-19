@@ -819,8 +819,13 @@
        text. Each button carries the Menu's checkbox square: an outline
        when off, a white tile with a check when picked, as on the floating
        Spider button. Unpicked buttons take the Utility gray. */
-    .occ-switch{ display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.55rem 0.5rem 0.9rem; border-radius:12px; background:var(--rbv-panel); box-shadow:0 6px 18px rgba(18,20,28,0.18); }
-    .occ-switch .occ-label{ color:#b8c2d6; margin-right:0.45rem; }
+    /* Light backdrop, by request: a white panel instead of the headset's
+       dark one. The unpicked button turns light to match, with dark text
+       and a dark checkbox outline; picked ones keep their green or red. */
+    .occ-switch{ display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.55rem 0.5rem 0.9rem; border-radius:12px; background:var(--white); box-shadow:0 0 0 1px rgba(18,20,28,0.08), 0 6px 18px rgba(18,20,28,0.08); }
+    .occ-switch .occ-label{ color:var(--ink-soft); margin-right:0.45rem; }
+    .occ-btn[aria-pressed="false"]{ background:#e9ecf2; color:var(--ink); box-shadow:inset 0 0 0 1px rgba(18,20,28,0.1); }
+    .occ-btn[aria-pressed="false"]::before{ box-shadow:inset 0 0 0 2px var(--ink); }
     .occ-btn{ display:inline-flex; align-items:center; gap:0.55rem; height:2.5rem; padding:0 0.8rem 0 1rem; border-radius:0.4rem; background:var(--rbv-utility); color:#fff; font-size:0.95rem; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08); }
     .occ-btn[aria-pressed="true"]::after{ content:none; }
     .occ-btn::before{ content:""; order:2; width:1.15rem; height:1.15rem; border-radius:0.25rem; box-shadow:inset 0 0 0 2px #fff; box-sizing:border-box; }

@@ -285,7 +285,7 @@
     .phase-steps{ list-style:none; display:grid; gap:0.45rem; }
     .phase-steps li, .chapter .phase-note{ display:flex; gap:0.5rem; align-items:flex-start; font-size:0.85rem; line-height:1.5; color:var(--ink-soft); }
     .phase-steps li .ico-s, .phase-note .ico-s{ margin-top:0.15rem; }
-    .granola{ display:inline-flex; }
+    .granola{ flex:none; width:1.25rem; height:1.25rem; border-radius:4px; margin-top:0.05rem; }
     .phase-arrow{ align-self:center; font-size:1.4rem; color:var(--copper); }
     .cycle-return{ position:absolute; left:0; right:0; bottom:0.6rem; width:100%; height:2.6rem; overflow:visible; }
     .cycle-return path{ fill:none; stroke:var(--copper); stroke-width:2; stroke-dasharray:7 7; vector-effect:non-scaling-stroke; animation:cycFlow 2.4s linear infinite reverse; }
@@ -568,8 +568,7 @@
 
         <!-- The cycle: three phases in a loop, the first holding three steps
              of its own. Icons are drawn inline in the page's ink.
-             ✎ GRANOLA: the mic in step 2 is a stand-in until he drops the
-             Granola mark into loading-portfolio/footage/. -->
+             Step 2 carries the Granola app mark, supplied by him. -->
         <div class="cycle">
           <div class="phase">
             <div class="phase-head"><span class="phase-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span><span class="phase-no">1</span></div>
@@ -584,7 +583,7 @@
           <div class="phase">
             <div class="phase-head"><span class="phase-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5C3 8.6 4.6 7 6.5 7h11C19.4 7 21 8.6 21 10.5v2c0 1.9-1.6 3.5-3.5 3.5h-2l-1.6-1.8a2.5 2.5 0 0 0-3.8 0L8.5 16h-2A3.5 3.5 0 0 1 3 12.5v-2z"/></svg></span><span class="phase-no">2</span></div>
             <h4>Build on the headset</h4>
-            <p class="phase-note"><span class="granola"><svg class="ico-s" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span>Granola records every comment while I use it.</p>
+            <p class="phase-note"><img class="granola" src="images/loading-granola.png" alt="Granola" width="96" height="96">Granola records every comment while I use it.</p>
           </div>
           <span class="phase-arrow" aria-hidden="true">→</span>
           <div class="phase">

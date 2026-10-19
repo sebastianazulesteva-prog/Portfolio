@@ -263,7 +263,7 @@
        inward so they never spill past the column. */
     .docs{ margin-top:2.4rem; }
     .docs-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; align-items:center; }
-    .doc{ position:relative; z-index:1; margin:0; padding:0.4rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.3s ease, box-shadow 0.3s ease; cursor:zoom-in; outline:none; }
+    .doc{ position:relative; z-index:1; margin:0; padding:0.4rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.7s cubic-bezier(0.22,1,0.36,1), box-shadow 0.7s ease; cursor:zoom-in; outline:none; }
     .doc:hover, .doc:focus{ z-index:10; transform:rotate(0deg) scale(1.9); box-shadow:0 24px 60px rgba(29,40,80,0.3); }
     .doc:first-child{ transform-origin:left center; }
     .doc:last-child{ transform-origin:right center; }
@@ -512,7 +512,6 @@
           <video class="lazy-video" aria-label="Clip from the Curiosity Engine concept video: a hand presses a red Enter Deep Exploration button on the floor, the room dims, and web pages and pictures about Squishmallows float around a plush toy" width="1280" height="720" muted loop playsinline disableRemotePlayback preload="none" poster="images/loading-concept-poster.jpg">
             <source src="images/loading-concept.mp4" type="video/mp4">
           </video>
-          <figcaption>Concept video, 2025.</figcaption>
         </figure>
         <!-- ═══ CLASS DOCS ═══ crops of his two Virtual People assignments (the
              design document and the implementation plan), shown as rough
@@ -523,7 +522,7 @@
             <figure class="doc" tabindex="0" style="--tilt:-0.8deg"><img src="images/loading-doc-library.jpg" alt="Design document, rationale: the library, where the book next to the one you wanted covers the very thing you were looking for, and books joined by lines to the ones they reference" width="923" height="490" loading="lazy"></figure>
             <figure class="doc" tabindex="0" style="--tilt:1.6deg"><img src="images/loading-doc-ethics.jpg" alt="Implementation plan, ethical considerations: privacy of a scanned room, whose data a stored object is, and systemic connection bias" width="923" height="540" loading="lazy"></figure>
           </div>
-          <p class="docs-caption">Rough thinking from the class: a design document and an implementation plan, typos and all.</p>
+          <p class="docs-caption">The concept video and rough drafts of my thinking for the project, all from way back in fall 2025.</p>
         </div>
       </div>
     </section>

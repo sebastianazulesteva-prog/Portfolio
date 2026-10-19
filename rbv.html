@@ -908,13 +908,17 @@
     /* Auto end takes the red of its own countdown card in the headset
        (HostPalette.Destructive, #a32d2d). */
     #reliable .step.red{ --cat:#a32d2d; --cat-ink:#a32d2d; }
-    #reliable .steps{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    #reliable .steps{ grid-template-columns:minmax(0,1fr); }
+    .now-does{ list-style:none; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0.8rem; margin:0.2rem 0 0; grid-column:2; }
+    .now-does li{ padding:0.8rem 0.9rem; border-radius:10px; background:var(--wash-soft); font-size:0.85rem; line-height:1.5; color:var(--ink-soft); }
+    .now-does b{ display:block; color:var(--cat-ink); font-weight:800; margin-bottom:0.15rem; }
     #experience-path .tile-media img{ object-position:left top; }
     @media(max-width:768px){
       .startup-row{ grid-template-columns:1fr; gap:0.4rem; }
       .startup-tag{ padding-top:0; }
       .flow li{ width:4.8rem; font-size:0.72rem; }
       .flow li + li::after{ display:none; }
+      .now-does{ grid-template-columns:minmax(0,1fr); grid-column:1; }
       #reliable .steps{ grid-template-columns:minmax(0,1fr); }
     }
   </style>
@@ -1008,8 +1012,8 @@
             <div class="startup-row">
               <span class="startup-tag">Before</span>
               <ol class="flow">
-                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg></span>Open Max, the sound manager</li>
-                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg></span>Find the auralizer, turn sound on</li>
+                <li><img class="app" src="images/rbv-logo-max.png" alt="" width="96" height="96">Open Max, the sound manager</li>
+                <li><img class="app" src="images/rbv-logo-max.png" alt="" width="96" height="96">Find the auralizer, turn sound on</li>
                 <li><img class="app" src="images/rbv-logo-unity-hub.png" alt="" width="128" height="128">Open Unity Hub</li>
                 <li><img class="app" src="images/rbv-logo-unity.png" alt="" width="128" height="128">Open the project</li>
                 <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9.5a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 9.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-2-2.2h-3L8.5 16h-3A2.5 2.5 0 0 1 3 13.5z"/></svg></span>Start the host in the headset</li>
@@ -1021,6 +1025,13 @@
               <ol class="flow">
                 <li><img class="app" src="images/rbv-logo-start-rbv.png" alt="" width="160" height="160">Hit Start RBV.</li>
               </ol>
+              <!-- Never fails silently, folded in here by request: what the
+                   one button does now that the old way never did. -->
+              <ul class="now-does">
+                <li><b>Guides you through errors.</b> It checks every piece, stops and says what is wrong, like "Auralizer not listening".</li>
+                <li><b>Records every tour.</b> A saved log of everything the room fires, one file per run. That did not exist before.</li>
+                <li><b>Live logs from every headset.</b> Errors in one place mean every system gets built faster: in Chorus, the log showed where each frame's time went, so three passes became one.</li>
+              </ul>
             </div>
           </div>
         </li>
@@ -1028,11 +1039,6 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
           <p class="step-title">Auto end</p>
           <p class="step-line">The headset's sensors end the tour on their own.</p>
-        </li>
-        <li class="step">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
-          <p class="step-title">Never fails silently</p>
-          <p class="step-line">Live logs from every headset, gathered in one place, so every system now gets built far faster. In Chorus, the log showed where each frame's time went, step by step, so three passes became one.</p>
         </li>
       </ol>
     </div>

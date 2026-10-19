@@ -809,6 +809,34 @@
     .occ-btn[aria-pressed="true"]{ background:var(--cat-ink); }
     .occ-btn[aria-pressed="true"]::after{ content:" ✓"; }
     .occ-label{ color:var(--cat-ink); }
+
+    /* ─── HOVER TO SEE IT ALL ───
+       The Designed cards crop to one 4:3 shape so the row lines up; hovering
+       (or focusing, for the keyboard) shows the whole picture instead. */
+    .steps.peekable .step{ cursor:zoom-in; }
+    .steps.peekable .tile-media img{ transition:transform 0.3s ease; }
+    .steps.peekable .step:hover .tile-media img,
+    .steps.peekable .step:focus-visible .tile-media img{ object-fit:contain; background:var(--rbv-panel); }
+
+    /* ─── CHORUS: the palm sketch floats top right, text wraps around it. */
+    .prose.chorus::after{ content:""; display:block; clear:both; }
+    .sketch-float{ float:right; width:210px; margin:0.3rem 0 1rem 1.6rem; }
+    .sketch-float img{ width:100%; height:auto; display:block; border-radius:10px; }
+    .sketch-float figcaption{ margin-top:0.4rem; font-size:0.8rem; font-weight:700; color:var(--cat-ink); }
+    .steps.media.pair{ max-width:720px; }
+
+    /* ─── COMPACT: Dance troupe pair and RBV Camera pair. */
+    .tiles.two-up{ max-width:720px; }
+    .cam-pair{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1rem; max-width:720px; align-items:start; }
+    .cam-pair .occ{ order:-1; max-width:none; }
+    .block-body{ min-width:0; }
+    .cam-photo{ margin-top:2.93rem; }
+    .cam-photo figcaption{ margin-top:0.55rem; font-size:0.92rem; font-weight:600; }
+    @media(max-width:768px){
+      .sketch-float{ width:130px; margin-left:1rem; }
+      .cam-pair{ grid-template-columns:minmax(0,1fr); }
+      .cam-photo{ margin-top:0; }
+    }
   </style>
 </head>
 <body>
@@ -864,19 +892,15 @@
   <!-- ═══ STORY ═══ His own account, dictated and tightened; keep his voice
        if editing. Each jump pill drops to the numbered section it names. -->
   <div class="story">
-    <p>Prof. Jeremy Bailenson carried the idea for Reality Becomes Virtual in his head for many years, and this past summer he brought it to life with a wonderful team (Emmanuel Corona and Noé Chicas-Aranda). The idea: networked headsets in one room, creating a social way to experience virtual reality, and a glimpse of the augmented reality that is coming.</p>
-    <p>Every big tech company is working on the future of wearables. Meta's Ray-Bans are the most prominent example, with Snap's Spectacles and many more pushing the same way, and Apple rumored to have glasses of its own. He wanted an experience of what that future could be, backed by research on what to consider before it arrives.</p>
-    <p>Building from that foundation, I've been completely captivated by the project since I stepped in this school year. In the last four weeks I've focused on making it more reliable <a class="jump" href="#reliable">01 ↓</a>, polishing its design language <a class="jump" href="#designed">02 ↓</a>, and adding many new features <a class="jump" href="#new">03 ↓</a>.</p>
+    <!-- The VHIL link lives in the sentence now; the separate black button
+         under the card was removed by request. "Virtual Becomes Reality"
+         links to its Steam page, the lab's 2021 app of its in-person tour. -->
+    <p>Dr. Jeremy Bailenson had the idea for Reality Becomes Virtual (the sequel to <a href="https://store.steampowered.com/app/1658530/" target="_blank" rel="noopener">Virtual Becomes Reality</a>) for many years, and this past summer it came to life with a wonderful team from the <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">Virtual Human Interaction Lab</a> (Emmanuel Corona and Noé Chicas-Aranda).</p>
+    <p>The idea: networked headsets creating a social way to get a glimpse at the augmented reality that is coming. It is a glimpse at the full-fledged future that technology like Meta's Ray-Bans and Snap's Spectacles is showing us, as every tech company sees smart glasses and other wearables as part of what's next.</p>
+    <p>Building from the foundation Dr. Bailenson envisioned and built, I've been completely captivated by this project, working deep into the night on many different parts of it: starting with making it more reliable <a class="jump" href="#reliable">01 ↓</a>, polishing its design language <a class="jump" href="#designed">02 ↓</a>, and adding many new features <a class="jump" href="#new">03 ↓</a>.</p>
   </div>
 
-  <div class="link-bar">
-    <a href="https://vhil.stanford.edu/" class="report-link" target="_blank" rel="noopener">
-      <span>Virtual Human Interaction Lab</span>
-      <span class="arrow">↗</span>
-    </a>
-  </div>
-
-  <div style="height:3rem"></div>
+  <div style="height:3.5rem"></div>
 
   <!-- ═══ MY THREE CONTRIBUTIONS ═══
        He asked for the page to stop being "willy-nilly": three numbered
@@ -887,26 +911,25 @@
   <div class="block" id="reliable">
     <h2 class="block-label"><span class="num">01</span>Reliable</h2>
     <div class="block-body">
-      <p class="block-lede">As close to one button as possible.</p>
       <div class="prose">
-        <p>The original summer build needed tons of orchestrating to give a seamless experience. The team and I wanted a system robust enough to never fail silently.</p>
-        <p>So I built one click that starts the host, the sound system and the build. Running it from a computer also gave us a far more efficient log repository, streamed live from every headset. And a few creature comforts, like auto end: when someone takes off their headset for long enough, the tour ends itself, which keeps everything running reliably.</p>
+        <p>The original summer build needed tons of orchestrating to give a seamless experience. So our first order of business was to make it as close to one button as possible, robust to user error, and sure to never fail silently.</p>
+        <p>The sound system now starts with one click instead of five. With a reliable desktop app in place, we could stream live logs from every headset, which made for more reliable builds afterward. And simple things keep it robust to user error, like an automatic end sequence that uses the headset's sensors to end a tour on its own.</p>
       </div>
       <ol class="steps">
         <li class="step">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
           <p class="step-title">One click</p>
-          <p class="step-line">Host, sound and build start together.</p>
+          <p class="step-line">The sound system, in one click instead of five.</p>
         </li>
         <li class="step">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
           <p class="step-title">Auto end</p>
-          <p class="step-line">Tours end themselves. No headset left running.</p>
+          <p class="step-line">The headset's sensors end the tour on their own.</p>
         </li>
         <li class="step">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
           <p class="step-title">Live logs</p>
-          <p class="step-line">Every headset streams to the host. No cable.</p>
+          <p class="step-line">From every headset, streamed live. No cable.</p>
         </li>
       </ol>
     </div>
@@ -920,28 +943,27 @@
         <p>I went through the entire design language of the system, making simple, common-sense additions: every action gets its own icon, and the colors follow one consistent language. Every action the host takes now gives visual feedback on what others are experiencing, because in mixed reality you don't always know what others are seeing.</p>
         <p>From there I designed a new way to control the tour, the experience path (working title). In the original system the host had to look down at their hands to set off each moment. Now you pre-program a path, in the headset or online, send it over with a QR code <a class="jump" href="#experience-path">See ↓</a>, and press one button, even with your hands behind your back while you talk with people. The host stays connected to the group, and a favorite path can be run again and again.</p>
       </div>
-      <ol class="steps media">
-        <li class="step">
+      <ol class="steps media peekable">
+        <li class="step" tabindex="0">
           <div class="tile-media">
             <img src="images/rbv-printouts.jpg" alt="Printed sheets of the host's control wheel in every state, spread on a desk and marked up by hand" width="1050" height="1400" loading="lazy">
           </div>
           <p class="step-title">Print</p>
           <p class="step-line">Every state, on paper, marked up.</p>
         </li>
-        <li class="step">
+        <li class="step" tabindex="0">
           <div class="tile-media">
             <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colors on the left, buttons with their own icons and colors by meaning on the right" width="1600" height="1591" loading="lazy">
           </div>
           <p class="step-title">Redesign</p>
           <p class="step-line">Before, after.</p>
         </li>
-        <li class="step" id="experience-path">
-          <div class="tile-media phone">
-            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page on a phone: a tour named Lab tour with eight beats lined up at the top, chosen from rows of colored icon buttons" width="390" height="844" loading="lazy">
-            <img src="images/rbv-plan-builder-qr.jpg" alt="The same page after Generate: a QR code for the Lab tour, ready for the host headset to scan" width="390" height="844" loading="lazy">
+        <li class="step" id="experience-path" tabindex="0">
+          <div class="tile-media">
+            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page: rows of colored icon buttons for every tour moment on the left, and a tour named Lab tour with eight moments lined up on the right" width="1280" height="800" loading="lazy">
           </div>
           <p class="step-title">Experience path</p>
-          <p class="step-line">Plan the tour on a phone. The host headset scans it, then Next runs it.</p>
+          <p class="step-line">Plan the tour online. The host headset scans it, then Next runs it.</p>
         </li>
       </ol>
     </div>
@@ -951,19 +973,18 @@
     <h2 class="block-label"><span class="num">03</span>New</h2>
     <div class="block-body">
       <p class="block-lede">Chorus: headsets see better together.</p>
-      <div class="prose">
-        <p>What I'm most proud of lately is a foundational system with three pillars, built to be used by many other experiences. It started midway through class, when I sketched an idea on my hand <a class="jump" href="#sketch">Sketch ↓</a>: throw a real ball, and it splits into virtual balls, more every time the real one hits something.</p>
+      <div class="prose chorus">
+        <!-- The palm sketch floats in the paragraph's top right and the text
+             wraps around it, by request; it is no longer a card or a link. -->
+        <figure class="sketch-float">
+          <img src="images/rbv-ball-sketch.jpg" alt="Ink sketch on an open palm: a real ball splitting into virtual copies, with the words Ball, Real, Fake and Occlusion" width="900" height="1200" loading="lazy">
+          <figcaption>Where it started.</figcaption>
+        </figure>
+        <p>What I'm most proud of lately is a foundational system with three pillars, being built to be used by many other experiences. It started midway through class, when I sketched an idea on my hand: throw a real ball, and it splits into virtual balls, more every time the real one hits something.</p>
         <p>The catch: object tracking isn't very good on these headsets. But from biomechanical engineering and body tracking, I knew multiple cameras give you lots and lots of data. And we already had them: several cameras, several angles, on people's heads, moving and networked. They just had to work together.</p>
         <p>That's Chorus. Like a chorus, everyone works together to get better data and make something greater than any single headset. Its three pillars are tracking, starting with a ball <a class="jump" href="#ball">Ball ↓</a>, room, which finds the objects in a room and paints them <a class="jump" href="#room">Room ↓</a>, and body. If I look away from the ball and someone else is looking at it, we still know where it is. Little things like that are just the kernel of what's possible. Eventually the pillars can melt into one, and bring more of the real world into the virtual.</p>
       </div>
-      <ol class="steps media">
-        <li class="step" id="sketch">
-          <div class="tile-media">
-            <img src="images/rbv-ball-sketch.jpg" alt="Ink sketch on an open palm: a real ball splitting into virtual copies, with the words Ball, Real, Fake and Occlusion" width="900" height="1200" loading="lazy">
-          </div>
-          <p class="step-title">Sketch</p>
-          <p class="step-line">Where it started.</p>
-        </li>
+      <ol class="steps media pair">
         <li class="step" id="ball">
           <div class="tile-media">
             <video class="rbv-video" aria-label="A real ball held in a hand, with a virtual ring locked onto it" width="848" height="478" loop muted playsinline disableRemotePlayback preload="none">
@@ -1019,6 +1040,15 @@
            teaches the idea to someone who has never heard the word. -->
       <h3 class="sub-label">RBV Camera</h3>
       <p class="detail">An iPad window into the tour, so guests can watch and take a photo home.</p>
+      <!-- Compact pair, by request: the occlusion switch and clip on the left,
+           his pose with the puppy (an RBV Camera photo) on the right. -->
+      <div class="cam-pair">
+      <figure class="tile cam-photo">
+        <div class="tile-media">
+          <img src="images/rbv-camera-pose.jpg" alt="An RBV Camera photo: Sebastian in a headset crouches into a pose on the lab carpet beside the virtual puppy" width="1200" height="827" loading="lazy">
+        </div>
+        <figcaption>A photo to take home.</figcaption>
+      </figure>
       <div class="occ">
         <div class="occ-switch" role="group" aria-label="Occlusion">
           <span class="occ-label">Occlusion</span>
@@ -1035,6 +1065,7 @@
         </div>
         <p class="occ-note" data-occ="on">On: real people hide virtual things.</p>
         <p class="occ-note" data-occ="off" hidden>Off: the puppy floats in front of everyone.</p>
+      </div>
       </div>
 
     </div>

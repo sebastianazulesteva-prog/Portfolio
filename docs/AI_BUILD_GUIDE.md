@@ -233,6 +233,10 @@ assuming.
 - **Never hand-duplicate content into `/vr`.** The scene scrapes the flat
   pages. The fix for an empty VR room is to write the sentence *on the page*,
   once, where both surfaces read it — after asking.
+- **An image that shouldn't be in the VR photo cloud gets `-na` at the end of
+  its file name** (`granola-mark-na.png`) when it is uploaded. Logos, marks
+  and anything low priority. `/vr` skips it; the flat page uses it as normal.
+  See the VR guide, under the `vr/assets/tex` rule.
 - **Provenance for anything written about a project** goes in the `$why`
   fields of `vr/images.json`. Every sentence should trace to the page, to a
   legible annotation in one of its own images, or to something Sebastian said.

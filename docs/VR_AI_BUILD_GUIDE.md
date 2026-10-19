@@ -3754,6 +3754,19 @@ change to the dome, not just to the flat site. Regenerate `vr/assets/tex` and
 its manifest (`.tools/vr-make-textures.py`) or exclude the file, but do not
 leave it untuned and visible.
 
+**The cheap way to exclude a new upload: name it `-na`.** Added 2026-10-18 at
+Sebastian's ask. A file whose name ends in `-na` before the extension
+(`granola-mark-na.png`) never enters the image catalog, so it is not in the
+cloud and needs neither a texture nor an `images.json` entry. "na" is his word
+for low priority: it stays on its page, it just doesn't need to float in the
+dome. The check is `isNa()` in `data-loader.js`, beside `exclude`, so every
+consumer of the catalog skips it. Only a whole `-na` token counts
+(`banana.jpg` is a photo). Logos and marks are the standing case: the two
+already linked under their own names (`loading-granola.png`,
+`loading-icon-front.png` and `-back.jpg`, `rbv-visionpro-icon.jpg`) are
+excluded in `images.json` instead, since renaming them would mean editing the
+flat pages.
+
 ---
 
 ### 9.29 The roof opens (2026-09-13)

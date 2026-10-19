@@ -68,7 +68,15 @@
       title: textOf(titleEl),
       // Root-resolved, not left relative — this page lives at /vr/, one
       // level below the image paths (which are relative to /index.html).
-      image: img ? rootHref(img.getAttribute('src')) : null,
+      // A <video> card with no <img> falls back to the video's own POSTER —
+      // the still the flat page itself shows before the clip plays, so it is
+      // derived from the live card rather than hand-typed into projects.json
+      // (rule 5). Without it a video card scraped image: null and the hub drew
+      // the placeholder monogram: Reality Becomes Virtual's card was a bare
+      // "R" (2026-10-18). Slip Door's card has no poster and keeps its
+      // projects.json `image` override; an override still wins in the merge.
+      image: img ? rootHref(img.getAttribute('src'))
+        : (video && video.getAttribute('poster') ? rootHref(video.getAttribute('poster')) : null),
       alt: img ? (img.getAttribute('alt') || '') : (video ? (video.getAttribute('aria-label') || '') : ''),
       // The hero's own aspect, read off the card's width/height attributes —
       // present on every card, and on Slip Door's <video> too (1280x720, the
@@ -451,6 +459,16 @@
   // catalog later gets the same labels and the same exclusions; a tile the
   // cloud is told to skip should not reappear in the next surface that reads
   // this list. The alt is still carried through untouched on `alt`.
+  // "na" — Sebastian's word for an image that is low priority: it stays on
+  // its page but does not need to be in the cloud. The mark is in the FILE
+  // NAME (`loading-granola-na.png`), set when the file is uploaded, so there
+  // is no second file to remember to edit and the flag travels with the image
+  // wherever it is used. Same effect as `exclude` in images.json, which is
+  // still the way to drop a file that is already named and linked (renaming
+  // it would mean editing the flat page that links it). Only a whole `-na`
+  // token before the extension counts, so `banana.jpg` stays in.
+  function isNa(file) { return /-na\.[a-z0-9]+$/i.test(file); }
+
   function buildImageCatalog(lists, projects, meta) {
     meta = meta || {};
     var byStem = {}, byHref = {};
@@ -466,7 +484,7 @@
         seen[im.src] = true;
         var file = im.src.split('/').pop();
         var m = meta[file] || {};
-        if (m.exclude) return;
+        if (m.exclude || isNa(file)) return;
         // The project is inferred from the file name's leading token; `project`
         // in images.json is the escape hatch for the files that convention
         // misses (slide-1-sketch.png is Time Collector's), given as an href so

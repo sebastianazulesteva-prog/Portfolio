@@ -68,7 +68,15 @@
       title: textOf(titleEl),
       // Root-resolved, not left relative — this page lives at /vr/, one
       // level below the image paths (which are relative to /index.html).
-      image: img ? rootHref(img.getAttribute('src')) : null,
+      // A <video> card with no <img> falls back to the video's own POSTER —
+      // the still the flat page itself shows before the clip plays, so it is
+      // derived from the live card rather than hand-typed into projects.json
+      // (rule 5). Without it a video card scraped image: null and the hub drew
+      // the placeholder monogram: Reality Becomes Virtual's card was a bare
+      // "R" (2026-10-18). Slip Door's card has no poster and keeps its
+      // projects.json `image` override; an override still wins in the merge.
+      image: img ? rootHref(img.getAttribute('src'))
+        : (video && video.getAttribute('poster') ? rootHref(video.getAttribute('poster')) : null),
       alt: img ? (img.getAttribute('alt') || '') : (video ? (video.getAttribute('aria-label') || '') : ''),
       // The hero's own aspect, read off the card's width/height attributes —
       // present on every card, and on Slip Door's <video> too (1280x720, the

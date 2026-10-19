@@ -150,9 +150,17 @@
       "exclude": true,
       "$why": "A logo, not a photograph of work. Sebastian, 2026-10-18, looking at the cloud: remove the logos from this section. This is the Granola mark from the build cycle on loading.html, only 96 px, so in the cloud it was also a soft green tile blown up to the size of the photographs around it. Excluded here rather than renamed to the -na convention (data-loader.js isNa) because renaming would mean editing the src on loading.html, a flat page."
     },
-    "loading-icon.jpg": {
+    "loading-icon-front.png": {
       "exclude": true,
-      "$why": "See loading-granola.png. The Loading app icon, the seal on loading.html's hero shot: a mark, not a photograph."
+      "$why": "See loading-granola.png. The Loading app icon's front layer, a mark, not a photograph. It replaced loading-icon.jpg on loading.html as a two-layer icon that lifts on hover."
+    },
+    "loading-icon-back.jpg": {
+      "exclude": true,
+      "$why": "See loading-icon-front.png. The icon's back layer is a plain cream gradient; on its own in the cloud it was a blank square."
+    },
+    "rbv-visionpro-icon.jpg": {
+      "exclude": true,
+      "$why": "See loading-granola.png. The RBV logo (a head with gears and a red visor) from rbv.html: a mark, not a photograph."
     }
   }
 }

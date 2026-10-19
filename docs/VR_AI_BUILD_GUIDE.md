@@ -3762,9 +3762,10 @@ for low priority: it stays on its page, it just doesn't need to float in the
 dome. The check is `isNa()` in `data-loader.js`, beside `exclude`, so every
 consumer of the catalog skips it. Only a whole `-na` token counts
 (`banana.jpg` is a photo). Logos and marks are the standing case: the two
-already linked under their old names (`loading-granola.png`,
-`loading-icon.jpg`) are excluded in `images.json` instead, since renaming them
-would mean editing `loading.html`.
+already linked under their own names (`loading-granola.png`,
+`loading-icon-front.png` and `-back.jpg`, `rbv-visionpro-icon.jpg`) are
+excluded in `images.json` instead, since renaming them would mean editing the
+flat pages.
 
 ---
 

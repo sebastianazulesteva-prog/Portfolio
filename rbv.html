@@ -1372,6 +1372,18 @@
 
     initA11yLineHighlight('.hero-title, .meta-value, .story p, .block-label, .block-body p, .tile figcaption');
 
+    /* A browser can refuse to start a muted clip on its own: Safari does in
+       Low Power Mode or with Auto-Play set to Never for the site. Then the
+       clip sat on its still and looked like a picture (his report). When
+       play() is refused, give that clip its controls so it can be started
+       by hand. */
+    function playOrOffer(v) {
+      var p = v.play();
+      if (p && p.catch) p.catch(function (err) {
+        if (err && err.name === 'NotAllowedError') v.controls = true;
+      });
+    }
+
     /* ─── CLIPS: PLAY ONLY WHILE ON SCREEN ───
        Five muted loops (~8 MB together) would all download at once if every
        one carried `autoplay`. Instead each plays when it scrolls into view and
@@ -1387,12 +1399,12 @@
         return;
       }
       if (!('IntersectionObserver' in window)) {
-        clips.forEach(function (v) { v.play().catch(function () {}); });
+        clips.forEach(function (v) { playOrOffer(v); });
         return;
       }
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
-          if (e.isIntersecting) e.target.play().catch(function () {});
+          if (e.isIntersecting) playOrOffer(e.target);
           else e.target.pause();
         });
       }, { threshold: 0.25 });
@@ -1429,7 +1441,7 @@
         btns.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.occ === which ? 'true' : 'false'); });
         var v = shown();
         try { v.currentTime = 0; } catch (e) {}
-        if (onScreen && !still) v.play().catch(function () {});
+        if (onScreen && !still) playOrOffer(v);
       }
 
       btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.occ); }); });
@@ -1439,11 +1451,11 @@
         new IntersectionObserver(function (entries) {
           onScreen = entries[0].isIntersecting;
           if (still) return;
-          if (onScreen) shown().play().catch(function () {});
+          if (onScreen) playOrOffer(shown());
           else shown().pause();
         }, { threshold: 0.25 }).observe(stage);
       } else if (!still) {
-        onScreen = true; shown().play().catch(function () {});
+        onScreen = true; playOrOffer(shown());
       }
     })();
 

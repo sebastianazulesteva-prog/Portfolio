@@ -810,13 +810,20 @@
     .occ-btn[aria-pressed="true"]::after{ content:" ✓"; }
     .occ-label{ color:var(--cat-ink); }
 
-    /* ─── HOVER TO SEE IT ALL ───
-       The Designed cards crop to one 4:3 shape so the row lines up; hovering
-       (or focusing, for the keyboard) shows the whole picture instead. */
-    .steps.peekable .step{ cursor:zoom-in; }
-    .steps.peekable .tile-media img{ transition:transform 0.3s ease; }
-    .steps.peekable .step:hover .tile-media img,
-    .steps.peekable .step:focus-visible .tile-media img{ object-fit:contain; background:var(--rbv-panel); }
+    /* ─── HOVER: THE CARD GROWS TOWARD YOU ───
+       He disliked the first version (the picture swapped in place on a dark
+       panel, which "pops out"). Now the whole card scales up smoothly over
+       its neighbours, toward the viewer, and the picture fits whole inside
+       it. The end cards grow inward from their outer edge so they never
+       leave the page. Mouse and keyboard focus only; touch screens skip it. */
+    @media (hover:hover) and (pointer:fine){
+      .steps.peekable .step{ cursor:zoom-in; transition:transform 0.35s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.35s; }
+      .steps.peekable .step:first-child{ transform-origin:left center; }
+      .steps.peekable .step:last-child{ transform-origin:right center; }
+      .steps.peekable .step:hover, .steps.peekable .step:focus-visible{ transform:scale(1.32); z-index:5; box-shadow:0 26px 60px rgba(18,20,28,0.22); }
+      .steps.peekable .step:hover .tile-media img, .steps.peekable .step:focus-visible .tile-media img{ object-fit:contain; }
+    }
+    .steps.peekable .step{ position:relative; }
 
     /* ─── CHORUS: the palm sketch floats top right, text wraps around it. */
     .prose.chorus::after{ content:""; display:block; clear:both; }
@@ -837,6 +844,25 @@
       .cam-pair{ grid-template-columns:minmax(0,1fr); }
       .cam-photo{ margin-top:0; }
     }
+
+    .prose strong, .story strong{ font-weight:600; color:var(--ink); }
+
+    /* ─── TABS (03 New) ─── style B buttons in the section's color. */
+    .tabs{ display:flex; flex-wrap:wrap; gap:0.5rem; margin:0.4rem 0 1.6rem; }
+    .tab{ border:none; border-radius:7px; padding:0.6rem 1.1rem; background:var(--white); color:var(--ink); font-size:0.9rem; font-weight:700; cursor:pointer; box-shadow:inset 0 0 0 1.5px rgba(18,20,28,0.12); transition:background 0.2s, color 0.2s; }
+    .tab:hover{ box-shadow:inset 0 0 0 1.5px var(--cat); }
+    .tab[aria-selected="true"]{ background:var(--cat-ink); color:var(--white); box-shadow:none; }
+    .tab-panel[hidden]{ display:none; }
+    .prose.platform::after{ content:""; display:block; clear:both; }
+    .platform-icon{ float:left; width:140px; height:auto; margin:0.2rem 1.4rem 0.6rem 0; border-radius:28px; box-shadow:0 8px 24px rgba(18,20,28,0.12); }
+
+    /* ─── HOVER PREVIEWS ─── as on loading.html: one floating window, reused
+       for every link that carries data-preview-img, so a reader can peek at
+       where a link goes without losing their place. */
+    .peek{ position:absolute; z-index:200; width:280px; padding:6px; background:var(--white); border-radius:10px; box-shadow:0 18px 50px rgba(18,20,28,0.28); pointer-events:none; opacity:0; transition:opacity 0.18s ease; }
+    .peek.on{ opacity:1; }
+    .peek img, .peek video{ display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:7px; background:var(--rbv-panel); }
+    .peek p{ font-size:0.66rem; font-weight:700; letter-spacing:0.04em; color:var(--ink-soft); padding:0.45rem 0.3rem 0.15rem; }
   </style>
 </head>
 <body>
@@ -884,7 +910,7 @@
   <div class="meta-row">
     <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value"><span class="live-dot" aria-hidden="true"></span>Ongoing</div></div>
     <div class="meta-item wide"><div class="meta-label">Built by</div><div class="meta-value">Emmanuel Corona, Noé Chicas&#8209;Aranda, Dina Kim Hashash, Sebastian Esteva</div></div>
-    <div class="meta-item"><div class="meta-label">Advised by</div><div class="meta-value">Prof. Jeremy Bailenson</div></div>
+    <div class="meta-item"><div class="meta-label">Advised by</div><div class="meta-value">Dr. Jeremy Bailenson</div></div>
     <div class="meta-item"><div class="meta-label">Platform</div><div class="meta-value">Meta Quest 3, iPad, Apple Vision Pro</div></div>
     <div class="meta-item"><div class="meta-label">Built with</div><div class="meta-value">Unity, Claude Code</div></div>
   </div>
@@ -895,9 +921,9 @@
     <!-- The VHIL link lives in the sentence now; the separate black button
          under the card was removed by request. "Virtual Becomes Reality"
          links to its Steam page, the lab's 2021 app of its in-person tour. -->
-    <p>Dr. Jeremy Bailenson had the idea for Reality Becomes Virtual (the sequel to <a href="https://store.steampowered.com/app/1658530/" target="_blank" rel="noopener">Virtual Becomes Reality</a>) for many years, and this past summer it came to life with a wonderful team from the <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">Virtual Human Interaction Lab</a> (Emmanuel Corona and Noé Chicas-Aranda).</p>
+    <p>Dr. Bailenson had the idea for Reality Becomes Virtual (the sequel to <a href="https://store.steampowered.com/app/1658530/" target="_blank" rel="noopener" data-preview-img="https://cdn.akamai.steamstatic.com/steam/apps/1658530/header.jpg" data-preview-label="Virtual Becomes Reality · VHIL, 2021 · Steam">Virtual Becomes Reality</a>) for many years, and this past summer it came to life with a wonderful team from the <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">Virtual Human Interaction Lab</a> (Emmanuel Corona and Noé Chicas-Aranda).</p>
     <p>The idea: networked headsets creating a social way to get a glimpse at the augmented reality that is coming. It is a glimpse at the full-fledged future that technology like Meta's Ray-Bans and Snap's Spectacles is showing us, as every tech company sees smart glasses and other wearables as part of what's next.</p>
-    <p>Building from the foundation Dr. Bailenson envisioned and built, I've been completely captivated by this project, working deep into the night on many different parts of it: starting with making it more reliable <a class="jump" href="#reliable">01 ↓</a>, polishing its design language <a class="jump" href="#designed">02 ↓</a>, and adding many new features <a class="jump" href="#new">03 ↓</a>.</p>
+    <p>Building from the foundation Dr. Bailenson envisioned and built, I've been completely captivated by this project, working deep into the night on many different parts of it: starting with making it more reliable <a class="jump" href="#reliable" data-preview-img="images/rbv-preview-reliable.jpg" data-preview-label="01 Reliable · click to jump down">01 ↓</a>, polishing its design language <a class="jump" href="#designed" data-preview-img="images/rbv-redesign.jpg" data-preview-label="02 Designed · click to jump down">02 ↓</a>, and adding many new features <a class="jump" href="#new" data-preview-video="images/rbv-ball.mp4" data-preview-img="images/rbv-ball-poster.jpg" data-preview-label="03 New · click to jump down">03 ↓</a>.</p>
   </div>
 
   <div style="height:3.5rem"></div>
@@ -912,8 +938,8 @@
     <h2 class="block-label"><span class="num">01</span>Reliable</h2>
     <div class="block-body">
       <div class="prose">
-        <p>The original summer build needed tons of orchestrating to give a seamless experience. So our first order of business was to make it as close to one button as possible, robust to user error, and sure to never fail silently.</p>
-        <p>The sound system now starts with one click instead of five. With a reliable desktop app in place, we could stream live logs from every headset, which made for more reliable builds afterward. And simple things keep it robust to user error, like an automatic end sequence that uses the headset's sensors to end a tour on its own.</p>
+        <p>The original summer build needed tons of work to give a seamless experience. So my first order of business was to make it <strong>as close to one button as possible</strong>, <strong>robust to user error</strong>, and to make sure it <strong>never fails silently</strong>.</p>
+        <p>The sound system now starts with one click instead of five. With a reliable desktop app in place, we could easily gather logs from every headset, allowing for more robust future builds and iterations. And simple additions, like an automatic end sequence, removed human error from the simple things.</p>
       </div>
       <ol class="steps">
         <li class="step">
@@ -941,7 +967,7 @@
       <p class="block-lede">One icon per action. Color by meaning. No silent actions.</p>
       <div class="prose">
         <p>I went through the entire design language of the system, making simple, common-sense additions: every action gets its own icon, and the colors follow one consistent language. Every action the host takes now gives visual feedback on what others are experiencing, because in mixed reality you don't always know what others are seeing.</p>
-        <p>From there I designed a new way to control the tour, the experience path (working title). In the original system the host had to look down at their hands to set off each moment. Now you pre-program a path, in the headset or online, send it over with a QR code <a class="jump" href="#experience-path">See ↓</a>, and press one button, even with your hands behind your back while you talk with people. The host stays connected to the group, and a favorite path can be run again and again.</p>
+        <p>From there I designed a new way to control the tour, the experience path (working title). In the original system the host had to look down at their hands to set off each moment. Now you pre-program a path, in the headset or online, send it over with a QR code <a class="jump" href="#experience-path" data-preview-img="images/rbv-plan-builder.jpg" data-preview-label="Experience path · click to jump down">See ↓</a>, and press one button, even with your hands behind your back while you talk with people. The host stays connected to the group, and a favorite path can be run again and again.</p>
       </div>
       <ol class="steps media peekable">
         <li class="step" tabindex="0">
@@ -949,11 +975,11 @@
             <img src="images/rbv-printouts.jpg" alt="Printed sheets of the host's control wheel in every state, spread on a desk and marked up by hand" width="1050" height="1400" loading="lazy">
           </div>
           <p class="step-title">Print</p>
-          <p class="step-line">Every state, on paper, marked up.</p>
+          <p class="step-line">I printed the entire UI to put notes on it (because the physical world is still good sometimes).</p>
         </li>
         <li class="step" tabindex="0">
           <div class="tile-media">
-            <img src="images/rbv-buttons-before-after.jpg" alt="Host buttons and menu before and after, side by side: plain text buttons in mixed colors on the left, buttons with their own icons and colors by meaning on the right" width="1600" height="1591" loading="lazy">
+            <img src="images/rbv-redesign.jpg" alt="Before and after, side by side: the Spider button goes from a plain red text block to Spiders cyan with its own icon and a checkbox, and the wrist Menu goes from a grid of small chips to clear rounded rows with an End Tour button" width="1320" height="990" loading="lazy">
           </div>
           <p class="step-title">Redesign</p>
           <p class="step-line">Before, after.</p>
@@ -972,6 +998,19 @@
   <div class="block" id="new">
     <h2 class="block-label"><span class="num">03</span>New</h2>
     <div class="block-body">
+      <div class="prose">
+        <p>With the tour steadier, I've been adding to it. Some of it is new for visitors, and some is groundwork for what the lab builds next. Three so far:</p>
+      </div>
+
+      <!-- ═══ TABS ═══ a WAI-ARIA tablist, by request: one opening paragraph,
+           then a tab per new thing. Click or use the arrow keys. -->
+      <div class="tabs" role="tablist" aria-label="New features">
+        <button class="tab" role="tab" id="tb-chorus" aria-controls="tp-chorus" aria-selected="true" tabindex="0">Chorus</button>
+        <button class="tab" role="tab" id="tb-camera" aria-controls="tp-camera" aria-selected="false" tabindex="-1">RBV Camera</button>
+        <button class="tab" role="tab" id="tb-platform" aria-controls="tp-platform" aria-selected="false" tabindex="-1">Multi-platform</button>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" id="tp-chorus" aria-labelledby="tb-chorus">
       <p class="block-lede">Chorus: headsets see better together.</p>
       <div class="prose chorus">
         <!-- The palm sketch floats in the paragraph's top right and the text
@@ -982,7 +1021,7 @@
         </figure>
         <p>What I'm most proud of lately is a foundational system with three pillars, being built to be used by many other experiences. It started midway through class, when I sketched an idea on my hand: throw a real ball, and it splits into virtual balls, more every time the real one hits something.</p>
         <p>The catch: object tracking isn't very good on these headsets. But from biomechanical engineering and body tracking, I knew multiple cameras give you lots and lots of data. And we already had them: several cameras, several angles, on people's heads, moving and networked. They just had to work together.</p>
-        <p>That's Chorus. Like a chorus, everyone works together to get better data and make something greater than any single headset. Its three pillars are tracking, starting with a ball <a class="jump" href="#ball">Ball ↓</a>, room, which finds the objects in a room and paints them <a class="jump" href="#room">Room ↓</a>, and body. If I look away from the ball and someone else is looking at it, we still know where it is. Little things like that are just the kernel of what's possible. Eventually the pillars can melt into one, and bring more of the real world into the virtual.</p>
+        <p>That's Chorus. Like a chorus, everyone works together to get better data and make something greater than any single headset. Its three pillars are tracking, starting with a ball <a class="jump" href="#ball" data-preview-video="images/rbv-ball.mp4" data-preview-img="images/rbv-ball-poster.jpg" data-preview-label="Ball tracking · click to jump down">Ball ↓</a>, room, which finds the objects in a room and paints them <a class="jump" href="#room" data-preview-video="images/rbv-room-objects.mp4" data-preview-img="images/rbv-room-objects-poster.jpg" data-preview-label="Room objects · click to jump down">Room ↓</a>, and body. If I look away from the ball and someone else is looking at it, we still know where it is. Little things like that are just the kernel of what's possible. Eventually the pillars can melt into one, and bring more of the real world into the virtual.</p>
       </div>
       <ol class="steps media pair">
         <li class="step" id="ball">
@@ -1033,13 +1072,18 @@
         </figure>
       </div>
 
+      </div>
+
+      <div class="tab-panel" role="tabpanel" id="tp-camera" aria-labelledby="tb-camera" hidden>
       <!-- ═══ OCCLUSION ON / OFF ═══
            Two real iPad captures, same room, same angle, minutes apart on
            2026-10-06: someone walks past the virtual puppy with occlusion on
            (the legs hide it) and off (it is drawn over the legs). One switch
            teaches the idea to someone who has never heard the word. -->
-      <h3 class="sub-label">RBV Camera</h3>
-      <p class="detail">An iPad window into the tour, so guests can watch and take a photo home.</p>
+      <p class="block-lede">RBV Camera: an iPad window into the tour.</p>
+      <div class="prose">
+        <p>So guests can watch what the headsets see, and take a photo home.</p>
+      </div>
       <!-- Compact pair, by request: the occlusion switch and clip on the left,
            his pose with the puppy (an RBV Camera photo) on the right. -->
       <div class="cam-pair">
@@ -1065,6 +1109,17 @@
         </div>
         <p class="occ-note" data-occ="on">On: real people hide virtual things.</p>
         <p class="occ-note" data-occ="off" hidden>Off: the puppy floats in front of everyone.</p>
+      </div>
+      </div>
+      </div>
+
+      <div class="tab-panel" role="tabpanel" id="tp-platform" aria-labelledby="tb-platform" hidden>
+      <p class="block-lede">Multi-platform: Apple Vision Pro. <span class="beta">Beta</span></p>
+      <div class="prose platform">
+        <!-- The R.B.V app icon he made for the visionOS build (Refs #593 in
+             the Unity repo), as its visionOS front layer. -->
+        <img class="platform-icon" src="images/rbv-visionpro-icon.jpg" alt="The R.B.V app icon: a gray head in profile wearing a red headset, with gears turning above it" width="600" height="600" loading="lazy">
+        <p>Alongside the Quest and the iPad, I'm adding Apple Vision Pro, something we're working on as a lab. We're hoping the passthrough and quality possible on Vision Pro allow for an even more immersive experience, or at least let us explore one.</p>
       </div>
       </div>
 
@@ -1276,6 +1331,87 @@
       } else if (!still) {
         onScreen = true; shown().play().catch(function () {});
       }
+    })();
+
+    /* ═══ 03 NEW: TABS ═══ a plain WAI-ARIA tablist: click, or arrow keys
+       and Home/End. A hidden panel's clips stop being "on screen" for the
+       observers above, so they pause on their own. */
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+      if (!tabs.length) return;
+      function select(i, focus) {
+        tabs.forEach(function (t, j) {
+          var on = j === i;
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.tabIndex = on ? 0 : -1;
+          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+        });
+        if (focus) tabs[i].focus();
+      }
+      tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { select(i, false); });
+        t.addEventListener('keydown', function (e) {
+          var n = tabs.length, j = null;
+          if (e.key === 'ArrowRight') j = (i + 1) % n;
+          else if (e.key === 'ArrowLeft') j = (i - 1 + n) % n;
+          else if (e.key === 'Home') j = 0;
+          else if (e.key === 'End') j = n - 1;
+          if (j !== null) { e.preventDefault(); select(j, true); }
+        });
+      });
+    })();
+
+    /* ═══ HOVER PREVIEWS ═══ ported from loading.html: one floating window,
+       reused for every link with data-preview-img. A video preview plays
+       muted; under reduced motion only the still shows. Fine pointers only. */
+    (function () {
+      if (!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var peek = document.createElement('div');
+      peek.className = 'peek';
+      peek.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(peek);
+      var current = null;
+      function show(a) {
+        current = a;
+        var vid = !reduced && a.dataset.previewVideo;
+        peek.innerHTML = '';
+        var media;
+        if (vid) {
+          media = document.createElement('video');
+          media.muted = true; media.loop = true; media.playsInline = true; media.autoplay = true;
+          media.poster = a.dataset.previewImg;
+          media.src = vid;
+        } else {
+          media = document.createElement('img');
+          media.src = a.dataset.previewImg; media.alt = '';
+        }
+        var label = document.createElement('p');
+        label.textContent = a.dataset.previewLabel || '';
+        peek.appendChild(media); peek.appendChild(label);
+        if (vid) { var pr = media.play(); if (pr && pr.catch) pr.catch(function () {}); }
+        var r = a.getBoundingClientRect();
+        var w = 280, x = r.left + r.width / 2 - w / 2;
+        x = Math.max(12, Math.min(x, document.documentElement.clientWidth - w - 12));
+        peek.style.left = (x + window.scrollX) + 'px';
+        peek.style.top = (r.top + window.scrollY - 12) + 'px';
+        peek.style.transform = 'translateY(-100%)';
+        requestAnimationFrame(function () { peek.classList.add('on'); });
+      }
+      function hide() {
+        current = null;
+        peek.classList.remove('on');
+        var v = peek.querySelector('video');
+        if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+      }
+      document.querySelectorAll('a[data-preview-img]').forEach(function (a) {
+        a.addEventListener('mouseenter', function () { show(a); });
+        a.addEventListener('mouseleave', hide);
+        a.addEventListener('focus', function () { show(a); });
+        a.addEventListener('blur', hide);
+        a.addEventListener('click', hide);
+      });
+      window.addEventListener('scroll', function () { if (current) hide(); }, { passive: true });
     })();
   </script>
 </body>

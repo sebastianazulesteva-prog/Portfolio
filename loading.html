@@ -974,7 +974,7 @@
     })();
 
     /* ═══ THE BUILD RING ═══ a tablist that also turns: selecting a phase
-       rotates the ring the short way round until that node is at the top,
+       rotates the ring clockwise until that node is at the top,
        and shows its panel. Click or arrow keys. Under reduced motion the
        global rule makes the turn instant. */
     (function () {
@@ -983,9 +983,11 @@
       var tabs = Array.prototype.slice.call(ring.querySelectorAll('[role="tab"]'));
       var rot = 0;
       function select(i, focus) {
+        // Always clockwise, by request: the ring only ever turns forward,
+        // so the target angle is the first one at or after the current.
         var target = -120 * i;
-        while (target - rot > 180) target -= 360;
-        while (target - rot < -180) target += 360;
+        while (target < rot) target += 360;
+        while (target - rot >= 360) target -= 360;
         rot = target;
         ring.style.setProperty('--rot', rot + 'deg');
         tabs.forEach(function (t, j) {

@@ -43,6 +43,15 @@
     return e;
   }
 
+  // Drawn, not the U+2197 character: iOS renders that as a blue-box emoji.
+  // Same markup as the static arrows in the pages themselves.
+  var ARROW_SVG = '<svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg>';
+  function arrow(cls) {
+    var e = el('span', cls);
+    e.innerHTML = ARROW_SVG;
+    return e;
+  }
+
   fetch('index.html', { credentials: 'same-origin' })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
     .then(function (html) {
@@ -89,7 +98,7 @@
           media.loading = 'lazy';
         }
         if (media) a.appendChild(media);
-        a.appendChild(el('span', 'mini-card-arrow', '↗'));
+        a.appendChild(arrow('mini-card-arrow'));
         var info = el('div', 'mini-card-info');
         info.appendChild(el('p', 'mini-card-title', p.title));
         info.appendChild(el('span', 'mini-card-tag', p.tag));
@@ -112,14 +121,14 @@
           var h = base(a.getAttribute('href'));
           return h && h !== here && !known[h] && h !== 'index.html';
         }).map(function (a) {
-          return { href: base(a.getAttribute('href')), title: a.textContent.replace('↗', '').trim() };
+          return { href: base(a.getAttribute('href')), title: a.textContent.trim() };
         }));
       if (!pillRow) { pillRow = el('div', 'quick-links-row'); wrap.appendChild(pillRow); }
       pillRow.innerHTML = '';
       pills.forEach(function (q) {
         var a = el('a', 'quick-link-mini', q.title + ' ');
         a.href = q.href;
-        a.appendChild(el('span', null, '↗'));
+        a.appendChild(arrow(null));
         pillRow.appendChild(a);
       });
     })

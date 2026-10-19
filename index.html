@@ -967,6 +967,23 @@
       color: var(--bg);
     }
 
+    /* A phone never hovers, so the card arrow used to sit forever in its
+       resting pose: a dark disc with an arrow pointing straight up, which
+       reads as an emoji button. On touch it is just the diagonal arrow,
+       with a shadow so it holds up over the light photos. */
+    @media (hover: none) {
+      .work-card-arrow,
+      .work-card:hover .work-card-arrow {
+        background: none;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        color: var(--text);
+        font-size: 1.4rem;
+        transform: none;
+        filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+      }
+    }
+
     /* `visibility` is doing accessibility work here, not visual work — the
        max-height/opacity pair already hides this visually.
        Clipping with max-height:0 + overflow:hidden leaves the contents FOCUSABLE
@@ -1588,7 +1605,7 @@
         <video aria-label="Inside the headset: virtual dancers under disco balls and colored light beams, in a real room" width="848" height="478" poster="images/rbv-disco-card-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
           <source src="images/rbv-disco-card.mp4" type="video/mp4">
         </video>
-        <span class="work-card-arrow">↗</span>
+        <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">Reality Becomes Virtual</p>
           <span class="work-card-tag">Ongoing · Mixed Reality · Stanford VHIL</span>
@@ -1597,7 +1614,7 @@
 
       <a href="pendant.html" class="work-card reveal">
         <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024">
-        <span class="work-card-arrow">↗</span>
+        <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">Graduation Pendant</p>
           <span class="work-card-tag">Silver · Metalworking · Design</span>
@@ -1609,7 +1626,7 @@
           <source src="images/slipdoor-final-result.webm" type="video/webm">
           <source src="images/slipdoor-final-result.mp4" type="video/mp4">
         </video>
-        <span class="work-card-arrow">↗</span>
+        <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">The Slip Door</p>
           <span class="work-card-tag">Accessibility · Volkswagen</span>
@@ -1618,7 +1635,7 @@
 
       <a href="baston.html" class="work-card reveal reveal-delay-2">
         <img src="images/baston-hero.jpg" alt="Close-up of the Bastón folded" width="5184" height="3058">
-        <span class="work-card-arrow">↗</span>
+        <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">Bastón</p>
           <span class="work-card-tag">Woodworking · Metalworking</span>
@@ -1627,7 +1644,7 @@
 
       <a href="timecollector.html" class="work-card reveal reveal-delay-3">
         <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gear train and marble mechanism" width="966" height="1192">
-        <span class="work-card-arrow">↗</span>
+        <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">Time Collector</p>
           <span class="work-card-tag">Kinetic Sculpture</span>
@@ -1636,7 +1653,7 @@
 
       <a href="loading.html" class="work-card reveal">
         <img src="images/loading-card.jpg" alt="Loading in the simulator: a Vincent van Gogh node with his portrait inside a glass orb, and its card open beside it with a self-portrait and a short summary" width="1200" height="900">
-        <span class="work-card-arrow">↗</span>
+        <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">Loading</p>
           <span class="work-card-tag">Vision Pro · Ongoing</span>
@@ -1651,7 +1668,7 @@
 
         <a href="chess.html" class="work-card">
           <img src="images/chess-hero.jpg" alt="Hands holding the Poser Chess Set on a wall, its ranks rotated out from flat so a game can be displayed and still played" width="4284" height="5712" loading="lazy">
-          <span class="work-card-arrow">↗</span>
+          <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           <div class="work-card-info">
             <p class="work-card-title">Poser Chess Set</p>
             <span class="work-card-tag">3D Printing · Transformative Design</span>
@@ -1664,27 +1681,27 @@
           <a href="hp-reckoning-corporate-espionage.html" class="quick-link">
             <span class="quick-link-title">HP's Reckoning</span>
             <span class="quick-link-tag">Strategic Thinking + Writing Sample</span>
-            <span class="quick-link-arrow">↗</span>
+            <span class="quick-link-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           </a>
           <a href="algorithmic-modeling-shape-optimization.html" class="quick-link">
             <span class="quick-link-title">Algorithmic Modeling</span>
             <span class="quick-link-tag">Coursework Sample</span>
-            <span class="quick-link-arrow">↗</span>
+            <span class="quick-link-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           </a>
           <a href="3d-printed-glasses-frames.html" class="quick-link">
             <span class="quick-link-title">3D-Printed Glasses Frames</span>
             <span class="quick-link-tag">Multimaterial 3D Print · Design Project</span>
-            <span class="quick-link-arrow">↗</span>
+            <span class="quick-link-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           </a>
           <a href="social-engineering-predictive-algorithms.html" class="quick-link">
             <span class="quick-link-title">Social Engineering via Predictive Algorithms</span>
             <span class="quick-link-tag">Tech Future</span>
-            <span class="quick-link-arrow">↗</span>
+            <span class="quick-link-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           </a>
           <a href="apple-medical-licensure-apple-watch.html" class="quick-link">
             <span class="quick-link-title">Apple's Medical Licensure for Apple Watch</span>
             <span class="quick-link-tag">Technology Assessment · Stanford</span>
-            <span class="quick-link-arrow">↗</span>
+            <span class="quick-link-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           </a>
         </div>
 

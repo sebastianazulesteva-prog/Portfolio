@@ -628,7 +628,7 @@ body{
   <section class="screen" id="finale">
     <div class="card">
       <div class="eyebrow">Experience Complete</div>
-      <h1>🎉 Fifty Years, One Rectangle</h1>
+      <h1>Fifty Years, One Rectangle</h1>
       <p>You just moved the <b>same shape</b> across <b>five decades</b>.</p>
       <p>What required <b>physical buttons</b>, <b>flickering light beams</b>, and <b>plastic styluses</b> in 1983 now happens in <b>milliseconds</b>: effortless, instant, and weightless.</p>
       <div class="finale-stat">
@@ -906,7 +906,7 @@ function sceneOne(done){
     b.addEventListener('click', () => step(dx, dy, b));
     return b;
   };
-  dpad.append(mk('up','▲',0,-1), mk('down','▼',0,1), mk('left','◀',-1,0), mk('right','▶',1,0), el('div','hub'));
+  dpad.append(mk('up','▲&#xFE0E;',0,-1), mk('down','▼&#xFE0E;',0,1), mk('left','◀&#xFE0E;',-1,0), mk('right','▶&#xFE0E;',1,0), el('div','hub'));
 
   const rotKey = el('button','rotate-key','ROTATE 90°');
   consoleEl.append(dpad, rotKey);
@@ -1261,7 +1261,7 @@ function sceneThree(done){
   function startPhantom(pts){
     if (phantomOn || field.done) return;
     phantomOn = true;
-    phantomErr = banner(ir.screen, '⚠ PHANTOM COORDINATES DETECTED<br>MULTI-TOUCH UNSUPPORTED', 'err', 12, 0);
+    phantomErr = banner(ir.screen, '⚠&#xFE0E; PHANTOM COORDINATES DETECTED<br>MULTI-TOUCH UNSUPPORTED', 'err', 12, 0);
     let k = 0;
     field.block.classList.remove('smooth');
     phantomTimer = setInterval(() => {

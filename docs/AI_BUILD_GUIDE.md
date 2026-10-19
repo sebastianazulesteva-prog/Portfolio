@@ -162,6 +162,14 @@ and Twitter card set with an absolute `og:image`, and the favicon. **When
 adding a page, copy that block and fill it in** — and add the page to both
 `sitemap.xml` and `llms.txt`.
 
+**More Projects is not hand-written any more.** Every project page loads
+`more-projects.js`, which fetches `index.html`, reads its `#projects` grid and
+rebuilds the page's More Projects strip: Ongoing projects first, then the home
+grid's order, minus the page itself, keeping the page's own card count. So a new
+project needs only its card on `index.html` (and the script tag on its own
+page). The hand-written strip each page still carries is the fallback for no-JS
+and `file://`; it does not need updating.
+
 ### `llms.txt`
 
 A hand-written prose description of Sebastian and every page, for language

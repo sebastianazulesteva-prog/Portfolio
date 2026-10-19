@@ -257,13 +257,16 @@
     .trio-caption{ margin-top:0.75rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; }
     .chapter.night .trio-caption{ color:var(--night-soft); }
 
-    /* ─── CLASS DOCS ─── loose sheets, a little crooked, so they read as
-       working notes rather than finished figures. */
+    /* ─── CLASS DOCS ─── three loose sheets in one row, a little crooked,
+       so they read as working notes and stay small. Hovering (or tapping,
+       via focus) lifts one on top and enlarges it; the outer two grow
+       inward so they never spill past the column. */
     .docs{ margin-top:2.4rem; }
-    .docs-grid{ columns:2; column-gap:1.4rem; }
-    .docs-grid .doc{ break-inside:avoid; margin-bottom:1.4rem; }
-    .doc{ display:block; padding:0.5rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.3s ease; }
-    .doc:hover{ transform:rotate(0deg) scale(1.03); }
+    .docs-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; align-items:center; }
+    .doc{ position:relative; z-index:1; margin:0; padding:0.4rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.3s ease, box-shadow 0.3s ease; cursor:zoom-in; outline:none; }
+    .doc:hover, .doc:focus{ z-index:10; transform:rotate(0deg) scale(1.9); box-shadow:0 24px 60px rgba(29,40,80,0.3); }
+    .doc:first-child{ transform-origin:left center; }
+    .doc:last-child{ transform-origin:right center; }
     .doc img{ display:block; width:100%; height:auto; }
     .chapter .docs-caption{ margin-top:1.2rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; color:var(--ink-soft); }
 
@@ -374,7 +377,8 @@
       .chapter-inner::before{ left:1rem; }
       .chapter-node{ left:calc(1rem - 7px); top:3.45rem; }
       .pair, .picker-panel{ grid-template-columns:1fr; }
-      .docs-grid{ columns:1; }
+      .doc:hover, .doc:focus{ transform:rotate(0deg) scale(2.6); }
+      .doc:nth-child(2){ transform-origin:center top; }
       /* ─── HOVER PREVIEWS ───
        Hovering a link in the story shows what it leads to in a small
        floating window, so a reader can peek without losing their place:
@@ -472,10 +476,9 @@
              thinking on purpose: typos and empty template boxes left in. -->
         <div class="docs">
           <div class="docs-grid">
-            <figure class="doc" style="--tilt:-1.4deg"><img src="images/loading-doc-pitch.jpg" alt="Design document, elevator pitch: research as a journey of exploration, as exciting as childhood hunts for dragon treasure" width="923" height="410" loading="lazy"></figure>
-            <figure class="doc" style="--tilt:1.1deg"><img src="images/loading-doc-library.jpg" alt="Design document, rationale: the library, where the book next to the one you wanted covers the very thing you were looking for, and books joined by lines to the ones they reference" width="923" height="490" loading="lazy"></figure>
-            <figure class="doc" style="--tilt:0.9deg"><img src="images/loading-doc-ethics.jpg" alt="Implementation plan, ethical considerations: privacy of a scanned room, whose data a stored object is, and systemic connection bias" width="923" height="540" loading="lazy"></figure>
-            <figure class="doc" style="--tilt:-1deg"><img src="images/loading-doc-setup.jpg" alt="Implementation plan, technical setup: a headset with good passthrough, a system that understands objects in the room, and connections between them" width="923" height="340" loading="lazy"></figure>
+            <figure class="doc" tabindex="0" style="--tilt:-1.4deg"><img src="images/loading-doc-pitch.jpg" alt="Design document, elevator pitch: research as a journey of exploration, as exciting as childhood hunts for dragon treasure" width="923" height="410" loading="lazy"></figure>
+            <figure class="doc" tabindex="0" style="--tilt:-0.8deg"><img src="images/loading-doc-library.jpg" alt="Design document, rationale: the library, where the book next to the one you wanted covers the very thing you were looking for, and books joined by lines to the ones they reference" width="923" height="490" loading="lazy"></figure>
+            <figure class="doc" tabindex="0" style="--tilt:1.6deg"><img src="images/loading-doc-ethics.jpg" alt="Implementation plan, ethical considerations: privacy of a scanned room, whose data a stored object is, and systemic connection bias" width="923" height="540" loading="lazy"></figure>
           </div>
           <p class="docs-caption">Rough thinking from the class: a design document and an implementation plan, typos and all.</p>
         </div>

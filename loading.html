@@ -275,16 +275,31 @@
     .chapter.night .trio-caption{ color:var(--night-soft); }
 
     /* ─── CLASS DOCS ─── three loose sheets in one row, a little crooked,
-       so they read as working notes and stay small. Hovering (or tapping,
-       via focus) lifts one on top and enlarges it; the outer two grow
-       inward so they never spill past the column. */
+       so they read as working notes. They are live text set in the look of
+       the class templates (Arial, teal and blue header bars, ruled boxes),
+       sized in container units so each sheet's type scales with its width.
+       Each shows an excerpt and fades at the bottom, as a crop did.
+       Hovering (or tapping, via focus) straightens one, lifts it on top
+       and enlarges it; the outer two grow inward. */
     .docs{ margin-top:2.4rem; }
-    .docs-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; align-items:center; }
-    .doc{ position:relative; z-index:1; margin:0; padding:0.4rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.7s cubic-bezier(0.22,1,0.36,1), box-shadow 0.7s ease; cursor:zoom-in; outline:none; }
-    .doc:hover, .doc:focus{ z-index:10; transform:rotate(0deg) scale(1.9); box-shadow:0 24px 60px rgba(29,40,80,0.3); }
+    .docs-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem; align-items:center; }
+    @media (min-width:1180px){ .docs-grid{ margin-right:-7rem; } }
+    .doc{ position:relative; z-index:1; margin:0; padding:0.45rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.7s cubic-bezier(0.22,1,0.36,1), box-shadow 0.7s ease; cursor:zoom-in; outline:none; container-type:inline-size; }
+    .doc:hover, .doc:focus{ z-index:10; transform:rotate(0deg) scale(1.75); box-shadow:0 24px 60px rgba(29,40,80,0.3); }
     .doc:first-child{ transform-origin:left center; }
     .doc:last-child{ transform-origin:right center; }
-    .doc img{ display:block; width:100%; height:auto; }
+    .sheet{ aspect-ratio:1.25; overflow:hidden; border:1px solid #444; font-family:Arial, Helvetica, sans-serif; color:#111; line-height:1.25;
+      -webkit-mask-image:linear-gradient(#000 82%, transparent); mask-image:linear-gradient(#000 82%, transparent); }
+    .sheet u{ text-decoration:underline; }
+    .s-head, .s-sec{ text-align:center; padding:1.6cqw 3cqw; border-bottom:1px solid #444; }
+    .s-head u, .s-sec b{ display:block; font-size:3.6cqw; font-weight:700; }
+    .s-head em, .s-sec em{ display:block; font-size:3.1cqw; font-weight:700; font-style:italic; margin-top:0.6cqw; }
+    .s-teal{ background:#1d5560; color:#fff; }
+    .s-teal-l{ background:#d3e2e5; }
+    .s-blue-l{ background:#cfe0f3; }
+    .s-body{ padding:2cqw 2.6cqw; font-size:3.15cqw; }
+    .s-body ol{ padding-left:5cqw; display:grid; gap:0.8cqw; }
+    body.accessible .sheet{ font-family:var(--sans); }
     .chapter .docs-caption{ margin-top:1.2rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; color:var(--ink-soft); }
 
     /* ─── THE BUILD CYCLE ───
@@ -437,7 +452,7 @@
       /* The animation stage is drawn at a fixed 300px; shrink it to fit
          the narrow picker rather than redraw every keyframe. */
       .stage{ zoom:0.86; }
-      .doc:hover, .doc:focus{ transform:rotate(0deg) scale(2.6); }
+      .doc:hover, .doc:focus{ transform:rotate(0deg) scale(2.4); }
       .doc:nth-child(2){ transform-origin:center top; }
       /* ─── HOVER PREVIEWS ───
        Hovering a link in the story shows what it leads to in a small
@@ -537,14 +552,37 @@
             <source src="images/loading-concept.mp4" type="video/mp4">
           </video>
         </figure>
-        <!-- ═══ CLASS DOCS ═══ crops of his two Virtual People assignments (the
-             design document and the implementation plan), shown as rough
-             thinking on purpose: typos and empty template boxes left in. -->
+        <!-- ═══ CLASS DOCS ═══ excerpts of his two Virtual People assignments
+             (the design document and the implementation plan), set as text
+             in the look of the class templates. They were screenshots of the
+             PDFs; they became text so his obvious typos could be fixed (his
+             call), and the wording is otherwise his. The template's own
+             instructions are reproduced as they were. -->
         <div class="docs">
           <div class="docs-grid">
-            <figure class="doc" tabindex="0" style="--tilt:-1.4deg"><img src="images/loading-doc-pitch.jpg" alt="Design document, elevator pitch: research as a journey of exploration, as exciting as childhood hunts for dragon treasure" width="923" height="410" loading="lazy"></figure>
-            <figure class="doc" tabindex="0" style="--tilt:-0.8deg"><img src="images/loading-doc-library.jpg" alt="Design document, rationale: the library, where the book next to the one you wanted covers the very thing you were looking for, and books joined by lines to the ones they reference" width="923" height="490" loading="lazy"></figure>
-            <figure class="doc" tabindex="0" style="--tilt:1.6deg"><img src="images/loading-doc-ethics.jpg" alt="Implementation plan, ethical considerations: privacy of a scanned room, whose data a stored object is, and systemic connection bias" width="923" height="540" loading="lazy"></figure>
+            <figure class="doc" tabindex="0" style="--tilt:-1.4deg" aria-label="Design document excerpt: elevator pitch">
+              <div class="sheet">
+                <div class="s-head s-teal"><u>DESIGN DOCUMENT</u><em>This design template is intended to support your design process, not restrict it. We encourage you to engage with as many of the following design elements as possible within the assignment timeframe, but we recognize that covering all of them may not be possible or relevant for all students.</em></div>
+                <div class="s-sec s-teal-l"><b><u>ELEVATOR PITCH</u> | 3–5 sentences</b><em>Describe the VR experience’s core concept</em></div>
+                <div class="s-body">Doing research on any topic is a wonderful journey of exploration… but without the epic experience of being an explorer. Imagine your exploration of data, articles, videos, etc. was as impactful an experience as those childhood hunts for dragon treasure. That’s what Web Research VR gives you.</div>
+              </div>
+            </figure>
+            <figure class="doc" tabindex="0" style="--tilt:-0.8deg" aria-label="Design document excerpt: rationale">
+              <div class="sheet">
+                <div class="s-sec s-teal-l"><b><u>RATIONALE</u> | 3–5 sentences</b><em>Explain why it is necessary to use VR for this experience</em></div>
+                <div class="s-body">We’ve had two dimensions to explore data and research for some time, however several problems arise with the current system.<br>First, there’s a lack of spontaneous discovery, which I’d argue arises from the loss of the spontaneous interaction during research in, say, a library. In a library you can go looking for a certain book, but in asking the librarian they may suggest another similar book, or in walking to the shelves to pick up the book you want, pass a display that touches on the very thing you were researching. It’s even possible that right next to the book you wanted there’s another whose contents cover the very thing you are looking into. However, not only does it take effort to go to the library, but not every library has content which relates to your research, and it’s impossible to create a library that reflects your interests for every theme you want to dive into.<br>Second, even if you could create a physical library, there are some affordances which would make a library more wonderful for research. Imagine if every book with references to other books had a small line connecting one another, so you could see at a glance if maybe one source was highly referenced and you should take a look at it.</div>
+              </div>
+            </figure>
+            <figure class="doc" tabindex="0" style="--tilt:1.6deg" aria-label="Implementation plan excerpt: ethical considerations">
+              <div class="sheet">
+                <div class="s-sec s-blue-l"><b><u>ETHICAL</u> | 3–5 sentences</b><em>Highlight any ethical considerations or potential concerns associated with implementing your VR experience</em></div>
+                <div class="s-body"><ol>
+                  <li><b>Privacy:</b> Privacy will be important beyond the standard VR worry of all of the cameras recording your space and those around you. This is because the system will be actively pulling in and making inferences about objects in your space in a very humanly understandable format, making the data more immediately personable than other data points (such as history) which individuals seem to not really care about regardless of their actual importance.</li>
+                  <li><b>Whose data?:</b> This is connected to privacy in a sense, but gets more at the idea of property. If my VR experience allows you to “store” an object you see in reality quickly, what are the implications? Are there some objects/things which should not be stored in a virtual world in certain ways? I don’t know the answers yet or where this would come up, but it feels like a potentially worrisome prospect.</li>
+                  <li><b>Systemic connection bias:</b> If the research system which finds connected sources/topics to what you are looking into is trained/programmed based on what is out in the world, there is a potential for super loud (but incorrect) points to be highlighted, worsening echo chamber effects, as people would feel like they are doing amazing research while actually just sticking inside their bubble.</li>
+                </ol></div>
+              </div>
+            </figure>
           </div>
           <p class="docs-caption">The concept video and rough drafts of my thinking for the project, all from way back in fall 2025.</p>
         </div>

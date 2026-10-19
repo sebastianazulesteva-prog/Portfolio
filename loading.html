@@ -270,6 +270,20 @@
     .doc img{ display:block; width:100%; height:auto; }
     .chapter .docs-caption{ margin-top:1.2rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; color:var(--ink-soft); }
 
+    /* ─── THE BUILD CYCLE ─── */
+    .cycle{ display:grid; grid-template-columns:minmax(220px, 320px) 1fr; gap:2rem; align-items:center; margin-top:2.2rem; }
+    .cycle-svg{ width:100%; height:auto; display:block; }
+    .cyc-track{ fill:none; stroke:var(--line); stroke-width:1; }
+    .cyc-arcs path{ fill:none; stroke:#9a5527; stroke-width:2.5; stroke-linecap:round; stroke-dasharray:7 7; animation:cycFlow 2.4s linear infinite; }
+    @keyframes cycFlow{ to{ stroke-dashoffset:-28; } }
+    .cyc-node{ fill:var(--ink); }
+    .cyc-num{ fill:var(--paper); font-family:var(--serif); font-size:20px; font-weight:700; text-anchor:middle; }
+    .cyc-center{ fill:var(--ink-soft); font-family:var(--serif); font-style:italic; font-size:22px; text-anchor:middle; }
+    .cycle-steps{ list-style:none; counter-reset:cyc; display:grid; gap:0.8rem; }
+    .cycle-steps li{ counter-increment:cyc; position:relative; padding-left:2.4rem; font-size:0.95rem; line-height:1.65; color:var(--ink-soft); }
+    .cycle-steps li::before{ content:counter(cyc); position:absolute; left:0; top:0.05rem; width:1.6rem; height:1.6rem; border-radius:50%; background:var(--ink); color:var(--paper); font-family:var(--serif); font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center; }
+    .cycle-steps strong{ font-weight:500; color:var(--ink); }
+
     /* ─── THE CARD PICKER ───
        Three ways a node's card could come out of its orb when you pull it
        close, redrawn from the option sheets the agents made for #137 and
@@ -324,7 +338,15 @@
     .s-morph .glass .inside{ animation:morphContent 3s ease-in-out infinite alternate; }
     .s-morph .orb{ transform-origin:30% 50%; animation:lean 3s ease-in-out infinite alternate; }
 
-    .next p:not(.chapter-date){ font-family:var(--serif); font-size:1.5rem; color:var(--ink); }
+    .next .chapter-inner > p:not(.chapter-date){ font-family:var(--serif); font-size:1.5rem; color:var(--ink); }
+
+    /* ─── NEXT: THREE PILLARS ─── */
+    .pillars{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1.2rem; margin-top:2rem; }
+    .pillar{ background:#fffdf8; border-radius:6px; padding:1.4rem 1.3rem 1.5rem; box-shadow:0 10px 30px rgba(29,40,80,0.07); border-top:3px solid var(--copper); }
+    .pillar-no{ font-family:var(--serif); font-style:italic; font-size:1.1rem; color:var(--copper); }
+    .pillar h4{ font-family:var(--serif); font-weight:600; font-size:1.25rem; line-height:1.25; color:var(--ink); margin:0.3rem 0 0.6rem; }
+    .chapter .pillar p{ font-family:'Lora', Georgia, serif; font-size:0.92rem; line-height:1.7; color:var(--ink-soft); }
+    body.accessible .chapter .pillar p{ font-family:var(--sans); }
 
     /* ─── MORE PROJECTS ─── the footer every project page shares, copied
        from baston.html and recoloured to this page's paper and ink. */
@@ -376,7 +398,8 @@
       .chapter-inner{ padding:3rem 1rem 3rem 2.6rem; }
       .chapter-inner::before{ left:1rem; }
       .chapter-node{ left:calc(1rem - 7px); top:3.45rem; }
-      .pair, .picker-panel{ grid-template-columns:1fr; }
+      .pair, .picker-panel, .cycle, .pillars{ grid-template-columns:1fr; }
+      .cycle-svg{ max-width:260px; margin:0 auto; }
       .doc:hover, .doc:focus{ transform:rotate(0deg) scale(2.6); }
       .doc:nth-child(2){ transform-origin:center top; }
       /* ─── HOVER PREVIEWS ───
@@ -515,13 +538,38 @@
       </div>
     </section>
 
-    <!-- ═══ III. DESIGNING IT ═══ -->
+    <!-- ═══ III. A NOTE ON DESIGN ═══ his build cycle, in his words, with
+         the card picker as one worked round of step two. -->
     <section class="chapter" aria-labelledby="ch3">
       <div class="chapter-inner">
         <span class="chapter-node" aria-hidden="true"></span>
         <p class="chapter-date">October 2026</p>
-        <h3 id="ch3"><span class="numeral">III.</span>Designing it</h3>
-        <p>Pull a node close and its card comes out. Three ways it could. Pick one.</p>
+        <h3 id="ch3"><span class="numeral">III.</span>A note on design</h3>
+        <p>Rapid prototyping and iteration are a key tenet of good design. Discovering my own build cycle was incredible: it has made this far faster than you could imagine.</p>
+
+        <!-- The cycle, drawn as a loop like a recycling mark. The dashes on
+             the arcs drift round it slowly; reduced motion stops them. -->
+        <div class="cycle">
+          <svg class="cycle-svg" viewBox="0 0 400 400" role="img" aria-label="A loop of five steps with arrows: sketch, ask for four versions, pick and dial in, test in the headset, talk it through, then back to sketching">
+              <defs><marker id="cyc-arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a5527"/></marker></defs>
+              <circle cx="200" cy="200" r="140" class="cyc-track"/>
+              <g class="cyc-arcs"><path d="M240.9,66.1 A140,140 0 0 1 311.8,115.7" marker-end="url(#cyc-arrow)"/><path d="M340.0,197.6 A140,140 0 0 1 314.7,280.3" marker-end="url(#cyc-arrow)"/><path d="M245.6,332.4 A140,140 0 0 1 159.1,333.9" marker-end="url(#cyc-arrow)"/><path d="M88.2,284.3 A140,140 0 0 1 60.0,202.4" marker-end="url(#cyc-arrow)"/><path d="M85.3,119.7 A140,140 0 0 1 154.4,67.6" marker-end="url(#cyc-arrow)"/></g>
+              <g><circle cx="200.0" cy="60.0" r="24" class="cyc-node"/><text x="200.0" y="67.0" class="cyc-num">1</text></g><g><circle cx="333.1" cy="156.7" r="24" class="cyc-node"/><text x="333.1" y="163.7" class="cyc-num">2</text></g><g><circle cx="282.3" cy="313.3" r="24" class="cyc-node"/><text x="282.3" y="320.3" class="cyc-num">3</text></g><g><circle cx="117.7" cy="313.3" r="24" class="cyc-node"/><text x="117.7" y="320.3" class="cyc-num">4</text></g><g><circle cx="66.9" cy="156.7" r="24" class="cyc-node"/><text x="66.9" y="163.7" class="cyc-num">5</text></g>
+              <text x="200" y="196" class="cyc-center">build, test,</text>
+              <text x="200" y="222" class="cyc-center">repeat</text>
+            </svg>
+          <ol class="cycle-steps">
+            <li><strong>Sketch.</strong> On the computer, sometimes on a piece of paper.</li>
+            <li><strong>Ask for four.</strong> I hand Claude the core idea and ask for several versions of it, usually four, each in a different design language.</li>
+            <li><strong>Pick and dial in.</strong> Simple animations are cheap next to a full build, so I compare them side by side and refine my favorite.</li>
+            <li><strong>Build on the headset.</strong> Granola records the whole session while I talk through what I see.</li>
+            <li><strong>Talk it through.</strong> The notes go back to a model, and the loop starts again.</li>
+          </ol>
+        </div>
+
+        <p class="after-figure">Notes are the hard part of building in VR alone. You're in a headset, your hands are busy, you're walking around, and stopping to write breaks the flow. So I just talk, and Granola keeps it.</p>
+
+        <p class="after-figure">One round of step two: three ways a card could come out of its orb. Click through.</p>
 
         <div class="picker" id="cardPicker">
           <div class="picker-tabs" role="tablist" aria-label="Ways the card comes out">
@@ -551,7 +599,27 @@
         <span class="chapter-node" aria-hidden="true"></span>
         <p class="chapter-date">Now</p>
         <h3 id="ch4"><span class="numeral">IV.</span>Next</h3>
-        <p>Polishing. More soon.</p>
+        <p>Polishing now. Then three directions.</p>
+        <!-- ✎ PILLARS. Chosen with him from the Loading repo's PARKING_LOT.md:
+             alternate data sources, the missing-webs and opposing-web ideas,
+             and the photo-plus-question on-ramp. -->
+        <div class="pillars">
+          <div class="pillar">
+            <span class="pillar-no">i</span>
+            <h4>More of the world</h4>
+            <p>Beyond Wikipedia: research papers, museum collections, books, living species and places, each tied back to the same web, so a search on Van Gogh can bloom into paintings you can stand in front of and the papers written about them.</p>
+          </div>
+          <div class="pillar">
+            <span class="pillar-no">ii</span>
+            <h4>The webs you're missing</h4>
+            <p>Recommendation systems show you more of what you already like. This would do the inverse: surface the clusters that answer the same question from far away, and measure whether opposing camps actually cite each other or grow in isolation.</p>
+          </div>
+          <div class="pillar">
+            <span class="pillar-no">iii</span>
+            <h4>Ask with a photo</h4>
+            <p>Drop in a picture and a question, like a cat and "how did these evolve?" The subject is recognized on the device, the web centers on it and bends toward the question, and the photo never leaves the headset.</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -678,7 +746,7 @@
       });
     }
 
-    initA11yLineHighlight('.meta-value, .story p, .chapter p, .chapter h3, figcaption, .picker-panel p');
+    initA11yLineHighlight('.cycle-steps li, .meta-value, .story p, .chapter p, .chapter h3, figcaption, .picker-panel p');
 
     /* ═══ LOOPS PLAY ONLY WHILE ON SCREEN ═══
        Two silent clips, 2.6 MB and 3.6 MB. preload="none" means neither costs

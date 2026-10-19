@@ -863,6 +863,37 @@
     .peek.on{ opacity:1; }
     .peek img, .peek video{ display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:7px; background:var(--rbv-panel); }
     .peek p{ font-size:0.66rem; font-weight:700; letter-spacing:0.04em; color:var(--ink-soft); padding:0.45rem 0.3rem 0.15rem; }
+
+    /* ─── 01 RELIABLE: STARTUP, BEFORE AND NOW ─── the first card spans the
+       row. Each step is an app tile and a short line, in order, with a
+       chevron between; "Now" is one tile. */
+    .step.wide{ grid-column:1 / -1; }
+    .startup{ display:grid; gap:1rem; margin-top:0.8rem; }
+    .startup-row{ display:grid; grid-template-columns:4.2rem 1fr; gap:0.8rem; align-items:start; }
+    .startup-tag{ font-size:0.7rem; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-faint); padding-top:0.9rem; }
+    .startup-row.after .startup-tag{ color:var(--cat-ink); }
+    .flow{ list-style:none; counter-reset:flow; display:flex; flex-wrap:wrap; gap:0.55rem 0.4rem; }
+    .flow li{ counter-increment:flow; position:relative; display:flex; flex-direction:column; align-items:center; gap:0.4rem; width:6.4rem; text-align:center; font-size:0.78rem; font-weight:600; line-height:1.3; color:var(--ink-soft); }
+    .flow li::before{ content:counter(flow); position:absolute; top:-0.3rem; left:1.2rem; z-index:1; width:1.15rem; height:1.15rem; border-radius:50%; background:var(--ink-faint); color:var(--white); font-size:0.62rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
+    .flow li + li::after{ content:"›"; position:absolute; left:-0.55rem; top:0.8rem; font-size:1.3rem; color:var(--ink-faint); }
+    .startup-row.after .flow li{ width:auto; flex-direction:row; gap:0.8rem; font-size:1rem; font-weight:700; color:var(--ink); }
+    .startup-row.after .flow li::before{ display:none; }
+    .app{ width:3rem; height:3rem; border-radius:12px; object-fit:cover; box-shadow:0 2px 8px rgba(18,20,28,0.14); }
+    .app.glyph{ display:flex; align-items:center; justify-content:center; background:var(--rbv-utility); }
+    .app.glyph svg{ width:1.5rem; height:1.5rem; fill:none; stroke:var(--white); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; padding:0; background:none; margin:0; }
+    .startup-row.after .app{ width:3.6rem; height:3.6rem; }
+    /* Auto end takes the red of its own countdown card in the headset
+       (HostPalette.Destructive, #a32d2d). */
+    #reliable .step.red{ --cat:#a32d2d; --cat-ink:#a32d2d; }
+    #reliable .steps{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    #experience-path .tile-media img{ object-position:left top; }
+    @media(max-width:768px){
+      .startup-row{ grid-template-columns:1fr; gap:0.4rem; }
+      .startup-tag{ padding-top:0; }
+      .flow li{ width:4.8rem; font-size:0.72rem; }
+      .flow li + li::after{ display:none; }
+      #reliable .steps{ grid-template-columns:minmax(0,1fr); }
+    }
   </style>
 </head>
 <body>
@@ -922,7 +953,7 @@
          under the card was removed by request. "Virtual Becomes Reality"
          links to its Steam page, the lab's 2021 app of its in-person tour. -->
     <p>Dr. Bailenson had the idea for Reality Becomes Virtual (the sequel to <a href="https://store.steampowered.com/app/1658530/" target="_blank" rel="noopener" data-preview-img="https://cdn.akamai.steamstatic.com/steam/apps/1658530/header.jpg" data-preview-label="Virtual Becomes Reality · VHIL, 2021 · Steam">Virtual Becomes Reality</a>) for many years, and this past summer it came to life with a wonderful team from the <a href="https://vhil.stanford.edu/" target="_blank" rel="noopener">Virtual Human Interaction Lab</a> (Emmanuel Corona and Noé Chicas-Aranda).</p>
-    <p>The idea: networked headsets creating a social way to get a glimpse at the augmented reality that is coming. It is a glimpse at the full-fledged future that technology like Meta's Ray-Bans and Snap's Spectacles is showing us, as every tech company sees smart glasses and other wearables as part of what's next.</p>
+    <p>The idea: networked headsets creating a social way to get a glimpse at the augmented reality that is coming. AR is the future that Meta, Snap, Apple and every big tech company are betting on, especially with the rise of AI.</p>
     <p>Building from the foundation Dr. Bailenson envisioned and built, I've been completely captivated by this project, working deep into the night on many different parts of it: starting with making it more reliable <a class="jump" href="#reliable" data-preview-img="images/rbv-preview-reliable.jpg" data-preview-label="01 Reliable · click to jump down">01 ↓</a>, polishing its design language <a class="jump" href="#designed" data-preview-img="images/rbv-redesign.jpg" data-preview-label="02 Designed · click to jump down">02 ↓</a>, and adding many new features <a class="jump" href="#new" data-preview-video="images/rbv-ball.mp4" data-preview-img="images/rbv-ball-poster.jpg" data-preview-label="03 New · click to jump down">03 ↓</a>.</p>
   </div>
 
@@ -938,24 +969,46 @@
     <h2 class="block-label"><span class="num">01</span>Reliable</h2>
     <div class="block-body">
       <div class="prose">
-        <p>The original summer build needed tons of work to give a seamless experience. So my first order of business was to make it <strong>as close to one button as possible</strong>, <strong>robust to user error</strong>, and to make sure it <strong>never fails silently</strong>.</p>
-        <p>The sound system now starts with one click instead of five. With a reliable desktop app in place, we could easily gather logs from every headset, allowing for more robust future builds and iterations. And simple additions, like an automatic end sequence, removed human error.</p>
+        <p>The original summer build needed tons of work to give a seamless experience. So my first order of business was to make setup <strong>simple</strong>, the system <strong>robust to user error</strong>, and to make sure it <strong>never fails silently</strong>.</p>
       </div>
+      <!-- ═══ BEFORE / AFTER ═══ the startup, step by step, as he described
+           it. Max is the sound manager (with its auralizer patch, per
+           tools/ppt1-demo/README.md in the Unity repo). The Unity Hub and
+           Unity icons are the apps' own, taken from the copies installed on
+           this Mac; Max and the headset have no local icon, so they get a
+           drawn glyph in the same tile shape. -->
       <ol class="steps">
-        <li class="step">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+        <li class="step wide">
           <p class="step-title">One click</p>
-          <p class="step-line">The sound system, in one click instead of five.</p>
+          <div class="startup">
+            <div class="startup-row">
+              <span class="startup-tag">Before</span>
+              <ol class="flow">
+                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg></span>Open Max, the sound manager</li>
+                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg></span>Find the auralizer, turn sound on</li>
+                <li><img class="app" src="images/rbv-logo-unity-hub.png" alt="" width="128" height="128">Open Unity Hub</li>
+                <li><img class="app" src="images/rbv-logo-unity.png" alt="" width="128" height="128">Open the project</li>
+                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9.5a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 9.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-2-2.2h-3L8.5 16h-3A2.5 2.5 0 0 1 3 13.5z"/></svg></span>Start the host in the headset</li>
+                <li><img class="app" src="images/rbv-logo-unity.png" alt="" width="128" height="128">Press Play in Unity</li>
+              </ol>
+            </div>
+            <div class="startup-row after">
+              <span class="startup-tag">Now</span>
+              <ol class="flow">
+                <li><img class="app" src="images/rbv-visionpro-icon.jpg" alt="" width="600" height="600">Hit Start RBV. That's it.</li>
+              </ol>
+            </div>
+          </div>
         </li>
-        <li class="step">
+        <li class="step red">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
           <p class="step-title">Auto end</p>
           <p class="step-line">The headset's sensors end the tour on their own.</p>
         </li>
         <li class="step">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
-          <p class="step-title">Live logs</p>
-          <p class="step-line">From every headset, streamed live. No cable.</p>
+          <p class="step-title">Never fails silently</p>
+          <p class="step-line">Live logs from every headset, gathered in one place, so every system now gets built far faster. In Chorus, the log showed where each frame's time went, step by step, so three passes became one.</p>
         </li>
       </ol>
     </div>
@@ -974,7 +1027,7 @@
           <div class="tile-media">
             <img src="images/rbv-printouts.jpg" alt="Printed sheets of the host's control wheel in every state, spread on a desk and marked up by hand" width="1050" height="1400" loading="lazy">
           </div>
-          <p class="step-title">Print</p>
+          <p class="step-title">User interface design printout</p>
           <p class="step-line">I printed the entire UI to put notes on it (because the physical world is still good sometimes).</p>
         </li>
         <li class="step" tabindex="0">
@@ -986,10 +1039,10 @@
         </li>
         <li class="step" id="experience-path" tabindex="0">
           <div class="tile-media">
-            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page: rows of colored icon buttons for every tour moment on the left, and a tour named Lab tour with eight moments lined up on the right" width="1280" height="800" loading="lazy">
+            <img src="images/rbv-plan-builder.jpg" alt="The Experience Builder web page: rows of colored icon buttons for every tour moment on the left, and a tour named Lab tour with eight moments lined up on the right" width="1000" height="625" loading="lazy">
           </div>
           <p class="step-title">Experience path</p>
-          <p class="step-line">Plan the tour online. The host headset scans it, then Next runs it.</p>
+          <p class="step-line">Plan the tour wherever you like, scan it in, and just click through.</p>
         </li>
       </ol>
     </div>
@@ -1080,9 +1133,9 @@
            2026-10-06: someone walks past the virtual puppy with occlusion on
            (the legs hide it) and off (it is drawn over the legs). One switch
            teaches the idea to someone who has never heard the word. -->
-      <p class="block-lede">RBV Camera: an iPad window into the tour.</p>
+      <p class="block-lede">RBV Camera: a movable window into the tour.</p>
       <div class="prose">
-        <p>So guests can watch what the headsets see, and take a photo home.</p>
+        <p>So guests can watch what the headsets see, and take a photo home. It also lets us explain occlusion to people who have never heard of it, with a real example in front of them: a little education built into the tour. We use occlusion on the iPad because its LiDAR makes it far better.</p>
       </div>
       <!-- Compact pair, by request: the occlusion switch and clip on the left,
            his pose with the puppy (an RBV Camera photo) on the right. -->
@@ -1091,7 +1144,7 @@
         <div class="tile-media">
           <img src="images/rbv-camera-pose.jpg" alt="An RBV Camera photo: Sebastian in a headset crouches into a pose on the lab carpet beside the virtual puppy" width="1200" height="827" loading="lazy">
         </div>
-        <figcaption>A photo to take home.</figcaption>
+        <figcaption>A photo to take home. (This dog doesn't look like it likes me very much.)</figcaption>
       </figure>
       <div class="occ">
         <div class="occ-switch" role="group" aria-label="Occlusion">
@@ -1133,7 +1186,7 @@
     <div class="more-projects-grid">
       <a href="pendant.html" class="mini-card">
         <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024" loading="lazy">
-        <span class="mini-card-arrow">↗</span>
+        <span class="mini-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="mini-card-info">
           <p class="mini-card-title">Graduation Pendant</p>
           <span class="mini-card-tag">Silver · Metalworking · Design</span>
@@ -1141,7 +1194,7 @@
       </a>
       <a href="baston.html" class="mini-card">
         <img src="images/baston-hero.jpg" alt="Close-up of the Bastón folded" width="5184" height="3058" loading="lazy">
-        <span class="mini-card-arrow">↗</span>
+        <span class="mini-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="mini-card-info">
           <p class="mini-card-title">Bastón</p>
           <span class="mini-card-tag">Woodworking · Metalworking</span>
@@ -1149,7 +1202,7 @@
       </a>
       <a href="timecollector.html" class="mini-card">
         <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gear train and marble mechanism" width="966" height="1192" loading="lazy">
-        <span class="mini-card-arrow">↗</span>
+        <span class="mini-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="mini-card-info">
           <p class="mini-card-title">Time Collector</p>
           <span class="mini-card-tag">Team Project · Kinetic Sculpture</span>
@@ -1157,7 +1210,7 @@
       </a>
       <a href="slipdoor.html" class="mini-card">
         <img src="images/slipdoor-hero.jpg" alt="Completed Slip Door prototype with Volkswagen branding next to a teammate" width="1920" height="1080" loading="lazy">
-        <span class="mini-card-arrow">↗</span>
+        <span class="mini-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="mini-card-info">
           <p class="mini-card-title">The Slip Door</p>
           <span class="mini-card-tag">Accessibility · Volkswagen</span>
@@ -1166,12 +1219,12 @@
     </div>
 
     <div class="quick-links-row">
-      <a href="vr-spatial-portfolio.html" class="quick-link-mini">The Dome <span>↗</span></a>
-      <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
-      <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
-      <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
-      <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
-      <a href="apple-medical-licensure-apple-watch.html" class="quick-link-mini">Apple's Medical Licensure <span>↗</span></a>
+      <a href="vr-spatial-portfolio.html" class="quick-link-mini">The Dome <span><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
+      <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
+      <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
+      <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
+      <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
+      <a href="apple-medical-licensure-apple-watch.html" class="quick-link-mini">Apple's Medical Licensure <span><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span></a>
     </div>
   </div>
 
@@ -1416,6 +1469,6 @@
   </script>
   <!-- More Projects is rebuilt from index.html's project grid; see the
        file for why. The hand-written strip above is the no-JS fallback. -->
-  <script src="more-projects.js?v=1" defer></script>
+  <script src="more-projects.js?v=2" defer></script>
 </body>
 </html>

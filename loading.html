@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- ═══ ACCESSIBLE MODE — CARRY ACROSS PAGES ═══ see index.html for the
+       full write-up. Applied before paint so there's no flash. -->
+  <script>
+    if (localStorage.getItem('a11yMode') === '1') {
+      document.documentElement.classList.add('accessible');
+    }
+  </script>
+
+  <title>Loading, a web of ideas you stand inside | Sebastian Esteva</title>
+
+  <!-- ═══ SEO — SEARCH ENGINE METADATA ═══ -->
+  <meta name="description" content="Loading (working title): an ongoing side project by Sebastian Esteva for Apple Vision Pro. Search a topic and a web of related ideas from Wikidata blooms around you, in your own room. Built natively in Swift and RealityKit with AI coding agents.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://sesteva.com/loading.html" />
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Loading, a web of ideas you stand inside">
+  <meta property="og:description" content="An ongoing Apple Vision Pro side project. Search a topic and a web of related ideas blooms around you, in your own room.">
+  <meta property="og:image" content="https://sesteva.com/images/loading-headset-gold.jpg">
+  <meta property="og:url" content="https://sesteva.com/loading.html">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Loading, a web of ideas you stand inside">
+  <meta name="twitter:image" content="https://sesteva.com/images/loading-headset-gold.jpg">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="images/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="images/android-chrome-512x512.png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+
+  <!-- Playfair Display and Poppins, the site's pair, so the page matches
+       its siblings; only the palette (from the app icon) is its own. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Poppins:wght@300;400;500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Poppins:wght@300;400;500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Poppins:wght@300;400;500;600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" /></noscript>
+
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    button{appearance:none;-webkit-appearance:none;font:inherit;color:inherit}
+
+    /* ─── PALETTE ───
+       Taken from the app icon (images/loading-icon.jpg): cream paper, navy
+       wire, copper hub. Every colour on the page comes from here. */
+    :root{
+      --base-font-size: 17px;
+      --paper:#efe8da;
+      --paper-deep:#e6ddcb;
+      --ink:#1d2850;
+      --ink-soft:rgba(29,40,80,0.74);
+      --ink-faint:rgba(29,40,80,0.58);
+      --line:rgba(29,40,80,0.16);
+      --copper:#9a5527;
+      --copper-soft:rgba(154,85,39,0.45);
+      /* The prototype chapters sit on a night band, because the headset
+         captures are dark and fight the paper. Same navy as the ink. */
+      --night:#141c3b;
+      --night-text:#f1ead9;
+      --night-soft:rgba(241,234,217,0.74);
+      --night-line:rgba(241,234,217,0.16);
+      --serif:'Playfair Display', Georgia, serif;
+      --sans:'Poppins', system-ui, sans-serif;
+      --focus-ring: var(--ink);
+    }
+
+    html{font-size:var(--base-font-size);scroll-behavior:smooth}
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:0.01ms!important; animation-iteration-count:1!important; transition-duration:0.01ms!important; scroll-behavior:auto!important; }
+    }
+
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    html.accessible{ font-size:calc(var(--base-font-size) * 1.15); }
+
+    :focus-visible{ outline:2px solid var(--focus-ring); outline-offset:3px; }
+
+    body.accessible{
+      /* Raised only in this mode, same reasoning as every other page: the
+         default palette is left as authored, and a visitor who asks for
+         accessible mode gets secondary text past 4.5:1 on the paper. */
+      --ink-soft:rgba(29,40,80,0.86);
+      --ink-faint:rgba(29,40,80,0.78);
+      --night-soft:rgba(241,234,217,0.88);
+      --serif:'Atkinson Hyperlegible', sans-serif;
+      --sans:'Atkinson Hyperlegible', sans-serif;
+      letter-spacing:0.01em;
+      word-spacing:0.05em;
+      line-height:1.9;
+    }
+    body.accessible .back-link,
+    body.accessible .journey-sub,
+    body.accessible .meta-label,
+    body.accessible .chapter-date,
+    body.accessible .back-bottom { font-weight:700; }
+
+    body{
+      background:var(--paper);
+      color:var(--ink);
+      font-family:var(--sans);
+      font-weight:300;
+      line-height:1.7;
+      overflow-x:hidden;
+    }
+
+    nav{
+      position:sticky; top:0; z-index:100;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.5rem 3rem;
+      background:rgba(239,232,218,0.9);
+      -webkit-backdrop-filter:blur(10px);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav-logo{ font-family:var(--serif); font-size:1.3rem; font-weight:600; color:var(--ink); text-decoration:none; }
+    .back-link{
+      font-size:0.72rem; font-weight:500; letter-spacing:0.1em; text-transform:uppercase;
+      color:var(--ink-soft); text-decoration:none;
+      padding:0.6rem 1.3rem; border:1px solid var(--line); border-radius:100px;
+      transition:border-color 0.2s, color 0.2s;
+    }
+    .back-link:hover{ border-color:var(--ink); color:var(--ink); }
+
+    /* ─── ACCESSIBLE MODE TOGGLE + EXPLAINER CARD ─── same as every page. */
+    .a11y-toggle{
+      display:flex; align-items:center; gap:0.6rem;
+      background:none; border:1px solid var(--line); border-radius:100px;
+      padding:0.4rem 0.9rem; color:var(--ink-soft);
+      font-family:var(--sans); font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase;
+      cursor:pointer; transition:border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .a11y-toggle:hover{ border-color:var(--ink); color:var(--ink); }
+    .a11y-toggle.active{ border-color:var(--ink); color:var(--ink); background:rgba(29,40,80,0.06); }
+    .a11y-dot{ width:6px; height:6px; border-radius:50%; background:var(--ink-faint); flex-shrink:0; }
+    .a11y-toggle.active .a11y-dot{ background:var(--ink); }
+    .a11y-word-off{ display:none; }
+    .a11y-toggle.active .a11y-word-on{ display:none; }
+    .a11y-toggle.active .a11y-word-off{ display:inline; }
+    .a11y-note{
+      position:fixed; top:5.5rem; right:1.5rem; z-index:150;
+      width:min(280px, calc(100vw - 3rem));
+      background:var(--paper-deep); border:1px solid var(--line); border-radius:12px;
+      padding:1rem 1.1rem; opacity:0; transform:translateY(-12px); pointer-events:none;
+      transition:opacity 0.3s ease, transform 0.3s ease;
+    }
+    .a11y-note.visible{ opacity:1; transform:none; pointer-events:auto; }
+    .a11y-note p{ font-size:0.72rem; line-height:1.55; color:var(--ink-soft); }
+    .a11y-note strong, .a11y-note a{ color:var(--ink); }
+    .a11y-note-close{ position:absolute; top:0.5rem; right:0.6rem; background:none; border:none; color:var(--ink-soft); font-size:1rem; line-height:1; cursor:pointer; padding:0.2rem; }
+    .a11y-line-overlay{ position:absolute; inset:0; z-index:-1; background:rgba(154,85,39,0.18); pointer-events:none; clip-path:inset(0 0 100% 0); }
+
+    /* ─── HERO ───
+       The sibling template (pendant.html, chess.html): centred eyebrow,
+       Playfair title, an uppercase subtitle, the hero shot under it, then a
+       three-cell fact row. Only the palette is this page's own. */
+    .hero{ position:relative; text-align:center; max-width:1050px; margin:0 auto; padding:6rem 3rem 0; overflow-x:clip; }
+    /* The orbit rings behind the title echo the icon's wire spiral. Pure
+       decoration, so aria-hidden and pointer-events off. */
+    .rings{ position:absolute; left:50%; top:-260px; width:900px; height:900px; margin-left:-450px; pointer-events:none; z-index:0; }
+    .hero > :not(.rings){ position:relative; z-index:1; }
+    .hero-title{ font-family:var(--serif); font-weight:700; font-size:clamp(2.8rem, 7vw, 5.5rem); line-height:1.05; letter-spacing:-0.01em; }
+    .hero-title em{ font-style:normal; color:var(--copper); }
+
+    .hero-shot{ position:relative; max-width:880px; margin:3rem auto 0; padding:0 3rem; }
+    .hero-shot img.plate{ width:100%; height:auto; display:block; border-radius:6px; box-shadow:0 30px 60px rgba(29,40,80,0.22); }
+    .seal{ position:absolute; width:6.5rem; height:6.5rem; border-radius:50%; right:1.5rem; top:-2.5rem; border:3px solid var(--paper); box-shadow:0 10px 30px rgba(29,40,80,0.2); }
+
+    /* ─── STORY ─── the short description, as on pendant.html. */
+    .story{ max-width:760px; margin:0 auto 4rem; padding:3rem 3.5rem; background:#fffdf8; border-radius:6px; box-shadow:0 12px 40px rgba(29,40,80,0.08); }
+    /* Lora, his pick: the story is his own voice, so it gets a warmer,
+       book-like face on a white card instead of the page's UI sans. */
+    .story p{ font-family:'Lora', Georgia, serif; font-size:1.08rem; line-height:1.8; color:var(--ink-soft); }
+    body.accessible .story p{ font-family:var(--sans); }
+    .story p + p{ margin-top:1.1rem; }
+    .story strong{ font-weight:600; color:var(--ink); }
+    /* Jump links from the story down to the clip it is talking about. The
+       targets carry scroll-margin so the sticky nav does not cover them. */
+    .story a.jump{ font-family:var(--sans); display:inline-block; margin-left:0.3rem; padding:0.05rem 0.6rem; border:1px solid var(--copper); border-radius:99px; font-size:0.7rem; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:var(--copper); text-decoration:none; vertical-align:0.1em; line-height:1.6; transition:background 0.2s, color 0.2s; }
+    .story a.jump:hover{ background:var(--copper); color:var(--paper); }
+    #concept-video, #first-night{ scroll-margin-top:7rem; }
+    .story a{ color:var(--ink); text-decoration-color:var(--copper); text-underline-offset:3px; }
+
+    /* ─── META ROW ─── as on pendant.html, but it stays one row on a
+       phone too (his call: three short facts fit on one line). */
+    .meta-row{ display:flex; flex-wrap:wrap; justify-content:center; max-width:880px; margin:3.5rem auto; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .meta-item{ flex:1; min-width:150px; padding:1.5rem; text-align:center; border-left:1px solid var(--line); }
+    .meta-item:first-child{ border-left:none; }
+    .meta-label{ font-size:0.65rem; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:0.5rem; }
+    .meta-value{ font-family:var(--serif); font-size:1.05rem; color:var(--ink); }
+    /* The live dot: a red dot with a soft ring that pulses outward, like a
+       recording light. Under reduced motion the global rule stops the pulse
+       and the solid dot stays. */
+    .live-dot{ position:relative; display:inline-block; width:0.55rem; height:0.55rem; margin-right:0.5rem; border-radius:50%; background:#d93a2b; vertical-align:0.08em; }
+    .live-dot::after{ content:''; position:absolute; inset:0; border-radius:50%; background:#d93a2b; animation:livePulse 1.8s ease-out infinite; }
+    @keyframes livePulse{ 0%{ transform:scale(1); opacity:0.6 } 100%{ transform:scale(2.6); opacity:0 } }
+
+    /* ─── CAPTIONS ─── */
+    figcaption{ margin-top:0.75rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; line-height:1.45; color:var(--ink-soft); }
+
+
+    /* ─── TIMELINE ───
+       One thin line runs down the left of every chapter, with a node on it
+       for each, so the page reads as the kernel travelling from 2025 to now.
+       It is a border on .chapter, so it can never come apart from the
+       chapters it joins. */
+    .timeline-head{ text-align:center; padding:1.5rem 3rem 2rem; }
+    .journey-heading{ font-family:var(--serif); font-weight:700; font-size:clamp(2.2rem, 5vw, 3.2rem); margin-bottom:0.5rem; }
+    .journey-heading em{ font-style:italic; font-weight:400; color:var(--copper); }
+    .journey-sub{ font-size:0.75rem; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-faint); }
+
+    .chapter{ position:relative; }
+    .chapter-inner{
+      position:relative; max-width:980px; margin:0 auto;
+      padding:4rem 3rem 4rem 6.5rem;
+    }
+    .chapter-inner::before{
+      content:""; position:absolute; left:3.4rem; top:0; bottom:0;
+      border-left:1px solid var(--copper-soft);
+    }
+    .chapter-node{
+      position:absolute; left:calc(3.4rem - 7px); top:4.45rem;
+      width:15px; height:15px; border-radius:50%;
+      background:var(--copper); box-shadow:0 0 0 5px var(--paper);
+    }
+    .chapter-date{ font-size:0.68rem; font-weight:500; letter-spacing:0.18em; text-transform:uppercase; color:var(--copper); }
+    .chapter h3{ font-family:var(--serif); font-weight:500; font-size:clamp(1.9rem, 3.4vw, 2.6rem); line-height:1.1; margin:0.35rem 0 1.2rem; }
+    .chapter h3 .numeral{ font-style:italic; color:var(--copper); margin-right:0.5rem; }
+    .chapter p{ font-size:1rem; line-height:1.8; max-width:40rem; color:var(--ink-soft); }
+    .chapter p + p{ margin-top:1rem; }
+    .chapter .after-figure{ margin-top:2.2rem; }
+    .chapter p strong{ font-weight:500; color:var(--ink); }
+    .chapter a{ color:var(--ink); text-decoration-color:var(--copper); text-underline-offset:3px; }
+    .chapter figure{ margin:2.2rem 0 0; }
+    .chapter figure img, .chapter figure video{ width:100%; height:auto; display:block; border-radius:4px; background:var(--paper-deep); }
+
+    /* The night band. Used by the chapters whose media are headset or
+       simulator captures, which are dark and look muddy on paper. */
+    .chapter.night{ background:var(--night); color:var(--night-text); }
+    .chapter.night .chapter-node{ box-shadow:0 0 0 5px var(--night); }
+    .chapter.night p{ color:var(--night-soft); }
+    .chapter.night p strong, .chapter.night a{ color:var(--night-text); }
+    .chapter.night figcaption{ color:var(--night-soft); }
+    .chapter.night .chapter-date, .chapter.night .numeral{ color:#d79a68; }
+    .chapter.night .chapter-node{ background:#d79a68; }
+    .chapter.night .chapter-inner::before{ border-left-color:rgba(215,154,104,0.5); }
+
+    /* ─── PAIRS (first vs now) ─── */
+    .pair{ display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-top:2.2rem; }
+    .pair figure{ margin:0; }
+    .trio-caption{ margin-top:0.75rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; }
+    .chapter.night .trio-caption{ color:var(--night-soft); }
+
+    /* ─── CLASS DOCS ─── loose sheets, a little crooked, so they read as
+       working notes rather than finished figures. */
+    .docs{ margin-top:2.4rem; }
+    .docs-grid{ columns:2; column-gap:1.4rem; }
+    .docs-grid .doc{ break-inside:avoid; margin-bottom:1.4rem; }
+    .doc{ display:block; padding:0.5rem; background:#fff; box-shadow:0 8px 24px rgba(29,40,80,0.14); transform:rotate(var(--tilt, 0deg)); transition:transform 0.3s ease; }
+    .doc:hover{ transform:rotate(0deg) scale(1.03); }
+    .doc img{ display:block; width:100%; height:auto; }
+    .chapter .docs-caption{ margin-top:1.2rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; color:var(--ink-soft); }
+
+    /* ─── THE CARD PICKER ───
+       Three ways a node's card could come out of its orb when you pull it
+       close, redrawn from the option sheets the agents made for #137 and
+       #160 (2026-10-13). Morph is the one he picked: "the card should become
+       the droplet and back, not swap with it." Pure CSS loops; under reduced
+       motion the global rule above runs each once, so it lands on the open
+       card. A row of tabs swaps which one plays, the way he chose. */
+    .picker{ margin-top:2.2rem; background:var(--paper-deep); border:1px solid var(--line); border-radius:8px; padding:1.2rem; }
+    .picker-tabs{ display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; }
+    .picker-tab{
+      font-family:var(--sans); font-size:0.72rem; font-weight:500; letter-spacing:0.06em;
+      padding:0.45rem 0.95rem; border-radius:99px; border:1px solid var(--line);
+      background:var(--paper); color:var(--ink-soft); cursor:pointer;
+      transition:background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .picker-tab:hover{ border-color:var(--ink); color:var(--ink); }
+    .picker-tab[aria-selected="true"]{ background:var(--ink); border-color:var(--ink); color:var(--paper); }
+    .picker-panel{ display:grid; grid-template-columns:auto 1fr; gap:1.6rem; align-items:center; }
+    .picker-panel[hidden]{ display:none; }
+    .picker-panel h4{ font-family:var(--serif); font-weight:500; font-size:1.6rem; line-height:1.15; margin-bottom:0.3rem; }
+    .picker-panel p{ font-size:0.92rem; color:var(--ink-soft); }
+    .picker-panel .picked{ font-family:var(--sans); font-size:0.62rem; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--copper); margin-bottom:0.4rem; }
+
+    /* The stage is a fixed 300 by 190 so the keyframes can stay in pixels,
+       exactly as they were drawn. 300 fits a 375px phone with padding. */
+    .stage{ position:relative; width:300px; height:190px; border-radius:6px; overflow:hidden; background:linear-gradient(#2a3150, #1b2140); }
+    .stage .orb{ position:absolute; left:34px; top:71px; width:48px; height:48px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #a9c9ff, #4d8cff 55%, #2a5bc0); }
+    .stage .glass{ position:absolute; left:130px; top:35px; width:130px; height:120px; border-radius:16px; background:rgba(241,234,217,0.22); border:1px solid rgba(241,234,217,0.55); overflow:hidden; }
+    .stage .glass i{ display:block; height:44px; margin:9px; border-radius:7px; background:#8a7a5c; }
+    .stage .glass b{ display:block; height:7px; margin:6px 9px; border-radius:4px; background:rgba(241,234,217,0.45); }
+
+    /* A · Pop: the card is simply there. */
+    @keyframes pop{ 0%,39%{ opacity:0 } 40%,100%{ opacity:1 } }
+    .s-pop .glass{ animation:pop 3s steps(1) infinite; }
+
+    /* B · Hand-over: a bud swells and shrinks while a separate card grows. */
+    @keyframes handBud{ 0%{ left:66px; top:89px; width:12px; height:12px; opacity:1 } 30%{ left:100px; top:80px; width:30px; height:30px; opacity:1 } 55%{ left:120px; top:85px; width:20px; height:20px; opacity:1 } 75%,100%{ left:128px; top:93px; width:4px; height:4px; opacity:0 } }
+    @keyframes handCard{ 0%,40%{ transform:scale(0.02) } 100%{ transform:scale(1) } }
+    .s-hand .bud{ position:absolute; border-radius:50%; background:#4d8cff; animation:handBud 3s ease-in-out infinite; }
+    .s-hand .glass{ transform-origin:0 50%; animation:handCard 3s ease-out infinite; }
+
+    /* C · Morph: one shape, bud to disc to card, content fades in last. */
+    @keyframes morph{
+      0%{ left:62px; top:87px; width:16px; height:16px; border-radius:50%; background:#4d8cff }
+      30%{ left:100px; top:79px; width:32px; height:32px; border-radius:50%; background:#4d8cff }
+      45%{ left:122px; top:75px; width:40px; height:40px; border-radius:50%; background:#6f9fe8 }
+      80%,100%{ left:130px; top:35px; width:130px; height:120px; border-radius:16px; background:rgba(241,234,217,0.22) }
+    }
+    @keyframes morphContent{ 0%,70%{ opacity:0 } 95%,100%{ opacity:1 } }
+    @keyframes lean{ 0%{ transform:scaleX(1) } 30%{ transform:scaleX(1.12) } 50%,100%{ transform:scaleX(1) } }
+    .s-morph .glass{ animation:morph 3s ease-in-out infinite alternate; }
+    .s-morph .glass .inside{ animation:morphContent 3s ease-in-out infinite alternate; }
+    .s-morph .orb{ transform-origin:30% 50%; animation:lean 3s ease-in-out infinite alternate; }
+
+    .next p:not(.chapter-date){ font-family:var(--serif); font-size:1.5rem; color:var(--ink); }
+
+    /* ─── MORE PROJECTS ─── the footer every project page shares, copied
+       from baston.html and recoloured to this page's paper and ink. */
+    .more-projects{ max-width:980px; margin:0 auto; padding:5rem 3rem 0; }
+    .more-projects-title{ font-family:var(--sans); font-size:0.72rem; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); text-align:center; margin-bottom:1.75rem; }
+    .more-projects-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:1.25rem; }
+    .mini-card{ position:relative; display:block; text-decoration:none; color:inherit; aspect-ratio:4/3; overflow:hidden; border-radius:4px; background:var(--paper-deep); }
+    .mini-card img{ width:100%; height:100%; object-fit:cover; display:block; filter:grayscale(30%) brightness(0.9); transition:filter 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1); }
+    .mini-card:hover img{ filter:grayscale(0%) brightness(1); transform:scale(1.05); }
+    .mini-card::after{ content:''; position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.1) 45%, rgba(0,0,0,0.02) 100%); pointer-events:none; }
+    .mini-card-info{ position:absolute; left:0; right:0; bottom:0; padding:1rem; z-index:2; }
+    .mini-card-title{ font-family:var(--serif); font-size:1.05rem; color:#f5f5f0; line-height:1.2; margin-bottom:0.2rem; }
+    .mini-card-tag{ font-size:0.6rem; letter-spacing:0.06em; text-transform:uppercase; color:rgba(245,245,240,0.7); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mini-card-arrow{ position:absolute; top:0.65rem; right:0.65rem; width:26px; height:26px; border-radius:50%; background:rgba(0,0,0,0.5); -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.8rem; transform:rotate(-45deg); transition:transform 0.35s cubic-bezier(0.16,1,0.3,1), background 0.3s; z-index:2; }
+    .mini-card:hover .mini-card-arrow{ transform:rotate(0deg); background:#fff; color:#111; }
+    .mini-card:focus-visible{ outline-offset:-3px; }
+    .quick-links-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:0.6rem; margin-top:1.25rem; }
+    .quick-link-mini{ display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1rem; border:1px solid var(--ink); border-radius:100px; font-size:0.68rem; font-weight:500; text-decoration:none; color:var(--ink); white-space:nowrap; transition:background 0.2s, color 0.2s; }
+    .quick-link-mini:hover{ background:var(--ink); color:var(--paper); }
+
+    /* ─── HOVER PREVIEWS ───
+       Hovering a link in the story shows what it leads to in a small
+       floating window, so a reader can peek without losing their place:
+       the YouTube thumbnail for the Wikipedia graph, and the clip itself
+       for each Watch button. Mouse only; on touch the links just work.
+       Under reduced motion the clip's poster frame stands in. */
+    .peek{ position:absolute; z-index:200; width:280px; padding:6px; background:#fffdf8; border-radius:8px; box-shadow:0 18px 50px rgba(29,40,80,0.28); pointer-events:none; opacity:0; transition:opacity 0.18s ease; }
+    .peek.on{ opacity:1; }
+    .peek img, .peek video{ display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:5px; background:var(--night); }
+    .peek p{ font-family:var(--sans); font-size:0.66rem; font-weight:500; letter-spacing:0.04em; color:var(--ink-soft); padding:0.45rem 0.3rem 0.15rem; }
+
+    .back-bottom-wrap{ text-align:center; padding:4rem 3rem 6rem; }
+    .back-bottom{ font-size:0.72rem; font-weight:500; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-soft); text-decoration:none; padding:0.8rem 1.6rem; border:1px solid var(--line); border-radius:100px; }
+    .back-bottom:hover{ border-color:var(--ink); color:var(--ink); }
+
+    @media (max-width: 860px){
+      nav{ padding:1.1rem 1rem; gap:0.6rem; }
+      .back-link{ padding:0.5rem 0.9rem; }
+      .a11y-toggle-prefix{ display:none; }
+      .hero{ padding:3rem 1rem 0; }
+      .hero-shot{ padding:0 1rem; margin-top:2.5rem; }
+      .seal{ width:4.4rem; height:4.4rem; right:0.4rem; top:-1.8rem; }
+      .meta-row{ margin:2.5rem 1rem; flex-wrap:nowrap; }
+      .meta-item{ min-width:0; padding:1rem 0.4rem; }
+      .meta-label{ font-size:0.55rem; }
+      .meta-value{ font-size:0.82rem; }
+      .story{ margin:0 1rem 3rem; padding:2rem 1.4rem; }
+      .timeline-head{ padding:0 1rem 2rem; }
+      .chapter-inner{ padding:3rem 1rem 3rem 2.6rem; }
+      .chapter-inner::before{ left:1rem; }
+      .chapter-node{ left:calc(1rem - 7px); top:3.45rem; }
+      .pair, .picker-panel{ grid-template-columns:1fr; }
+      .docs-grid{ columns:1; }
+      /* ─── HOVER PREVIEWS ───
+       Hovering a link in the story shows what it leads to in a small
+       floating window, so a reader can peek without losing their place:
+       the YouTube thumbnail for the Wikipedia graph, and the clip itself
+       for each Watch button. Mouse only; on touch the links just work.
+       Under reduced motion the clip's poster frame stands in. */
+    .peek{ position:absolute; z-index:200; width:280px; padding:6px; background:#fffdf8; border-radius:8px; box-shadow:0 18px 50px rgba(29,40,80,0.28); pointer-events:none; opacity:0; transition:opacity 0.18s ease; }
+    .peek.on{ opacity:1; }
+    .peek img, .peek video{ display:block; width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:5px; background:var(--night); }
+    .peek p{ font-family:var(--sans); font-size:0.66rem; font-weight:500; letter-spacing:0.04em; color:var(--ink-soft); padding:0.45rem 0.3rem 0.15rem; }
+
+    .back-bottom-wrap{ padding:3rem 1rem 4rem; }
+      .more-projects{ padding:4rem 1rem 0; }
+      .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
+      .quick-link-mini{ white-space:normal; }
+    }
+  </style>
+</head>
+<body>
+  <script>if (localStorage.getItem('a11yMode') === '1') document.body.classList.add('accessible');</script>
+
+  <div class="a11y-note" id="a11yNote">
+    <button class="a11y-note-close" onclick="dismissA11yNote()" aria-label="Dismiss">×</button>
+    <p><strong>Accessible Mode is on.</strong> Text now uses <a href="https://www.brailleinstitute.org/freefont/" target="_blank" rel="noopener">Atkinson Hyperlegible</a>, a free typeface from the Braille Institute designed to reduce letter confusion for low-vision readers. Text size is increased, and the line you're reading is highlighted as you go. <a href="https://arxiv.org/pdf/2402.12772" target="_blank" rel="noopener">Research shows</a> reading rulers like this improve reading speed and comprehension for readers with and without dyslexia.</p>
+  </div>
+
+  <nav>
+    <a class="nav-logo" href="index.html">SE</a>
+    <a class="back-link" href="index.html">← Back to Home</a>
+    <button class="a11y-toggle" id="a11yToggle" onclick="toggleAccessible()" aria-label="Toggle accessible reading mode" aria-pressed="false">
+      <span class="a11y-dot"></span>
+      <span class="a11y-toggle-prefix">Turn <span class="a11y-word-on">on</span><span class="a11y-word-off">off</span> </span>Accessibility
+    </button>
+  </nav>
+
+  <main>
+
+    <!-- ═══ HERO ═══
+         ✎ COPY. Kept to the minimum on purpose (his rule: a word where a word
+         will do, a sentence where a paragraph would). He expands from here. -->
+    <header class="hero">
+      <svg class="rings" viewBox="0 0 900 900" fill="none" stroke="rgba(29,40,80,0.12)" stroke-width="1.2" aria-hidden="true">
+        <circle cx="450" cy="450" r="180"/><circle cx="450" cy="450" r="270"/><circle cx="450" cy="450" r="360"/><circle cx="450" cy="450" r="440"/>
+        <circle cx="196" cy="660" r="4" fill="rgba(29,40,80,0.2)" stroke="none"/>
+      </svg>
+      <h1 class="hero-title">Loading<em>.</em></h1>
+    </header>
+
+    <figure class="hero-shot">
+      <img class="plate" src="images/loading-headset-gold.jpg" alt="Seen through the headset at night: a gold web of spheres and lines radiating from one bright node across a dark attic room, with a blue web around it and the search window floating to the left" width="1600" height="900">
+      <img class="seal" src="images/loading-icon.jpg" alt="The app icon: navy wire spirals and small cream, blue and copper beads orbiting a copper hub, on cream paper" width="360" height="360">
+      <figcaption>In the headset.</figcaption>
+    </figure>
+
+    <div class="meta-row">
+      <!-- ✎ STATUS. "Ongoing" with a red live dot, by request; the same word
+           is the tag on the home-page card. -->
+      <div class="meta-item"><div class="meta-label">Status</div><div class="meta-value"><span class="live-dot" aria-hidden="true"></span>Ongoing</div></div>
+      <div class="meta-item"><div class="meta-label">Team</div><div class="meta-value">Solo project</div></div>
+      <div class="meta-item"><div class="meta-label">Platform</div><div class="meta-value">Apple Vision Pro</div></div>
+      <div class="meta-item"><div class="meta-label">Built with</div><div class="meta-value">Claude, Gemini, ChatGPT</div></div>
+    </div>
+
+    <!-- ✎ DESCRIPTION. His own account, dictated and lightly polished; keep
+         his voice if editing. The kernel video is linked here rather than
+         shown as a tile, by request. -->
+    <div class="story">
+      <p>This project started after one of my many passion-fueled YouTube deep dives, when I came across <a href="https://youtu.be/JheGL6uSF-4" target="_blank" rel="noopener" data-preview-img="https://i.ytimg.com/vi/JheGL6uSF-4/hq720.jpg" data-preview-label="I Made a Graph of Wikipedia · adumb · YouTube">a graph of Wikipedia</a>, a video that blew up years ago. That idea fascinated me. To me, Wikipedia stood in for all of human knowledge, and here was a new way to see it, and most importantly, how every piece connected to one another.</p>
+      <p>Even back then, from high school on, I wanted to walk through that graph and feel the wonder and connection in it. It was almost like looking up at a starry night and feeling that sense of awe, but around human knowledge. Building something I could actually walk through, something that made the idea concrete, was not something I could even envision.</p>
+      <p>Then I was lucky enough to explore it further in <strong>Virtual People</strong> at Stanford. I got to really flesh out what it could be, writing up ethics reports and the overall idea of the project, and editing a video by hand to bring the idea into the world <a class="jump" href="#concept-video" data-preview-video="images/loading-concept.mp4" data-preview-img="images/loading-concept-poster.jpg" data-preview-label="Concept video, 2025 · click to jump down">Watch ↓</a>. But it was just a dream, and I definitely couldn't build it myself.</p>
+      <p>That changed after I jumped into RBV, Reality Becomes Virtual, a project at the Virtual Human Interaction Lab. Seeing how powerful AI agents had become, I wanted to find out if the idea I had built up could become real. After many more explorations into APIs, the vector spaces AI uses to hold ideas, the sources of data I could pull from, and the 3D visualizations that already exist, it came to life <a class="jump" href="#first-night" data-preview-video="images/loading-first-night.mp4" data-preview-img="images/loading-first-night-poster.jpg" data-preview-label="First night, 10 October · click to jump down">Watch ↓</a>.</p>
+      <p>Our current search strips facts of their surroundings, and I wanted something that puts them back. I wanted the feeling of going to the library as a kid for one book and finding, right next to it, a book that's even better. That is what I have been creating here: a web of all human knowledge that surrounds you like a starry night, free for you to explore.</p>
+    </div>
+
+    <div class="timeline-head">
+      <h2 class="journey-heading">Loading's <em>Journey</em></h2>
+      <p class="journey-sub">How it was born</p>
+    </div>
+
+    <!-- ═══ I. THE KERNEL ═══ the concept video leads, full width: he cut it
+         together by hand in 2025, and it reads raw on purpose. -->
+    <section class="chapter" aria-labelledby="ch1">
+      <div class="chapter-inner">
+        <span class="chapter-node" aria-hidden="true"></span>
+        <p class="chapter-date">2025</p>
+        <h3 id="ch1"><span class="numeral">I.</span>The kernel</h3>
+        <figure id="concept-video">
+          <video class="lazy-video" aria-label="Clip from the Curiosity Engine concept video: a hand presses a red Enter Deep Exploration button on the floor, the room dims, and web pages and pictures about Squishmallows float around a plush toy" width="1280" height="720" muted loop playsinline disableRemotePlayback preload="none" poster="images/loading-concept-poster.jpg">
+            <source src="images/loading-concept.mp4" type="video/mp4">
+          </video>
+          <figcaption>Concept video, 2025.</figcaption>
+        </figure>
+        <!-- ═══ CLASS DOCS ═══ crops of his two Virtual People assignments (the
+             design document and the implementation plan), shown as rough
+             thinking on purpose: typos and empty template boxes left in. -->
+        <div class="docs">
+          <div class="docs-grid">
+            <figure class="doc" style="--tilt:-1.4deg"><img src="images/loading-doc-pitch.jpg" alt="Design document, elevator pitch: research as a journey of exploration, as exciting as childhood hunts for dragon treasure" width="923" height="410" loading="lazy"></figure>
+            <figure class="doc" style="--tilt:1.1deg"><img src="images/loading-doc-library.jpg" alt="Design document, rationale: the library, where the book next to the one you wanted covers the very thing you were looking for, and books joined by lines to the ones they reference" width="923" height="490" loading="lazy"></figure>
+            <figure class="doc" style="--tilt:0.9deg"><img src="images/loading-doc-ethics.jpg" alt="Implementation plan, ethical considerations: privacy of a scanned room, whose data a stored object is, and systemic connection bias" width="923" height="540" loading="lazy"></figure>
+            <figure class="doc" style="--tilt:-1deg"><img src="images/loading-doc-setup.jpg" alt="Implementation plan, technical setup: a headset with good passthrough, a system that understands objects in the room, and connections between them" width="923" height="340" loading="lazy"></figure>
+          </div>
+          <p class="docs-caption">Rough thinking from the class: a design document and an implementation plan, typos and all.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ II. FIRST LIGHT ═══ night band: everything here is a capture from
+         inside the headset. -->
+    <section class="chapter night" aria-labelledby="ch2">
+      <div class="chapter-inner">
+        <span class="chapter-node" aria-hidden="true"></span>
+        <p class="chapter-date">September to October 2026</p>
+        <h3 id="ch2"><span class="numeral">II.</span>First light</h3>
+        <figure id="first-night">
+          <video class="lazy-video" aria-label="Recording from inside the headset at night: a search window and a floating keyboard, and webs of green spheres joined by lines growing in a dim bedroom lit by string lights" width="1280" height="720" muted loop playsinline disableRemotePlayback preload="none" poster="images/loading-first-night-poster.jpg">
+            <source src="images/loading-first-night.mp4" type="video/mp4">
+          </video>
+          <figcaption>First night, 10 October.</figcaption>
+        </figure>
+        <figure>
+          <img src="images/loading-headset-test.jpg" alt="Seen through the headset in daylight: a web around a Sergey Brin node with his card open, and beside it a To check panel listing tests, each with Pass and Fail buttons" width="1600" height="900" loading="lazy">
+          <figcaption>First test in the headset.</figcaption>
+        </figure>
+        <div class="pair">
+          <figure>
+            <img src="images/loading-headset-two-webs.jpg" alt="Two webs, one blue and one green, overlapping in a dark room lit by string lights" width="1200" height="675" loading="lazy">
+          </figure>
+          <figure>
+            <img src="images/loading-headset-bright.jpg" alt="A web centred on a ringed blue sphere for the United States, with its card open beside the search window, in a lit room with a pink couch" width="1200" height="675" loading="lazy">
+          </figure>
+        </div>
+        <p class="trio-caption">Webs in the room.</p>
+        <p class="after-figure">I design, test and merge. AI agents write the code.</p>
+      </div>
+    </section>
+
+    <!-- ═══ III. DESIGNING IT ═══ -->
+    <section class="chapter" aria-labelledby="ch3">
+      <div class="chapter-inner">
+        <span class="chapter-node" aria-hidden="true"></span>
+        <p class="chapter-date">October 2026</p>
+        <h3 id="ch3"><span class="numeral">III.</span>Designing it</h3>
+        <p>Pull a node close and its card comes out. Three ways it could. Pick one.</p>
+
+        <div class="picker" id="cardPicker">
+          <div class="picker-tabs" role="tablist" aria-label="Ways the card comes out">
+            <button class="picker-tab" role="tab" id="ct0" aria-controls="cp0" aria-selected="false" tabindex="-1">A · Pop</button>
+            <button class="picker-tab" role="tab" id="ct1" aria-controls="cp1" aria-selected="false" tabindex="-1">B · Hand-over</button>
+            <button class="picker-tab" role="tab" id="ct2" aria-controls="cp2" aria-selected="true" tabindex="0">C · Morph</button>
+          </div>
+          <div class="picker-panel" role="tabpanel" id="cp0" aria-labelledby="ct0" hidden>
+            <div class="stage s-pop" aria-hidden="true"><div class="orb"></div><div class="glass"><i></i><b></b><b style="width:60%"></b></div></div>
+            <div><h4>Pop</h4><p>The card is just there.</p></div>
+          </div>
+          <div class="picker-panel" role="tabpanel" id="cp1" aria-labelledby="ct1" hidden>
+            <div class="stage s-hand" aria-hidden="true"><div class="orb"></div><div class="bud"></div><div class="glass"><i></i><b></b><b style="width:60%"></b></div></div>
+            <div><h4>Hand-over</h4><p>A bud swells, then a separate card grows.</p></div>
+          </div>
+          <div class="picker-panel" role="tabpanel" id="cp2" aria-labelledby="ct2">
+            <div class="stage s-morph" aria-hidden="true"><div class="orb"></div><div class="glass"><div class="inside"><i></i><b></b><b style="width:60%"></b></div></div></div>
+            <div><p class="picked">Picked</p><h4>Morph</h4><p>The bud becomes the card.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ IV. NEXT ═══ -->
+    <section class="chapter next" aria-labelledby="ch4">
+      <div class="chapter-inner">
+        <span class="chapter-node" aria-hidden="true"></span>
+        <p class="chapter-date">Now</p>
+        <h3 id="ch4"><span class="numeral">IV.</span>Next</h3>
+        <p>Polishing. More soon.</p>
+      </div>
+    </section>
+
+    <div class="more-projects">
+      <h3 class="more-projects-title">More Projects</h3>
+      <div class="more-projects-grid">
+        <a href="pendant.html" class="mini-card">
+          <img src="images/pendant-hero.jpg" alt="Finished cast sterling silver pendant on a chain, engraved with the name Sebastian, photographed on a white background" width="768" height="1024" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Graduation Pendant</p>
+            <span class="mini-card-tag">Silver · Metalworking · Design</span>
+          </div>
+        </a>
+        <a href="slipdoor.html" class="mini-card">
+          <img src="images/slipdoor-hero.jpg" alt="The Slip Door prototype" width="1920" height="1080" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">The Slip Door</p>
+            <span class="mini-card-tag">Team Project · Accessibility · Volkswagen</span>
+          </div>
+        </a>
+        <a href="baston.html" class="mini-card">
+          <img src="images/baston-hero.jpg" alt="Close-up of the Bastón folded" width="5184" height="3058" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Bastón</p>
+            <span class="mini-card-tag">Woodworking · Metalworking</span>
+          </div>
+        </a>
+        <a href="timecollector.html" class="mini-card">
+          <img src="images/timecollector-hero-front.png" alt="Time Collector kinetic clock gear train and marble mechanism" width="966" height="1192" loading="lazy">
+          <span class="mini-card-arrow">↗</span>
+          <div class="mini-card-info">
+            <p class="mini-card-title">Time Collector</p>
+            <span class="mini-card-tag">Team Project · Kinetic Sculpture</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="quick-links-row">
+        <a href="chess.html" class="quick-link-mini">Poser Chess Set <span>↗</span></a>
+        <a href="vr-spatial-portfolio.html" class="quick-link-mini">The Dome <span>↗</span></a>
+        <a href="hp-reckoning-corporate-espionage.html" class="quick-link-mini">HP's Reckoning <span>↗</span></a>
+        <a href="algorithmic-modeling-shape-optimization.html" class="quick-link-mini">Algorithmic Modeling <span>↗</span></a>
+        <a href="3d-printed-glasses-frames.html" class="quick-link-mini">3D-Printed Glasses Frames <span>↗</span></a>
+        <a href="social-engineering-predictive-algorithms.html" class="quick-link-mini">Social Engineering via Predictive Algorithms <span>↗</span></a>
+        <a href="apple-medical-licensure-apple-watch.html" class="quick-link-mini">Apple's Medical Licensure <span>↗</span></a>
+      </div>
+    </div>
+
+    <div class="back-bottom-wrap">
+      <a class="back-bottom" href="index.html#projects">← Back to Main Page</a>
+    </div>
+
+  </main>
+
+  <script>
+    /* ─── ACCESSIBLE MODE ─── see index.html for the full write-up. */
+    const toggle = document.getElementById('a11yToggle');
+    const a11yNote = document.getElementById('a11yNote');
+
+    function updateA11yNote(show) {
+      if (a11yNote) a11yNote.classList.toggle('visible', show);
+    }
+
+    function dismissA11yNote() {
+      sessionStorage.setItem('a11yNoteDismissed', '1');
+      updateA11yNote(false);
+    }
+
+    if (document.body.classList.contains('accessible')) {
+      toggle.classList.add('active');
+      toggle.setAttribute('aria-pressed', 'true');
+      if (sessionStorage.getItem('a11yNoteDismissed') !== '1') {
+        updateA11yNote(true);
+      }
+    }
+
+    function toggleAccessible() {
+      const isOn = document.body.classList.toggle('accessible');
+      document.documentElement.classList.toggle('accessible', isOn);
+      toggle.classList.toggle('active', isOn);
+      toggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+
+      if (isOn) {
+        localStorage.setItem('a11yMode', '1');
+        sessionStorage.removeItem('a11yNoteDismissed');
+        updateA11yNote(true);
+      } else {
+        localStorage.removeItem('a11yMode');
+        updateA11yNote(false);
+        document.querySelectorAll('.a11y-line-overlay').forEach(o => {
+          o.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      }
+    }
+
+    function initA11yLineHighlight(selector) {
+      document.querySelectorAll(selector).forEach(el => {
+        // Skip empty elements: see vr-spatial-portfolio.html for why.
+        if (!el.textContent.trim()) return;
+        if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+        if (getComputedStyle(el).zIndex === 'auto') el.style.zIndex = '0';
+
+        const overlay = document.createElement('span');
+        overlay.className = 'a11y-line-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        el.appendChild(overlay);
+
+        el.addEventListener('mousemove', e => {
+          if (!document.body.classList.contains('accessible')) return;
+          const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 24;
+          const rect = el.getBoundingClientRect();
+          const line = Math.floor((e.clientY - rect.top) / lineHeight);
+          const top = Math.max(line, 0) * lineHeight;
+          const bottom = Math.max(rect.height - top - lineHeight, 0);
+          overlay.style.clipPath = `inset(${top}px 0 ${bottom}px 0)`;
+        });
+
+        el.addEventListener('mouseleave', () => {
+          overlay.style.clipPath = 'inset(0 0 100% 0)';
+        });
+      });
+    }
+
+    initA11yLineHighlight('.meta-value, .story p, .chapter p, .chapter h3, figcaption, .picker-panel p');
+
+    /* ═══ LOOPS PLAY ONLY WHILE ON SCREEN ═══
+       Two silent clips, 2.6 MB and 3.6 MB. preload="none" means neither costs
+       anything until it is scrolled to, and pausing off screen keeps a phone
+       from decoding video nobody is looking at. Under reduced motion they
+       never autoplay: the poster frame stands in, and the browser's own
+       controls are added so a visitor can still choose to play one. */
+    (function () {
+      var vids = document.querySelectorAll('video.lazy-video');
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduced || !('IntersectionObserver' in window)) {
+        vids.forEach(function (v) { v.controls = true; });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          var v = e.target;
+          if (e.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+          else v.pause();
+        });
+      }, { threshold: 0.25 });
+      vids.forEach(function (v) { io.observe(v); });
+    })();
+
+    /* ═══ HOVER PREVIEWS ═══ one floating window, reused for every link. */
+    (function () {
+      if (!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var peek = document.createElement('div');
+      peek.className = 'peek';
+      peek.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(peek);
+      var current = null;
+
+      function show(a) {
+        current = a;
+        var vid = !reduced && a.dataset.previewVideo;
+        peek.innerHTML = '';
+        var media;
+        if (vid) {
+          media = document.createElement('video');
+          media.muted = true; media.loop = true; media.playsInline = true; media.autoplay = true;
+          media.poster = a.dataset.previewImg;
+          media.src = vid;
+        } else {
+          media = document.createElement('img');
+          media.src = a.dataset.previewImg; media.alt = '';
+        }
+        var label = document.createElement('p');
+        label.textContent = a.dataset.previewLabel;
+        peek.appendChild(media); peek.appendChild(label);
+        // autoplay alone is not enough for a video created on the fly.
+        if (vid) { var pr = media.play(); if (pr && pr.catch) pr.catch(function () {}); }
+        // Above the link, centred on it, kept inside the viewport.
+        var r = a.getBoundingClientRect();
+        var w = 280, x = r.left + r.width / 2 - w / 2;
+        x = Math.max(12, Math.min(x, document.documentElement.clientWidth - w - 12));
+        peek.style.left = (x + window.scrollX) + 'px';
+        peek.style.top = (r.top + window.scrollY - 12) + 'px';
+        peek.style.transform = 'translateY(-100%)';
+        requestAnimationFrame(function () { peek.classList.add('on'); });
+      }
+      function hide() {
+        current = null;
+        peek.classList.remove('on');
+        var v = peek.querySelector('video');
+        if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+      }
+      document.querySelectorAll('.story a[data-preview-img]').forEach(function (a) {
+        a.addEventListener('mouseenter', function () { show(a); });
+        a.addEventListener('mouseleave', hide);
+        a.addEventListener('focus', function () { show(a); });
+        a.addEventListener('blur', hide);
+        a.addEventListener('click', hide);
+      });
+      window.addEventListener('scroll', function () { if (current) hide(); }, { passive: true });
+    })();
+
+    /* ═══ CARD PICKER ═══ a plain WAI-ARIA tablist: click or arrow keys. */
+    (function () {
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('#cardPicker [role="tab"]'));
+      function select(i, focus) {
+        tabs.forEach(function (t, j) {
+          var on = j === i;
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+          t.tabIndex = on ? 0 : -1;
+          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+        });
+        if (focus) tabs[i].focus();
+      }
+      tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { select(i); });
+        t.addEventListener('keydown', function (e) {
+          if (e.key === 'ArrowRight') { e.preventDefault(); select((i + 1) % tabs.length, true); }
+          if (e.key === 'ArrowLeft') { e.preventDefault(); select((i - 1 + tabs.length) % tabs.length, true); }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

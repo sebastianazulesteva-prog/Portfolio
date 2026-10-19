@@ -808,6 +808,23 @@
     .occ-btn{ border:none; border-radius:7px; background:var(--rbv-utility); color:var(--white); padding:0.45rem 1rem; }
     .occ-btn[aria-pressed="true"]{ background:var(--cat-ink); }
     .occ-btn[aria-pressed="true"]::after{ content:" ✓"; }
+    /* On is green and Off is red when picked, his call: RBV's own Confirm
+       green and Destructive red from HostPalette. White text clears 4.5:1 on
+       both (7.0 and 7.6). */
+    .occ-btn[data-occ="on"][aria-pressed="true"]{ background:#296b38; }
+    .occ-btn[data-occ="off"][aria-pressed="true"]{ background:#a32d2d; }
+
+    /* In the app's own design language (ADR-0003 and the gen 2 sheets): a
+       dark host panel holding rounded "style B" buttons, solid fills, white
+       text. Each button carries the Menu's checkbox square: an outline
+       when off, a white tile with a check when picked, as on the floating
+       Spider button. Unpicked buttons take the Utility gray. */
+    .occ-switch{ display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.55rem 0.5rem 0.9rem; border-radius:12px; background:var(--rbv-panel); box-shadow:0 6px 18px rgba(18,20,28,0.18); }
+    .occ-switch .occ-label{ color:#b8c2d6; margin-right:0.45rem; }
+    .occ-btn{ display:inline-flex; align-items:center; gap:0.55rem; height:2.5rem; padding:0 0.8rem 0 1rem; border-radius:0.4rem; background:var(--rbv-utility); color:#fff; font-size:0.95rem; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08); }
+    .occ-btn[aria-pressed="true"]::after{ content:none; }
+    .occ-btn::before{ content:""; order:2; width:1.15rem; height:1.15rem; border-radius:0.25rem; box-shadow:inset 0 0 0 2px #fff; box-sizing:border-box; }
+    .occ-btn[aria-pressed="true"]::before{ background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%2312141c' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/80% no-repeat; box-shadow:none; }
     .occ-label{ color:var(--cat-ink); }
 
     /* ─── HOVER: THE CARD GROWS TOWARD YOU ───
@@ -837,7 +854,8 @@
     .cam-pair{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1rem; max-width:720px; align-items:start; }
     .cam-pair .occ{ order:-1; max-width:none; }
     .block-body{ min-width:0; }
-    .cam-photo{ margin-top:2.93rem; }
+    /* Tops line up with the clip under the occlusion panel (measured). */
+    .cam-photo{ margin-top:71.8px; }
     .cam-photo figcaption{ margin-top:0.55rem; font-size:0.92rem; font-weight:600; }
     @media(max-width:768px){
       .sketch-float{ width:130px; margin-left:1rem; }

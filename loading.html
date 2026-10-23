@@ -174,7 +174,10 @@
       --rx:0deg; --ry:0deg; --px:0; --py:0; --lift:0;
       transform:perspective(420px) rotateX(var(--rx)) rotateY(var(--ry)) scale(calc(1 + var(--lift) * 0.1));
       transition:transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease; }
-    .seal img{ position:absolute; inset:0; width:100%; height:100%; display:block; transition:transform 0.5s cubic-bezier(0.22,1,0.36,1), filter 0.5s ease; }
+    /* Each layer is rounded itself, not only clipped by the seal: Safari stops
+       honouring overflow:hidden + border-radius once the seal is tilted in 3D
+       and the layers are composited, and the cream back showed as a square. */
+    .seal img{ position:absolute; inset:0; width:100%; height:100%; display:block; border-radius:50%; transition:transform 0.5s cubic-bezier(0.22,1,0.36,1), filter 0.5s ease; }
     /* Parallax: the paper drifts a little against the pointer, the spiral
        a lot with it, and the spiral grows and casts a shadow as it lifts. */
     .seal-back{ transform:translate(calc(var(--px) * -2px), calc(var(--py) * -2px)) scale(1.06); }

@@ -315,9 +315,9 @@
     .ring{ position:relative; width:var(--ring); height:var(--ring); transform:rotate(var(--rot)); transition:transform 0.9s cubic-bezier(0.22,1,0.36,1); }
     .ring-arcs{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
     .ring-track{ fill:none; stroke:var(--line); stroke-width:1; }
-    .ring-arcs path{ fill:none; stroke:#9a5527; stroke-width:2.4; stroke-linecap:round; stroke-dasharray:6 7; animation:ringFlow 2.4s linear infinite; }
+    .ring-arcs > path{ fill:none; stroke:#9a5527; stroke-width:2.4; stroke-linecap:round; stroke-dasharray:6 7; animation:ringFlow 2.4s linear infinite; }
     @keyframes ringFlow{ to{ stroke-dashoffset:-26; } }
-    .ring-node{ position:absolute; left:50%; top:50%; width:7.5rem; height:5.6rem; margin:-2.1rem 0 0 -3.75rem; background:none; border:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:0.35rem;
+    .ring-node{ position:absolute; left:50%; top:50%; width:7.5rem; margin:-2.1rem 0 0 -3.75rem; padding:0; background:none; border:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:0.5rem;
       transform:rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1 - var(--rot)));
       transform-origin:50% 2.1rem; transition:transform 0.9s cubic-bezier(0.22,1,0.36,1); }
     .ring-orb{ width:4.2rem; height:4.2rem; flex:none; border-radius:50%; background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--paper), 0 8px 20px rgba(29,40,80,0.18); transition:background 0.4s ease, transform 0.4s ease, box-shadow 0.4s ease; }
@@ -325,7 +325,10 @@
     .ring-label{ font-family:var(--serif); font-size:0.95rem; font-weight:600; color:var(--ink-soft); white-space:nowrap; background:var(--paper); padding:0 0.4rem; border-radius:4px; transition:color 0.4s ease; }
     .ring-label i{ font-style:italic; color:var(--copper); margin-right:0.15rem; }
     .ring-node[aria-selected="true"] .ring-orb{ background:var(--copper); transform:scale(1.14); box-shadow:0 0 0 6px var(--paper), 0 0 0 8px var(--copper-soft), 0 10px 24px rgba(154,85,39,0.3); }
-    .ring-node[aria-selected="true"] .ring-label{ color:var(--ink); }
+    /* The selected orb grows 14% and gains a copper halo, so its label steps
+       down to keep clear of it rather than crowding the ring. */
+    .ring-label{ transform:translateY(0); transition:color 0.4s ease, transform 0.4s ease; }
+    .ring-node[aria-selected="true"] .ring-label{ color:var(--ink); transform:translateY(0.55rem); }
     .ring-node:focus-visible{ outline:none; }
     .ring-node:focus-visible .ring-orb{ outline:2px solid var(--ink); outline-offset:8px; }
     .chapter .ring-center{ position:absolute; left:50%; top:calc(var(--ring) / 2); transform:translate(-50%, -50%); margin:0; text-align:center; font-family:var(--serif); font-style:italic; font-size:1.05rem; line-height:1.3; color:var(--ink-faint); pointer-events:none; }
@@ -549,7 +552,7 @@
       <p>This project started after one of my many passion-fueled YouTube deep dives, when I came across <a href="https://youtu.be/JheGL6uSF-4" target="_blank" rel="noopener" data-preview-img="https://i.ytimg.com/vi/JheGL6uSF-4/hq720.jpg" data-preview-label="I Made a Graph of Wikipedia · adumb · YouTube">a graph of Wikipedia</a>, a video that blew up years ago. That idea fascinated me. To me, Wikipedia stood in for all of human knowledge, and here was a new way to see it, and most importantly, how every piece connected to one another.</p>
       <p>Even back then, from high school on, I wanted to walk through that graph and feel the wonder and connection in it. It was almost like looking up at a starry night and feeling that sense of awe, but around human knowledge. Building something I could actually walk through, something that made the idea concrete, was not something I could even envision.</p>
       <p>Then I was lucky enough to explore it further in <strong>Virtual People</strong> at Stanford. I got to really flesh out what it could be, writing up ethics reports and the overall idea of the project, and editing a video by hand to bring the idea into the world <a class="jump" href="#concept-video" data-preview-video="images/loading-concept.mp4" data-preview-img="images/loading-concept-poster.jpg" data-preview-label="Concept video, 2025 · click to jump down">Watch ↓</a>. But it was just a dream, and I definitely couldn't build it myself.</p>
-      <p>That changed after I jumped into <a href="rbv.html">RBV, Reality Becomes Virtual</a>, a project at the Virtual Human Interaction Lab. Seeing how powerful AI agents had become, I wanted to find out if the idea I had built up could become real. After many more explorations into APIs, the vector spaces AI uses to hold ideas, the sources of data I could pull from, and the 3D visualizations that already exist, it came to life <a class="jump" href="#first-night" data-preview-video="images/loading-first-night.mp4" data-preview-img="images/loading-first-night-poster.jpg" data-preview-label="First night, 10 October · click to jump down">Watch ↓</a>.</p>
+      <p>That changed after I jumped into <a href="rbv.html">RBV, Reality Becomes Virtual</a>, a project at the Virtual Human Interaction Lab. Seeing how powerful AI agents had become, I wanted to find out if the idea I had built up could become real. After many more explorations into APIs, the vector spaces AI uses to hold ideas, the sources of data I could pull from, and the 3D visualizations that already exist, it came to life <a class="jump" href="#first-night" data-preview-video="images/loading-first-night.mp4" data-preview-img="images/loading-first-night-poster.jpg" data-preview-label="First test · click to jump down">Watch ↓</a>.</p>
       <p>Our current search strips facts of their surroundings, and I wanted something that puts them back. I wanted the feeling of going to the library as a kid for one book and finding, right next to it, a book that's even better. That is what I have been creating here: a web of all human knowledge that surrounds you like a starry night, free for you to explore.</p>
     </div>
 
@@ -618,11 +621,11 @@
           <video class="lazy-video" aria-label="Recording from inside the headset at night: a search window and a floating keyboard, and webs of green spheres joined by lines growing in a dim bedroom lit by string lights" width="1280" height="720" muted loop playsinline disableRemotePlayback preload="none" poster="images/loading-first-night-poster.jpg">
             <source src="images/loading-first-night.mp4" type="video/mp4">
           </video>
-          <figcaption>First night, 10 October.</figcaption>
+          <figcaption>First test.</figcaption>
         </figure>
         <figure>
           <img src="images/loading-headset-test.jpg" alt="Seen through the headset in daylight: a web around a Sergey Brin node with his card open, and beside it a To check panel listing tests, each with Pass and Fail buttons" width="1600" height="900" loading="lazy">
-          <figcaption>First test in the headset.</figcaption>
+          <figcaption>A newer build: the new immersion button, and photos in the orbs.</figcaption>
         </figure>
         <div class="pair">
           <figure>
@@ -974,7 +977,7 @@
     })();
 
     /* ═══ THE BUILD RING ═══ a tablist that also turns: selecting a phase
-       rotates the ring the short way round until that node is at the top,
+       rotates the ring clockwise until that node is at the top,
        and shows its panel. Click or arrow keys. Under reduced motion the
        global rule makes the turn instant. */
     (function () {
@@ -983,9 +986,11 @@
       var tabs = Array.prototype.slice.call(ring.querySelectorAll('[role="tab"]'));
       var rot = 0;
       function select(i, focus) {
+        // Always clockwise, by request: the ring only ever turns forward,
+        // so the target angle is the first one at or after the current.
         var target = -120 * i;
-        while (target - rot > 180) target -= 360;
-        while (target - rot < -180) target += 360;
+        while (target < rot) target += 360;
+        while (target - rot >= 360) target -= 360;
         rot = target;
         ring.style.setProperty('--rot', rot + 'deg');
         tabs.forEach(function (t, j) {

@@ -808,6 +808,28 @@
     .occ-btn{ border:none; border-radius:7px; background:var(--rbv-utility); color:var(--white); padding:0.45rem 1rem; }
     .occ-btn[aria-pressed="true"]{ background:var(--cat-ink); }
     .occ-btn[aria-pressed="true"]::after{ content:" ✓"; }
+    /* On is green and Off is red when picked, his call: RBV's own Confirm
+       green and Destructive red from HostPalette. White text clears 4.5:1 on
+       both (7.0 and 7.6). */
+    .occ-btn[data-occ="on"][aria-pressed="true"]{ background:#296b38; }
+    .occ-btn[data-occ="off"][aria-pressed="true"]{ background:#a32d2d; }
+
+    /* In the app's own design language (ADR-0003 and the gen 2 sheets): a
+       dark host panel holding rounded "style B" buttons, solid fills, white
+       text. Each button carries the Menu's checkbox square: an outline
+       when off, a white tile with a check when picked, as on the floating
+       Spider button. Unpicked buttons take the Utility gray. */
+    /* Light backdrop, by request: a white panel instead of the headset's
+       dark one. The unpicked button turns light to match, with dark text
+       and a dark checkbox outline; picked ones keep their green or red. */
+    .occ-switch{ display:inline-flex; align-items:center; gap:0.5rem; padding:0.5rem 0.55rem 0.5rem 0.9rem; border-radius:12px; background:var(--white); box-shadow:0 0 0 1px rgba(18,20,28,0.08), 0 6px 18px rgba(18,20,28,0.08); }
+    .occ-switch .occ-label{ color:var(--ink-soft); margin-right:0.45rem; }
+    .occ-btn[aria-pressed="false"]{ background:#e9ecf2; color:var(--ink); box-shadow:inset 0 0 0 1px rgba(18,20,28,0.1); }
+    .occ-btn[aria-pressed="false"]::before{ box-shadow:inset 0 0 0 2px var(--ink); }
+    .occ-btn{ display:inline-flex; align-items:center; gap:0.55rem; height:2.5rem; padding:0 0.8rem 0 1rem; border-radius:0.4rem; background:var(--rbv-utility); color:#fff; font-size:0.95rem; font-weight:600; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08); }
+    .occ-btn[aria-pressed="true"]::after{ content:none; }
+    .occ-btn::before{ content:""; order:2; width:1.15rem; height:1.15rem; border-radius:0.25rem; box-shadow:inset 0 0 0 2px #fff; box-sizing:border-box; }
+    .occ-btn[aria-pressed="true"]::before{ background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%2312141c' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/80% no-repeat; box-shadow:none; }
     .occ-label{ color:var(--cat-ink); }
 
     /* ─── HOVER: THE CARD GROWS TOWARD YOU ───
@@ -817,9 +839,11 @@
        it. The end cards grow inward from their outer edge so they never
        leave the page. Mouse and keyboard focus only; touch screens skip it. */
     @media (hover:hover) and (pointer:fine){
-      .steps.peekable .step{ cursor:zoom-in; transition:transform 0.35s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.35s; }
-      .steps.peekable .step:first-child{ transform-origin:left center; }
-      .steps.peekable .step:last-child{ transform-origin:right center; }
+      /* Grow from the top edge, not the centre: growing up pushed the card
+         under the sticky nav (he saw it cut off at the top). */
+      .steps.peekable .step{ cursor:zoom-in; transform-origin:center top; transition:transform 0.35s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.35s; }
+      .steps.peekable .step:first-child{ transform-origin:left top; }
+      .steps.peekable .step:last-child{ transform-origin:right top; }
       .steps.peekable .step:hover, .steps.peekable .step:focus-visible{ transform:scale(1.32); z-index:5; box-shadow:0 26px 60px rgba(18,20,28,0.22); }
       .steps.peekable .step:hover .tile-media img, .steps.peekable .step:focus-visible .tile-media img{ object-fit:contain; }
     }
@@ -837,7 +861,8 @@
     .cam-pair{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1rem; max-width:720px; align-items:start; }
     .cam-pair .occ{ order:-1; max-width:none; }
     .block-body{ min-width:0; }
-    .cam-photo{ margin-top:2.93rem; }
+    /* Tops line up with the clip under the occlusion panel (measured). */
+    .cam-photo{ margin-top:71.8px; }
     .cam-photo figcaption{ margin-top:0.55rem; font-size:0.92rem; font-weight:600; }
     @media(max-width:768px){
       .sketch-float{ width:130px; margin-left:1rem; }
@@ -885,14 +910,40 @@
     /* Auto end takes the red of its own countdown card in the headset
        (HostPalette.Destructive, #a32d2d). */
     #reliable .step.red{ --cat:#a32d2d; --cat-ink:#a32d2d; }
-    #reliable .steps{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    #reliable .steps{ grid-template-columns:minmax(0,1fr); }
+    .now-does{ list-style:none; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0.8rem; margin:0.2rem 0 0; grid-column:2; }
+    .now-does li{ padding:0.8rem 0.9rem; border-radius:10px; background:var(--wash-soft); font-size:0.85rem; line-height:1.5; color:var(--ink-soft); }
+    .now-does b{ display:block; color:var(--cat-ink); font-weight:800; margin-bottom:0.15rem; }
     #experience-path .tile-media img{ object-position:left top; }
     @media(max-width:768px){
       .startup-row{ grid-template-columns:1fr; gap:0.4rem; }
       .startup-tag{ padding-top:0; }
       .flow li{ width:4.8rem; font-size:0.72rem; }
       .flow li + li::after{ display:none; }
+      .now-does{ grid-template-columns:minmax(0,1fr); grid-column:1; }
       #reliable .steps{ grid-template-columns:minmax(0,1fr); }
+    }
+
+    /* ─── BEFORE LACKS / NOW DOES ─── an arrow runs from the Start RBV icon
+       down a stem, along a rail, and into each of its three capabilities.
+       Before gets the same three slots, struck out, so it is plain they did
+       not exist. On a phone the notes stack: only the stem and one
+       arrowhead remain. */
+    .before-lacks{ list-style:none; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0.8rem; margin:0.9rem 0 0; grid-column:2; }
+    .before-lacks li{ display:flex; align-items:center; gap:0.5rem; padding:0.55rem 0.8rem; border-radius:10px; border:1.5px dashed rgba(18,20,28,0.18); font-size:0.82rem; font-weight:700; color:var(--ink-faint); }
+    .before-lacks li::before{ content:""; flex:none; width:1.1rem; height:1.1rem; border-radius:50%; background:#a32d2d url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 7l10 10M17 7L7 17' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") center/70% no-repeat; }
+    .now-does{ position:relative; padding-top:1.6rem; margin-top:0 !important; }
+    .now-does::before{ content:""; position:absolute; left:1.8rem; top:-0.35rem; height:1rem; border-left:2px solid var(--cat-ink); }
+    .now-does::after{ content:""; position:absolute; left:1.8rem; right:calc((100% - 1.6rem) / 6); top:0.6rem; border-top:2px solid var(--cat-ink); }
+    .now-does li{ position:relative; }
+    .now-does li::before{ content:""; position:absolute; left:50%; top:-1rem; height:0.75rem; border-left:2px solid var(--cat-ink); }
+    .now-does li::after{ content:""; position:absolute; left:calc(50% - 5px); top:-0.4rem; border:6px solid transparent; border-top:7px solid var(--cat-ink); border-bottom:0; }
+    .now-does b::before{ content:"✓ "; }
+    @media(max-width:768px){
+      .before-lacks{ grid-template-columns:minmax(0,1fr); grid-column:1; gap:0.4rem; }
+      .now-does::after, .now-does li::before, .now-does li:not(:first-child)::after{ display:none; }
+      .now-does::before{ height:1.3rem; }
+      .now-does li:first-child::after{ left:calc(1.8rem - 5px); }
     }
   </style>
 </head>
@@ -976,27 +1027,42 @@
            tools/ppt1-demo/README.md in the Unity repo). The Unity Hub and
            Unity icons are the apps' own, taken from the copies installed on
            this Mac; Max and the headset have no local icon, so they get a
-           drawn glyph in the same tile shape. -->
+           drawn glyph in the same tile shape. Start RBV shows the desktop
+           app's own icon (Assets/VHILS/Branding/AppIcon_Desktop.png in the
+           Unity repo: the R.B.V head with a speaker badge). -->
       <ol class="steps">
         <li class="step wide">
-          <p class="step-title">One click</p>
           <div class="startup">
             <div class="startup-row">
               <span class="startup-tag">Before</span>
               <ol class="flow">
-                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg></span>Open Max, the sound manager</li>
-                <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 11v2"/></svg></span>Find the auralizer, turn sound on</li>
+                <li><img class="app" src="images/rbv-logo-max.png" alt="" width="96" height="96">Open Max, the sound manager</li>
+                <li><img class="app" src="images/rbv-logo-max.png" alt="" width="96" height="96">Find the auralizer, turn sound on</li>
                 <li><img class="app" src="images/rbv-logo-unity-hub.png" alt="" width="128" height="128">Open Unity Hub</li>
                 <li><img class="app" src="images/rbv-logo-unity.png" alt="" width="128" height="128">Open the project</li>
                 <li><span class="app glyph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9.5a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 9.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-2-2.2h-3L8.5 16h-3A2.5 2.5 0 0 1 3 13.5z"/></svg></span>Start the host in the headset</li>
                 <li><img class="app" src="images/rbv-logo-unity.png" alt="" width="128" height="128">Press Play in Unity</li>
               </ol>
+              <!-- What the old way could not do, mirroring the three notes under
+                   Now, so it is plain none of it existed before. -->
+              <ul class="before-lacks">
+                <li>No error checks</li>
+                <li>No saved tour logs</li>
+                <li>No live headset logs</li>
+              </ul>
             </div>
             <div class="startup-row after">
               <span class="startup-tag">Now</span>
               <ol class="flow">
-                <li><img class="app" src="images/rbv-visionpro-icon.jpg" alt="" width="600" height="600">Hit Start RBV. That's it.</li>
+                <li><img class="app" src="images/rbv-logo-start-rbv.png" alt="" width="160" height="160">Hit Start RBV.</li>
               </ol>
+              <!-- Never fails silently, folded in here by request: what the
+                   one button does now that the old way never did. -->
+              <ul class="now-does" aria-label="What Start RBV does now">
+                <li><b>Guides you through errors.</b> It checks every piece, stops and says what is wrong, like "Auralizer not listening".</li>
+                <li><b>Records every tour.</b> A saved log of everything the room fires, one file per run.</li>
+                <li><b>Live logs from every headset.</b> Errors in one place mean every system gets built faster: in Chorus, the log showed where each frame's time went, so three passes became one.</li>
+              </ul>
             </div>
           </div>
         </li>
@@ -1004,11 +1070,6 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/></svg>
           <p class="step-title">Auto end</p>
           <p class="step-line">The headset's sensors end the tour on their own.</p>
-        </li>
-        <li class="step">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
-          <p class="step-title">Never fails silently</p>
-          <p class="step-line">Live logs from every headset, gathered in one place, so every system now gets built far faster. In Chorus, the log showed where each frame's time went, step by step, so three passes became one.</p>
         </li>
       </ol>
     </div>
@@ -1088,12 +1149,12 @@
         </li>
         <li class="step" id="room">
           <div class="tile-media">
-            <video class="rbv-video" aria-label="Looking around the lab: white wireframe cubes fill the real chairs, tables and walls" width="848" height="478" poster="images/rbv-room-objects-poster.jpg" loop muted playsinline disableRemotePlayback preload="none">
+            <video class="rbv-video" aria-label="White wireframe cubes build up around a real chair beside a desk until they outline its whole shape" width="848" height="478" poster="images/rbv-room-objects-poster.jpg" loop muted playsinline disableRemotePlayback preload="none">
               <source src="images/rbv-room-objects.mp4" type="video/mp4">
             </video>
           </div>
           <p class="step-title">Room objects <span class="beta">Beta</span></p>
-          <p class="step-line">The furniture, mapped together.</p>
+          <p class="step-line">A real chair, outlined together.</p>
         </li>
       </ol>
 
@@ -1311,6 +1372,18 @@
 
     initA11yLineHighlight('.hero-title, .meta-value, .story p, .block-label, .block-body p, .tile figcaption');
 
+    /* A browser can refuse to start a muted clip on its own: Safari does in
+       Low Power Mode or with Auto-Play set to Never for the site. Then the
+       clip sat on its still and looked like a picture (his report). When
+       play() is refused, give that clip its controls so it can be started
+       by hand. */
+    function playOrOffer(v) {
+      var p = v.play();
+      if (p && p.catch) p.catch(function (err) {
+        if (err && err.name === 'NotAllowedError') v.controls = true;
+      });
+    }
+
     /* ─── CLIPS: PLAY ONLY WHILE ON SCREEN ───
        Five muted loops (~8 MB together) would all download at once if every
        one carried `autoplay`. Instead each plays when it scrolls into view and
@@ -1326,12 +1399,12 @@
         return;
       }
       if (!('IntersectionObserver' in window)) {
-        clips.forEach(function (v) { v.play().catch(function () {}); });
+        clips.forEach(function (v) { playOrOffer(v); });
         return;
       }
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
-          if (e.isIntersecting) e.target.play().catch(function () {});
+          if (e.isIntersecting) playOrOffer(e.target);
           else e.target.pause();
         });
       }, { threshold: 0.25 });
@@ -1368,7 +1441,7 @@
         btns.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.occ === which ? 'true' : 'false'); });
         var v = shown();
         try { v.currentTime = 0; } catch (e) {}
-        if (onScreen && !still) v.play().catch(function () {});
+        if (onScreen && !still) playOrOffer(v);
       }
 
       btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.occ); }); });
@@ -1378,11 +1451,11 @@
         new IntersectionObserver(function (entries) {
           onScreen = entries[0].isIntersecting;
           if (still) return;
-          if (onScreen) shown().play().catch(function () {});
+          if (onScreen) playOrOffer(shown());
           else shown().pause();
         }, { threshold: 0.25 }).observe(stage);
       } else if (!still) {
-        onScreen = true; shown().play().catch(function () {});
+        onScreen = true; playOrOffer(shown());
       }
     })();
 

@@ -20,6 +20,20 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
+# OpenAI: ChatGPT search results, and fetches when a user asks ChatGPT to
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic: Claude search results, and fetches when a user asks Claude to
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
 # Anthropic (Claude, legacy name)
 User-agent: anthropic-ai
 Allow: /
@@ -30,6 +44,10 @@ Allow: /
 
 # Google's AI training crawler (separate from regular Googlebot)
 User-agent: Google-Extended
+Allow: /
+
+# Apple's AI training opt-in (separate from regular Applebot)
+User-agent: Applebot-Extended
 Allow: /
 
 # Common Crawl (used to train many AI models)

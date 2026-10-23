@@ -2,19 +2,22 @@
 
 > Also known as Sebastian Kellc Esteva. Stanford-trained engineer and communicator who builds at the intersection of human experience, technology, and design, and chooses his work by what he believes will make the world better.
 
-Sebastian Esteva holds a B.S. in Biomechanical Engineering from Stanford (2026) and is completing an M.A. in Communication, Media Studies (anticipated 2027). He works across product design, wearable technology, VR/AR research, and strategic communications, always following work he finds genuinely inspiring. He is a Research Assistant at Stanford's Virtual Human Interaction Lab (VHIL), studying how virtual and augmented reality shape human behavior and decision-making. His capstone research examines how specific technology variables (degrees of freedom, fidelity, and related hardware/software features) affect sense of presence in virtual worlds.
+Sebastian Esteva holds a B.S. in Biomechanical Engineering from Stanford (2026) and is completing an M.A. in Communication, Media Studies (anticipated 2027). He works across product design, wearable technology, VR/AR research, and strategic communications, always following work he finds genuinely inspiring. He is a Research Assistant at Stanford's Virtual Human Interaction Lab (VHIL), where he is the lead student turning the lab's new augmented reality prototype into a stable, easy-to-use demo, built a mixed reality camera app for iPad almost entirely through AI coding agents (Claude Code) to capture it, and leads tours of the demo for visitors including industry partners (50+ so far). He also helps develop and maintain the lab's Reality Becomes Virtual mixed-reality tour, and researches how virtual and augmented reality shape human behavior and decision-making.
 
-He is also a Maker on Duty at Maker Nexus (Stanford's fabrication space), a Teaching Assistant for Stanford's Neurobiology of Pain course, and a founding Resident Leader of Explore Energy, Stanford's energy-focused residential community.
+He is also a Maker on Duty at Maker Nexus, a nonprofit community maker space, where he proposed and led the space's first member-wide deep clean (35+ volunteers against an expected 10). He was a Teaching Assistant for Stanford's Neurobiology of Pain course (Summer 2026) and a founding Resident Leader of Explore Energy, Stanford's energy-focused residential community (2024 to 2026), where he co-managed a $60,000+ program budget.
+
+Outside the university he has worked in startups and communications: Strategy & Marketing Intern at ExploreTech, an AI mining start-up (rebuilt the company website and its technical SEO, lifting traffic 52%), Go-to-Market Intern at Guidewheel in San Francisco, Marketing & Communications Intern at Open to Debate, and Consultant at Sensa Consulting, supporting a client's first B2C product launch.
 
 Sebastian brings the same intensity to his civic work. He has advocated for gun-violence prevention at national conferences in New York City and Washington, D.C., in rooms that included President Biden and NYC Mayor Eric Adams, as a Community Engagement Intern at Everytown for Gun Safety. He is strongly principled, hard-working, and drawn to problems that matter.
 
 Beyond his technical and professional work, Sebastian has 18 years of Aikido practice (Black Belt), a deep love of film, both watching and making it, and is a fluent Spanish speaker born in Mexico and raised in the United States. He is motivated by the intersection of human experience and the creation of wonder through design, asking not just "does it work?" but "what does it say?"
 
-This portfolio was built from scratch and deployed via GitHub. It reflects his aesthetic sensibility: minimal, dark, typographically deliberate.
+He designed and built this portfolio himself, with no templates and no build step, working with AI coding agents (mainly Claude Code) and deploying via GitHub Pages. It reflects his aesthetic sensibility: minimal, typographically deliberate, mostly dark, with some pages light where the work asks for it. Every page has an Accessible Mode (Atkinson Hyperlegible type, larger text, a reading ruler), and the whole portfolio can also be walked through in WebXR as The Dome.
 
 ## Pages
 
 - [Home](https://sesteva.com/): Portfolio landing page with featured projects, work experience highlights, and contact. Dark, Apple-inspired aesthetic with scroll-triggered animations.
+- [The Dome](https://sesteva.com/vr-spatial-portfolio.html): A WebXR spatial portfolio he built solo in A-Frame and three.js with Claude Code. A dusk-lit room you stand inside, where every project on this site is a panel you can walk up to; it works in a desktop browser and in a VR headset. Live in beta; the room itself is at https://sesteva.com/vr/.
 - [Where I've Worked](https://sesteva.com/experience.html): Full work history spanning Stanford research labs, startups, nonprofits, and community organizations, including VHIL, Guidewheel, ExploreTech, and Everytown for Gun Safety.
 - [Poser Chess Set](https://sesteva.com/chess.html): A hand-crafted chess set built as a physical fabrication project, exploring form, material, and process.
 - [Graduation Pendant](https://sesteva.com/pendant.html): A custom silver pendant cast in the shape of "26", his graduation year. Intentionally light-themed and image-led; the piece speaks for itself.
@@ -26,6 +29,7 @@ This portfolio was built from scratch and deployed via GitHub. It reflects his a
 - [HP's Reckoning with Company Values](https://sesteva.com/hp-reckoning-corporate-espionage.html): Strategy case study on HP's 2006 spying scandal: crisis communications, corporate governance, and values-based leadership.
 - [Shape Optimization & Generative Design](https://sesteva.com/algorithmic-modeling-shape-optimization.html): ME 127 engineering project applying FEA-driven shape optimization and generative design to redesign a machining gripper across materials and manufacturing methods.
 - [Social Engineering via Predictive Algorithms](https://sesteva.com/social-engineering-predictive-algorithms.html): Academic paper examining how predictive algorithms enable political micro-targeting and reshape democratic citizenship.
+- [Apple's Medical Licensure for Apple Watch](https://sesteva.com/apple-medical-licensure-apple-watch.html): Technology assessment with Tooba Riaz and Alexandra Collins for Stanford's BIOE 256 / MS&E 256, tracing how Apple Watch went from lifestyle accessory to FDA-cleared medical wearable (ECG App, Irregular Rhythm Notification, Sleep Apnea Notification), with the commercialization playbook and health economics behind it.
 - [3D Printed Glasses Frames](https://sesteva.com/3d-printed-glasses-frames.html): ME 227 design project: custom-fit 3D printed eyeglasses frames with a multi-material PLA/TPU hinge, prototyped on a Bambu Lab H2C.
 
 ## Contact
@@ -34,6 +38,15 @@ This portfolio was built from scratch and deployed via GitHub. It reflects his a
 - LinkedIn: https://linkedin.com/in/sebastian-esteva/
 - Stanford profile: https://profiles.stanford.edu/sebastian-esteva
 - Explore Energy house leaders page: https://explore-energy.stanford.edu/explore-energy-house/house-leaders
+
+## Optional
+
+- [HP's Reckoning (PDF)](https://sesteva.com/Sebastian_Esteva_HP_Reckoning_.pdf)
+- [Shape Optimization & Generative Design (PDF)](https://sesteva.com/Sebastian_Esteva_Algorithmic_Modeling_HW.pdf)
+- [Social Engineering via Predictive Algorithms (PDF)](https://sesteva.com/Social_Engineering_via_Predictive_Algorithms_.pdf)
+- [Apple's Medical Licensure for Apple Watch (PDF)](https://sesteva.com/Sebastian_Esteva_Apple_Medical_Licensure.pdf)
+- [3D Printed Glasses Frames (PDF)](https://sesteva.com/Sebastian_Esteva_3d_Print_Glasses_frames.pdf)
+- [Time Collector FEA analysis (PDF)](https://sesteva.com/Sebastian_Esteva_TimeCollector_FEA_Analysis.pdf)
 
 ## Note
 

@@ -17,7 +17,7 @@ He designed and built this portfolio himself, with no templates and no build ste
 ## Pages
 
 - [Home](https://sesteva.com/): Portfolio landing page with featured projects, work experience highlights, and contact. Dark, Apple-inspired aesthetic with scroll-triggered animations.
-- [The Dome](https://sesteva.com/vr-spatial-portfolio.html): A WebXR spatial portfolio he built solo in A-Frame and three.js with Claude Code. A dusk-lit room you stand inside, where every project on this site is a panel you can walk up to; it works in a desktop browser and in a VR headset. Live in beta; the room itself is at https://sesteva.com/vr/.
+- [The Dome](https://sesteva.com/vr-spatial-portfolio.html): A WebXR spatial portfolio he built solo in A-Frame and three.js with Claude Code. A dusk-lit room you stand inside, where every project on this site is a panel you can walk up to; it works in a desktop browser and in a VR headset. Live in beta; the room itself is at [sesteva.com/vr](https://sesteva.com/vr/).
 - [Where I've Worked](https://sesteva.com/experience.html): Full work history spanning Stanford research labs, startups, nonprofits, and community organizations, including VHIL, Guidewheel, ExploreTech, and Everytown for Gun Safety.
 - [Poser Chess Set](https://sesteva.com/chess.html): A hand-crafted chess set built as a physical fabrication project, exploring form, material, and process.
 - [Graduation Pendant](https://sesteva.com/pendant.html): A custom silver pendant cast in the shape of "26", his graduation year. Intentionally light-themed and image-led; the piece speaks for itself.

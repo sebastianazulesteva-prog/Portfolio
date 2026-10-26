@@ -32,7 +32,10 @@
   var pillRow = wrap.querySelector('.quick-links-row');
 
   function base(href) { return (href || '').split('#')[0].split('?')[0].split('/').pop(); }
-  var here = base(location.pathname) || 'index.html';
+  // Pages answers /rbv as well as /rbv.html, so "which page am I on" compares
+  // names without the extension. On /rbv the page used to list itself.
+  function key(href) { return base(href).replace(/\.html$/, '') || 'index'; }
+  var here = key(location.pathname);
   var cardCount = grid.querySelectorAll('.mini-card').length || 4;
   var localPills = pillRow ? Array.prototype.slice.call(pillRow.querySelectorAll('a.quick-link-mini')) : [];
 
@@ -69,13 +72,13 @@
           media: a.querySelector('img, video'),
           order: i
         };
-      }).filter(function (p) { return p.href && p.href !== here; });
+      }).filter(function (p) { return p.href && key(p.href) !== here; });
 
       cards.sort(function (a, b) { return (b.ongoing - a.ongoing) || (a.order - b.order); });
 
       var quick = Array.prototype.slice.call(section.querySelectorAll('a.quick-link')).map(function (a) {
         return { href: base(a.getAttribute('href')), title: ((a.querySelector('.quick-link-title') || {}).textContent || '').trim() };
-      }).filter(function (q) { return q.href && q.href !== here; });
+      }).filter(function (q) { return q.href && key(q.href) !== here; });
 
       if (!cards.length) return;
 
@@ -119,7 +122,7 @@
         .concat(quick)
         .concat(localPills.filter(function (a) {
           var h = base(a.getAttribute('href'));
-          return h && h !== here && !known[h] && h !== 'index.html';
+          return h && key(h) !== here && !known[h] && key(h) !== 'index';
         }).map(function (a) {
           return { href: base(a.getAttribute('href')), title: a.textContent.trim() };
         }));

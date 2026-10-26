@@ -296,41 +296,6 @@
 
     .hero-img-wrap img, .hero-img-wrap video{ width:100%; height:auto; display:block; }
 
-    .hero-caption{
-      max-width:1300px;
-      margin:0 auto;
-      padding:1.25rem 3rem 0;
-      font-size:0.9rem;
-      color:var(--ink-faint);
-      font-style:italic;
-    }
-
-    /* ─── LINK BAR ─── */
-    .link-bar{
-      max-width:1300px;
-      margin:2.5rem auto 0;
-      padding:0 3rem;
-    }
-
-    .report-link{
-      display:inline-flex;
-      align-items:center;
-      gap:0.75rem;
-      background:var(--ink);
-      color:var(--white);
-      text-decoration:none;
-      padding:0.9rem 1.6rem;
-      border-radius:100px;
-      font-size:0.85rem;
-      font-weight:600;
-      letter-spacing:0.02em;
-      transition:transform 0.2s, background 0.2s;
-    }
-
-    .report-link:hover{ background:var(--accent); transform:translateY(-1px); }
-
-    .report-link .arrow{ font-size:1rem; }
-
     /* ─── SECTION BLOCKS ─── */
     .block{
       max-width:1300px;
@@ -365,44 +330,6 @@
       color:var(--ink);
       margin-bottom:1rem;
     }
-
-    .block-body p.detail{
-      font-weight:600;
-      font-style:italic;
-      font-size:0.98rem;
-      color:var(--ink-soft);
-    }
-
-    .block-body p.detail .accent{
-      color:var(--accent);
-      font-style:normal;
-    }
-
-    /* ─── IDEA IMAGE ROW ─── */
-    .idea-imgs{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:1rem;
-      margin-top:1.5rem;
-    }
-
-    .idea-img-wrap{
-      border-radius:6px;
-      overflow:hidden;
-      background:var(--white);
-    }
-
-    .idea-img-wrap img{ width:100%; height:auto; display:block; }
-
-    /* ─── RESULT GIF — final demo, full width ─── */
-    .result-gif-wrap{
-      border-radius:6px;
-      overflow:hidden;
-      background:var(--white);
-      margin-top:1.5rem;
-    }
-
-    .result-gif-wrap img{ width:100%; height:auto; display:block; }
 
     /* ─── FOOTER ─── */
     .back-bottom-wrap{
@@ -559,9 +486,7 @@
       .a11y-toggle-prefix{ display:none; }
       .back-link{ font-size:0.62rem; padding:0.85rem 0.9rem; white-space:nowrap; }
       .hero{ grid-template-columns:1fr; padding:2.5rem 1.5rem 0; gap:1rem; }
-      .hero-caption, .link-bar{ padding-left:1.5rem; padding-right:1.5rem; }
       .block{ grid-template-columns:1fr; padding:2rem 1.5rem; gap:1rem; }
-      .idea-imgs{ grid-template-columns:1fr; }
       .more-projects{ padding:0 1.5rem; }
       .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
     }
@@ -597,7 +522,6 @@
        "headset" look, because the project is a social thing you do with other
        people, and short labelled media tiles instead of paragraphs. Copy is
        kept deliberately minimal; Sebastian expands it item by item. */
-    .hero-caption a{ color:var(--accent); }
 
 
     .block-lede{ font-size:1.15rem!important; font-weight:700!important; }
@@ -699,10 +623,6 @@
     .steps.media .tile-media{ aspect-ratio:4/3; border-radius:0; margin-bottom:0.9rem; background:var(--wash-soft); }
     .steps.media .tile-media img, .steps.media .tile-media video{ height:100%; object-fit:cover; }
     .steps.media .step-title, .steps.media .step-line{ padding:0 1.1rem; }
-    /* The experience path step shows two phone screens side by side,
-       contained rather than cropped so the whole page and the QR read. */
-    .steps.media .tile-media.phone{ display:flex; justify-content:center; gap:0.6rem; padding:0.7rem; }
-    .steps.media .tile-media.phone img{ width:auto; height:100%; object-fit:contain; border-radius:8px; box-shadow:0 1px 6px rgba(20,20,20,0.12); }
     .tiles.two-up{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
     .sub-label .beta, .step-title .beta{ margin-left:0.3rem; }
 
@@ -762,10 +682,8 @@
     .hero-title em{ font-weight:700; color:var(--rbv-floor); }
     .hero-img-wrap{ border-radius:10px; }
 
-    /* Site chrome and the VHIL link: style B corners, not pills. */
+    /* Site chrome: style B corners, not pills. */
     .back-link, .a11y-toggle, .back-bottom, .quick-link-mini{ border-radius:8px; }
-    .report-link{ border-radius:8px; background:var(--rbv-panel); }
-    .report-link:hover{ background:var(--rbv-floor); }
 
     .story{ position:relative; overflow:hidden; border-radius:10px; box-shadow:0 12px 40px rgba(18,20,28,0.08); }
     .story::before{
@@ -1542,6 +1460,6 @@
   </script>
   <!-- More Projects is rebuilt from index.html's project grid; see the
        file for why. The hand-written strip above is the no-JS fallback. -->
-  <script src="more-projects.js?v=2" defer></script>
+  <script src="more-projects.js?v=3" defer></script>
 </body>
 </html>

@@ -830,77 +830,6 @@
 
     .skills-expand-group .stat-value { max-width: 60%; }
 
-    .exp-item {
-      padding: 2.5rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .exp-item:first-child { border-top: 1px solid var(--border); }
-
-    .exp-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 0.4rem;
-      gap: 2rem;
-    }
-
-    .exp-company {
-      font-family: var(--serif);
-      font-size: 1.3rem;
-      letter-spacing: -0.01em;
-      color: var(--text);
-      text-decoration: none;
-      background-image: linear-gradient(var(--text), var(--text));
-      background-position: 0 100%;
-      background-repeat: no-repeat;
-      background-size: 0% 1px;
-      transition: background-size 0.3s ease;
-    }
-
-    .exp-company:hover {
-      background-size: 100% 1px;
-    }
-
-    .exp-date {
-      font-size: 0.7rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      white-space: nowrap;
-      margin-top: 0.3rem;
-    }
-
-    .exp-role {
-      font-size: 0.75rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 1rem;
-    }
-
-    .exp-bullets {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .exp-bullets li {
-      font-size: 0.9rem;
-      color: rgba(245,245,240,0.55);
-      line-height: 1.7;
-      padding-left: 1.2rem;
-      position: relative;
-    }
-
-    .exp-bullets li::before {
-      content: '—';
-      position: absolute;
-      left: 0;
-      color: var(--muted2);
-    }
-
     /* ─── SELECTED PROJECTS ─── */
     .work-grid {
       display: grid;
@@ -1385,7 +1314,6 @@
       .hero-scroll-line { width: 1px; height: 36px; }
       section { padding: 5rem 1.5rem; }
       .about-grid { grid-template-columns: 1fr; gap: 3rem; }
-      .exp-header { flex-direction: column; gap: 0.25rem; }
       .work-grid { grid-template-columns: 1fr; }
       /* width:100vw + height:auto lets the inherited aspect-ratio (682/1024)
          compute height directly from width, so the full photo always shows
@@ -1754,7 +1682,7 @@
         -->
         <div class="contact-links reveal reveal-delay-2">
           <a href="mailto:sesteva@stanford.edu" class="contact-link">sesteva@stanford.edu</a>
-          <a href="https://www.linkedin.com/in/sebastian-esteva/" class="contact-link" target="_blank">LinkedIn</a>
+          <a href="https://www.linkedin.com/in/sebastian-esteva/" class="contact-link" target="_blank" rel="noopener">LinkedIn</a>
         </div>
       </div>
 

@@ -106,14 +106,21 @@
     var up = mountBar(true, topBarY, function () { scrollBy(-1); });
     var down = mountBar(false, bottomBarY, function () { scrollBy(1); });
 
+    // A card scrolled out of the window must leave the rays too, or it is
+    // still clickable just past the arrow bars (guide §9.26.1).
+    function show(el, on) {
+      if (window.VRPlace) VRPlace.setBranchVisible(el, on);
+      else el.setAttribute('visible', on);
+    }
+
     function applyOffset(animate, onDone) {
       var shift = -offset * pitch;
       // Everything visible during the move (see header), pruned on completion.
-      placed.forEach(function (p) { p.innerEl.setAttribute('visible', true); });
+      placed.forEach(function (p) { show(p.innerEl, true); });
 
       var settle = function () {
         placed.forEach(function (p, i) {
-          p.innerEl.setAttribute('visible', i >= offset && i < offset + visible);
+          show(p.innerEl, i >= offset && i < offset + visible);
         });
         up.bar.setEnabled(offset > 0);
         down.bar.setEnabled(offset < maxOffset);

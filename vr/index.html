@@ -55,7 +55,7 @@
   <link rel="icon" href="../favicon.ico">
   <!-- ?v= like the component scripts below — vr.css was previously unversioned,
        so returning visitors would keep a cached copy across restyles. -->
-  <link rel="stylesheet" href="vr.css?v=16">
+  <link rel="stylesheet" href="vr.css?v=17">
 
   <!-- Fonts for the 2D DOM overlay only (back-link / Enter VR button).
        In-scene text uses troika-text with real font files — see fonts.js. -->
@@ -240,7 +240,7 @@
        hand entities cast a permanent floor-level ray when no controller is
        connected, which is every Vision Pro session — see pointer.js. -->
   <script src="components/pointer.js?v=3"></script>
-  <script src="components/place.js?v=3"></script>
+  <script src="components/place.js?v=4"></script>
   <script src="components/fonts.js?v=6"></script>
   <script src="components/themes.js?v=11"></script>
   <script src="components/dome.js?v=13"></script>
@@ -276,7 +276,7 @@
   <!-- Transient in-scene message card. Above the three files that call it
        (hub-panel, focus-stage, photo-cloud) and below glass-material, whose
        card shader and lit-text helper it uses. -->
-  <script src="components/busy.js?v=3"></script>
+  <script src="components/busy.js?v=4"></script>
   <script src="components/notice.js?v=3"></script>
   <!-- The intention gate: a small ring that fills up on whatever you are
        pointing at, and only then does the cheap reversible thing happen. Used
@@ -304,7 +304,7 @@
        an entity carries it, and portrait-lab builds only its button up front. -->
   <script src="components/spatial-photo.js?v=7"></script>
   <script src="components/portrait-lab.js?v=18"></script>
-  <script src="components/bio-card.js?v=36"></script>
+  <script src="components/bio-card.js?v=37"></script>
   <script src="components/project-room.js?v=60"></script>
   <!-- The reading ruler inside pdf-reader: finds the text lines in each
        pre-rendered page IMAGE and highlights the one you are looking at.
@@ -318,14 +318,14 @@
        than registered and unused — arrival weight is a real budget here (§9.16).
        Same treatment as portrait-layout.js further down. Uncomment to re-attach.
   <script src="components/carousel-drag.js?v=1"></script> -->
-  <script src="components/locomotion.js?v=9"></script>
+  <script src="components/locomotion.js?v=10"></script>
   <!-- Arrival. Holds the view behind the comfort vignette until the scene,
        the scraped content AND the texture queue are all done, then opens a
        clear hole from the centre of vision outward. wake.js's header has the
        measurement of why the portrait used to arrive seconds before the rest. -->
-  <script src="components/wake.js?v=2"></script>
+  <script src="components/wake.js?v=3"></script>
   <script src="components/walk-controls.js?v=6"></script>
-  <script src="components/column-scroll.js?v=2"></script>
+  <script src="components/column-scroll.js?v=3"></script>
   <script src="components/onboarding.js?v=7"></script>
   <script src="components/data-loader.js?v=23"></script>
   <script src="components/xr-select.js?v=2"></script>
@@ -334,7 +334,7 @@
        without the flag: nothing is built and no sampler runs. -->
   <script src="components/xr-diag.js?v=5"></script>
   <script src="components/fallback.js?v=5"></script>
-  <script src="components/hud.js?v=13"></script>
+  <script src="components/hud.js?v=14"></script>
   <!-- Portrait-phone recomposition of the home view (narrow horizontal fov).
        Loads after hud.js; only acts below a 0.70 aspect ratio. -->
   <!-- portrait-layout.js is RETIRED by decision (VR_AI_BUILD_GUIDE.md §9.4):
@@ -1126,9 +1126,10 @@
       };
       if (bioCardEl.hasLoaded) applyBio();
       else bioCardEl.addEventListener('loaded', applyBio);
+      // setBranchVisible, not a bare `visible`: a hidden bio card's Skills
+      // toggle is otherwise still a ray target (guide §9.26.1).
       document.querySelector('#homePortrait').addEventListener('click', function () {
-        var visible = bioCardEl.getAttribute('visible');
-        bioCardEl.setAttribute('visible', !visible);
+        VRPlace.setBranchVisible(bioCardEl, !bioCardEl.getAttribute('visible'));
       });
 
       // ── The left side, now TWO sections (§9.1) ──

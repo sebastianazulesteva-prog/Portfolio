@@ -98,15 +98,6 @@ a-scene {
   display: none;
 }
 
-.loading-note {
-  position: absolute;
-  bottom: 1.25rem;
-  right: 1.25rem;
-  font-size: 0.7rem;
-  color: var(--muted);
-  letter-spacing: 0.02em;
-}
-
 .phase-note {
   position: absolute;
   bottom: 1.25rem;
@@ -516,8 +507,6 @@ a-scene {
   font-size: 0.92rem;
   line-height: 1.55;
 }
-
-.onboard-card .onboard-quiet { color: var(--muted); }
 
 /* The motion paragraph is the one the visitor must actually act on, so it gets
    a left rule and its own ground rather than sitting in the flow as one more

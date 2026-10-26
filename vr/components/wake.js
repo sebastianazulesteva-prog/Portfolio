@@ -87,6 +87,27 @@
   var RING_R = 0.055, RING_W = 0.006, RING_Z = -1.1, SEGS = 96;
   var ring = null;
 
+  // ── The frame clock ─────────────────────────────────────────────────────
+  // Every per-frame step in this file goes through nextFrame(), which is
+  // armed by BOTH the window's rAF and the `wake` component's own tick, and
+  // run by whichever fires first. The window's rAF is not serviced inside an
+  // immersive session (guide §3.14) — and these steps used to ride it alone,
+  // so a visitor who pressed Enter VR before the arrival finished, or entered
+  // a project room in a headset, was left behind a shut mask with the scene
+  // loaded behind it. A-Frame's tick runs on the session's clock there. Off a
+  // session both fire every frame, and the queue is emptied by the first, so
+  // nothing runs twice. Same dual-arming idea as VRPoll (xr-frame.js).
+  var queue = [];
+  function drain() {
+    if (!queue.length) return;
+    var run = queue; queue = [];
+    for (var i = 0; i < run.length; i++) run[i]();
+  }
+  function nextFrame(fn) {
+    queue.push(fn);
+    if (queue.length === 1) requestAnimationFrame(drain);
+  }
+
   function ringBuild() {
     if (ring) return ring;
     var head = document.querySelector('#head');
@@ -143,7 +164,7 @@
       var k = Math.min(1, (performance.now() - t0) / 340);
       r.track.material.opacity = 0.16 * (1 - k);
       r.arc.material.opacity = 0.95 * (1 - k);
-      if (k < 1) return requestAnimationFrame(step);
+      if (k < 1) return nextFrame(step);
       ringDispose();
     })();
   }
@@ -177,7 +198,7 @@
     v.el.setAttribute('material', 'opacity', 1);
   }
 
-  // Ease the hole open. Driven from a tick rather than GSAP: this runs during
+  // Ease the hole open. Driven by nextFrame() rather than GSAP: this runs during
   // arrival, which is exactly when the main thread is busiest, and a tween
   // whose ticker is starved would leave the mask shut (§3.14 — and in an
   // immersive session gsap.ticker is not serviced at all without xr-frame's
@@ -207,12 +228,12 @@
         // the frame, so the periphery is the last thing to resolve.
         var tail = Math.max(0, (k - (1 - FADE_TAIL)) / FADE_TAIL);
         v.el.setAttribute('material', 'opacity', 1 - tail);
-        if (k < 1) { requestAnimationFrame(step); return; }
+        if (k < 1) { nextFrame(step); return; }
         v.el.setAttribute('visible', false);
         v.c.resetRadius();
         resolve();
       }
-      requestAnimationFrame(step);
+      nextFrame(step);
     });
   }
 
@@ -265,6 +286,9 @@
   };
 
   AFRAME.registerComponent('wake', {
+    // The half of nextFrame() that survives an immersive session.
+    tick: drain,
+
     init: function () {
       var scene = this.el.sceneEl;
       var t0 = performance.now();

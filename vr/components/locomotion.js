@@ -1,9 +1,8 @@
 /* ═══ locomotion.js ═══
-   Comfort-first movement: teleport + snap-turn only, never smooth locomotion
-   (base spec guardrail — nausea/comfort is non-negotiable).
+   Comfort-first turning: snap-turn only, never smooth look (base spec
+   guardrail — nausea/comfort is non-negotiable). There is no teleport (guide
+   §2 rule 7); bounded walking lives in walk-controls.js.
 
-   - teleport-controls (from aframe-extras, c-frame org) handles the arc +
-     teleport itself, bound to the trigger/grip on tracked controllers.
    - "snap-turn" rotates the rig in fixed steps on thumbstick input. RIGHT hand
      only since 2026-09-11 — the left one drives bounded walking now
      (walk-controls.js's `stick-walk`), and with snap-turn on both hands a
@@ -12,7 +11,8 @@
      same recentre the DOM HUD's crosshair uses. In an immersive session that
      2D control is not rendered at all, so without this there is no way back to
      the seat from inside a headset.
-   - "comfort-vignette" briefly darkens the view edges during a teleport.
+   - "vignette-flash" owns #comfortVignette: the edge vignette while walking
+     and the flat blackout for room transitions (guide §3.10–§3.12).
 
    Both respect prefers-reduced-motion: under reduced motion the vignette is
    skipped and turns are instant (no eased camera moves). */
@@ -80,17 +80,6 @@
     },
     remove: function () {
       this.el.removeEventListener('abuttondown', this.onPress);
-    }
-  });
-
-  AFRAME.registerComponent('comfort-vignette', {
-    init: function () {
-      this.onTeleported = function () {
-        if (reducedMotion) return;
-        var vignette = document.querySelector('#comfortVignette');
-        if (vignette) vignette.emit('flash');
-      };
-      this.el.addEventListener('teleported', this.onTeleported);
     }
   });
 

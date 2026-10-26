@@ -887,6 +887,15 @@
           self.toggleSkills();
         });
         panel.appendChild(closeBtn);
+        // ui-button tags itself .clickable in its own init, so the panel is
+        // already hidden by the time the button exists, and a hidden button is
+        // still a ray target (guide §9.26.1). Docked over the card at z 0.05,
+        // it caught clicks meant for the bio card and opened the panel. Take
+        // the branch out of the rays once the button is real; toggleSkills
+        // puts it back on open.
+        closeBtn.addEventListener('loaded', function () {
+          if (!panel.object3D.visible && window.VRPlace) VRPlace.setBranchVisible(panel, false);
+        });
 
         var yy = panelH / 2 - pad - closeBand;
         groups.forEach(function (g, i) {
@@ -1038,7 +1047,8 @@
         var to = this._skillsReadingTransform();
         if (!to) return;
         sunflower(false);
-        p.setAttribute('visible', true);
+        if (window.VRPlace) VRPlace.setBranchVisible(p, true);
+        else p.setAttribute('visible', true);
         p.object3D.position.copy(p.__dock.pos);
         p.object3D.quaternion.copy(p.__dock.quat);
         p.object3D.scale.copy(p.__dock.scale);
@@ -1050,7 +1060,8 @@
       } else {
         sunflower(false);
         this._tweenSkills(this._skillsPose(), p.__dock, SKILLS_FLY_OUT_MS, function () {
-          p.setAttribute('visible', false);
+          if (window.VRPlace) VRPlace.setBranchVisible(p, false);
+          else p.setAttribute('visible', false);
           sunflower(true);   // harmless while hidden: sunflower skips invisible panels
         });
       }

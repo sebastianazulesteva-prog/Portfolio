@@ -44,12 +44,11 @@ were still untracked for five days after that, which is exactly the kind of
 stale self-description the rest of this file exists to prevent; fixed
 2026-09-13. Two consequences of them being tracked, both worth knowing:
 
-* **They are served.** The repo IS the live site, so this file is readable at
-  `https://sesteva.com/VR_AI_BUILD_GUIDE.md`. Nothing links to them and
-  `sitemap.xml` does not list them, but `robots.txt` is a deliberate blanket
-  `Allow: /`, so they are crawlable. If that is ever unwanted, the fix is a
-  `Disallow` in `robots.txt` (which has its own editing convention at the top
-  of the file) — not untracking them again.
+* **They are no longer served (2026-10-25).** They moved to `docs/` on
+  2026-09-28 and were still published from the domain until `_config.yml`
+  excluded `docs/`, `CLAUDE.md` and `README.md` (AI_BUILD_GUIDE §2). They stay
+  in the public repository. A new tracked file that visitors should not get
+  needs adding to that exclude list.
 * **Editing one is a commit to the live site**, and therefore falls under the
   same rule as the code below: don't push it without Sebastian asking.
 
@@ -4390,6 +4389,50 @@ the roof following. The HUD ☀ pill is unchanged.
   a 0.18 m pull reached 0.40 and sprang back with the roof shut, a 0.5 m pull
   opened it with one pulse, a ray aimed away did not grab, and a transient
   source vanishing mid-pull released. **Not yet tried on a headset.**
+
+### 9.31 Stability pass: two clocks and nested hiding (2026-10-25)
+
+Part of a full-site stability check Sebastian asked for. Read-only reviews of
+`vr/` turned up a short list, and these are the ones that changed how something
+works.
+
+* **`wake.js` was on the window's clock.** Its header said the arrival mask
+  was "driven from a tick", but `open()` and `ringFade()` stepped on
+  `window.requestAnimationFrame`, which an immersive session does not service
+  (§3.14). Pressing Enter VR before the arrival finished, or entering a project
+  room in a headset (`VRWake.open({ms:1500})`), left a flat black cover over
+  a loaded scene. Every step now goes through `nextFrame()`, which both the
+  window's rAF and the `wake` component's own `tick` arm; the first to fire
+  drains the queue. Verified as an A/B in a pane whose rAF had frozen (1 frame
+  per 600 ms), pumping only `sceneEl.tick()`, which is the headset condition:
+  HEAD's `wake.js` (evaluated with its registration stubbed) stayed at opacity
+  1, visible, after 1.6 s of ticks, and the new one opened and hid. With a live
+  loop the arrival opens exactly as before. **Not tried on a headset.**
+* **Hiding nests now.** Three more bare `setAttribute('visible', …)` hides
+  had the §9.26.1 shape: the Skills panel (its Close button, docked over the
+  bio card at z 0.05, caught clicks meant for the card), the portrait's
+  show/hide of `#bioCard`, and `column-scroll`'s out-of-window cards (dormant
+  until a sixth piece). All go through `VRPlace.setBranchVisible`. That exposed a
+  gap in the helper itself: showing an OUTER branch restored every flagged
+  descendant, including ones inside an inner branch still hidden in its own
+  right. Hide the bio card, show it, and the shut panel's Close button was a
+  live invisible target again. `setBranchVisible` marks what it hides
+  (`data-vr-hidden-branch`) and the restore skips anything still inside such a
+  branch. Anything hidden with a bare `visible` restores exactly as before.
+  Measured: 97 clickables at rest, 96 with the bio card hidden, 97 shown with
+  the panel's button still inert, 97 after a hub round trip, and one leftover
+  flag, which is that button.
+* Removed: `comfort-vignette` (listened for `teleported`, which nothing
+  emits since teleport was banned), and two unused `vr.css` rules
+  (`.loading-note`, `.onboard-quiet`). `bio-card.js`, `busy.js` and `hud.js`
+  had changed in `2eb397d` without a `?v=` bump, so returning visitors were
+  still on the em-dash copy. All bumped.
+
+**Left open, for Sebastian:** the project rooms' document-station pads and
+`focus-stage`'s hidden origin card still use bare `visible`. The rooms are sealed
+behind `VR_ROOMS`, and the origin sits behind the open stage. Two Experience
+logos 404 (`ewear.stanford.edu.png`, `dschool.stanford.edu.png`). None of the
+CDN scripts carry SRI.
 
 ### 9.11 Deferred
 

@@ -82,11 +82,28 @@
   // targets every time you left a room.
   var INERT_FLAG = 'vrWasClickable';
 
+  // Branches hidden through setBranchVisible carry this, so that showing an
+  // OUTER branch does not hand clicks back to an inner one that is still
+  // hidden in its own right. The bio card is the case that found it: hide the
+  // card (portrait tap) while its Skills panel is shut, show it again, and the
+  // panel's Close button came back as an invisible target over the card.
+  // Only branches hidden this way are respected; anything hidden with a bare
+  // `visible` is restored exactly as before.
+  var HIDDEN_FLAG = 'vrHiddenBranch';
+
+  function insideHiddenBranch(el, root) {
+    for (var a = el; a && a !== root; a = a.parentElement) {
+      if (a.dataset && a.dataset[HIDDEN_FLAG]) return true;
+    }
+    return false;
+  }
+
   function setBranchClickable(root, on) {
     if (!root) return;
     var els = [].slice.call(root.querySelectorAll(on ? '[data-vr-was-clickable]' : '.clickable'));
     if (!on && root.classList && root.classList.contains('clickable')) els.push(root);
     if (on && root.dataset && root.dataset[INERT_FLAG]) els.push(root);
+    if (on) els = els.filter(function (el) { return !insideHiddenBranch(el, root); });
     els.forEach(function (el) {
       if (on) {
         el.classList.add('clickable');
@@ -116,6 +133,8 @@
   function setBranchVisible(el, visible) {
     if (!el) return;
     el.setAttribute('visible', visible);
+    if (visible) delete el.dataset[HIDDEN_FLAG];
+    else el.dataset[HIDDEN_FLAG] = '1';
     setBranchClickable(el, visible);
   }
 

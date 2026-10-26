@@ -39,14 +39,13 @@ Consequences worth holding onto:
 
 1. **A push to `main` is a publish.** There is no staging, no preview
    deployment, no approval gate. Commit freely; ask before pushing.
-2. **Everything tracked is served, including the documentation.**
-   `https://sesteva.com/docs/VR_AI_BUILD_GUIDE.md` returns `200 text/markdown`.
-   This was already true at the repo root before these files moved into
-   `docs/`. It is not a leak — the repository is public — but it does mean the
-   build notes are reachable from the portfolio domain. Excluding them would
-   take a `_config.yml` with an `exclude:` list, which is tracked as an issue
-   rather than done silently, since it touches deploy configuration on a live
-   site.
+2. **Everything tracked is served, except what `_config.yml` excludes.**
+   Until 2026-10-25 that meant the documentation too:
+   `https://sesteva.com/docs/VR_AI_BUILD_GUIDE.md` and `/CLAUDE.md` returned
+   `200 text/markdown`. `_config.yml` now excludes `docs/`, `CLAUDE.md` and
+   `README.md`. They remain in the repository, just not on the domain. **A new
+   tracked file that is not meant for visitors needs adding to that list**;
+   anything else you commit is published.
 3. **The legacy build type means Jekyll is running.** Files and directories
    beginning with `_` or `.` are not copied to the published site. Do not lean
    on that for anything that matters — `vr/_dev-*` is *also* gitignored, and

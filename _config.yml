@@ -1,0 +1,19 @@
+# GitHub Pages runs Jekyll over this repo (legacy build type, root of main).
+# There is no Jekyll site here — no layouts, no front matter anywhere — so this
+# file exists for one reason: to keep the build notes off sesteva.com.
+#
+# Without it every tracked file is published, so sesteva.com/CLAUDE.md and the
+# whole of docs/ (including the 4,300-line VR guide and the archived prompts)
+# were served from the portfolio domain. They stay in the repository; they are
+# just not part of the site.
+#
+# Setting `exclude` replaces Jekyll's default list rather than adding to it.
+# That default only names Ruby/Node build files this repo does not have, so
+# nothing else changes. Files starting with `.` or `_` were already skipped.
+#
+# README.md matters more than it looks: Jekyll would render it as the site's
+# index if index.html ever went missing.
+exclude:
+  - CLAUDE.md
+  - README.md
+  - docs/

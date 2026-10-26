@@ -2162,6 +2162,18 @@
       btn.setAttribute('aria-expanded', isOpen);
       label.textContent = isOpen ? 'Show Fewer' : 'More Projects';
     }
+
+    /* ─── REDUCED MOTION STOPS THE CARD LOOPS ───
+       The reduced-motion CSS above reaches CSS animation only; the two looping
+       card videos (RBV, Slip Door) ignored it. Both have posters, so they stop
+       on that still. No controls: each video sits inside its card's link, and
+       a play button there would fight the link for the click. load() is what
+       brings the poster back if a frame has already been painted. */
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.work-card video[autoplay]').forEach(function (v) {
+        v.removeAttribute('autoplay'); v.pause(); v.load();
+      });
+    }
   </script>
 </body>
 </html>

@@ -52,10 +52,10 @@ stale self-description the rest of this file exists to prevent; fixed
 * **Editing one is a commit to the live site**, and therefore falls under the
   same rule as the code below: don't push it without Sebastian asking.
 
-The one thing still untracked AND unignored is `screenshots/` — working
-artefacts, 4.7 MB when that commit left them out and 6.9 MB now, and unlike the
-notes not worth reading. It is why everything here stages explicit paths
-rather than `git add -A`.
+`screenshots/` (working artefacts, ~12 MB by 2026-10) was untracked AND
+unignored for weeks, which is why everything here stages explicit paths rather
+than `git add -A`. It is gitignored since 2026-10-25, along with
+`rbv-chorus-body-steps/`. Keep staging explicit paths anyway.
 
 The old standing rule — "nothing is committed, do not deploy without asking" —
 is retired now that the beta has shipped, but the spirit holds: **`main` is the

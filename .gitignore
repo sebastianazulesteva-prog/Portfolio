@@ -36,3 +36,11 @@ portfolio-sharp/
 # person's IDE setup, on a repo with one contributor and no IDE requirement.
 # Untracked 2026-09-28.
 .idea/
+
+# Working material at the repo root that is NOT part of the site. Both were
+# untracked but unignored, so a `git add -A` would have published them:
+# screenshots/ is ~12 MB of session captures, and rbv-chorus-body-steps/ is a
+# rough draft with its own index.html (raw material for rbv.html, per its
+# README). Ignored 2026-10-25. Delete a line if the folder is ever meant to ship.
+screenshots/
+rbv-chorus-body-steps/

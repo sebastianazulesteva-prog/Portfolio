@@ -611,7 +611,7 @@
          The final result GIF, front and center so the moving demo is the
          first thing people see. -->
     <div class="hero-img-wrap">
-      <video aria-label="3D CAD render of The Slip Door wooden frame structure" width="1280" height="720" autoplay loop muted playsinline disableRemotePlayback>
+      <video aria-label="3D CAD render of The Slip Door wooden frame structure" width="1280" height="720" poster="images/slipdoor-final-result-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
         <source src="images/slipdoor-final-result.webm" type="video/webm">
         <source src="images/slipdoor-final-result.mp4" type="video/mp4">
       </video>
@@ -803,6 +803,16 @@
     }
 
     initA11yLineHighlight('.hero-title, .hero-caption, .block-label, .block-body p');
+
+    /* ═══ REDUCED MOTION STOPS THE LOOP ═══ The page's reduced-motion CSS
+       only reaches CSS animation; a looping autoplay video ignores it. Same
+       treatment as rbv.html: no autoplay, the poster stands in, and the
+       browser's own controls let a visitor choose to play it. */
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('video[autoplay]').forEach(function (v) {
+        v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+      });
+    }
   </script>
   <!-- More Projects is rebuilt from index.html's project grid; see the
        file for why. The hand-written strip above is the no-JS fallback. -->

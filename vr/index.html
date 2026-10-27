@@ -62,8 +62,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <!-- A-Frame (pinned — never "latest") -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- A-Frame (pinned — never "latest").
+       Every CDN script carries Subresource Integrity: the browser refuses the
+       file if its bytes are not the ones hashed here, so a compromised CDN
+       cannot run code on sesteva.com. Changing a pin means changing its hash:
+       curl -sL URL | openssl dgst -sha384 -binary | openssl base64 -A -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"
+          integrity="sha384-Q1xJxUu3g9dfxTQcxLUjh6fUzeztZikm/bryr9+vQ/OT6MIrfMvjxeYlvtA/B5ES" crossorigin="anonymous"></script>
 
   <!-- Vetted community components (VR_DESIGN_RESOURCES.md §1) — pinned versions.
        aframe-environment-component was tried for the dusk sky first, but its
@@ -80,11 +85,13 @@
        super-hands' name collision with A-Frame 1.5.0's built-in `grabbable`.
        Re-add super-hands (plus the shim) alongside the first grabbable target
        if 3D models (§10) ever land. -->
-  <script src="https://unpkg.com/aframe-troika-text@0.14.0/dist/aframe-troika-text.min.js"></script>
+  <script src="https://unpkg.com/aframe-troika-text@0.14.0/dist/aframe-troika-text.min.js"
+          integrity="sha384-TtL+JFAT1uHjYeY0rRQxzfYJP5rfmWEn5XE9q83A7660kAFcY7fMfkufNsr3w54f" crossorigin="anonymous"></script>
   <!-- GSAP (pinned) — tweens the focus-stage's underlying object3D
        position/quaternion/scale directly for the "pull it closer" select
        animation (VR_BUGFIX_NOTES.md item 5). No build step: CDN, no plugins. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+          integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
 
   <!-- ══ AUDIO KILL SWITCH ══
        ALL sound in /vr — the ambient birdsong AND the hover/select cues — is
@@ -296,7 +303,7 @@
        the entity carries the attribute, and nothing carries it by default. The
        665 KB renderer is fetched lazily from inside the component, so an
        unflagged visit does not pay for this tag. -->
-  <script src="components/splat-portrait.js?v=19"></script>
+  <script src="components/splat-portrait.js?v=20"></script>
   <!-- The lab's fourth depth treatment: parallax occlusion mapping over the
        relief panel's own depth map. Two triangles, no new asset. -->
   <script src="components/parallax-photo.js?v=3"></script>

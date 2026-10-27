@@ -83,6 +83,11 @@ in practice. Breaking any of them is a regression.
    VR_TEST_REPORT.md G9. Re-add super-hands, plus the
    `delete AFRAME.components.grabbable` shim it needs, only alongside the first
    real grabbable target.)
+   Every CDN script also carries **Subresource Integrity** (`integrity` +
+   `crossorigin="anonymous"`, added 2026-10-26, #3): the three tags in
+   `vr/index.html` and `LIB_SRI` in `splat-portrait.js`. Changing a pin means
+   changing its hash, or the browser refuses the file and the scene loses that
+   library: `curl -sL URL | openssl dgst -sha384 -binary | openssl base64 -A`.
 3. **Don't touch the rest of the site.** THREE sanctioned touchpoints now, all
    by explicit ask. The third, added 2026-09-11, is the widest and the one most
    likely to be over-read: **body copy on the project pages.** Sebastian asked

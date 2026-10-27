@@ -69,6 +69,8 @@
   // `global.THREE`, which is the very super-three instance A-Frame is already
   // running, so the splats share one WebGL context and one scene graph.
   var LIB_URL = 'https://unpkg.com/@mkkellogg/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.umd.cjs';
+  // SRI for LIB_URL (see the A-Frame tag in index.html). A new pin needs a new hash.
+  var LIB_SRI = 'sha384-vx+ZgJj9ZKLQXx48K5H6lViI7ugCwpZzguvfruPp8KsxQ+gHbckvcVi8Ym1HnS0G';
 
 
 
@@ -100,6 +102,8 @@
     // failure path below leaves the rest of the scene alone.
     var s = document.createElement('script');
     s.src = LIB_URL;
+    s.integrity = LIB_SRI;
+    s.crossOrigin = 'anonymous';
     s.async = true;
     s.onload = function () {
       libState = lib() ? 'ready' : 'failed';

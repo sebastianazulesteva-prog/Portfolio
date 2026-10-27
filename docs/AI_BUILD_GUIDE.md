@@ -161,6 +161,16 @@ and Twitter card set with an absolute `og:image`, and the favicon. **When
 adding a page, copy that block and fill it in** — and add the page to both
 `sitemap.xml` and `llms.txt`.
 
+**The link-preview image is a 1200×630 card in `images/og/<page>.jpg`**
+(since 2026-10-25), with `og:image:width`, `og:image:height` and
+`og:image:alt` beside it and `twitter:image` pointing at the same file. They
+used to be each page's own hero, which for portrait photos meant a hard crop
+to a face and a 2–5 MB fetch. Photo pages use a crop of their own hero; pages
+without a usable wide image (the writing pieces, Experience, the homepage) use
+a dark title card in Playfair + Syne whose text is the page's own title and its
+homepage card's tag line. Make one with `.tools/og/og-cards.py` (§5). The
+cards are `<meta>` only, never `<img>`, so `/vr`'s photo cloud never sees them.
+
 **More Projects is not hand-written any more.** Every project page loads
 `more-projects.js`, which fetches `index.html`, reads its `#projects` grid and
 rebuilds the page's More Projects strip: Ongoing projects first, then the home
@@ -192,6 +202,7 @@ of what is in it.
 |---|---|
 | `.tools/audit/*.js` | Standalone node, no dependencies, run from the repo root. `refs2.js` (dead links, anchors, assets, duplicate ids, alt text, headings, meta, sitemap), `case.js` (§3.1), `deployed.js` (§3.3), `http.js` (real status of every reference — needs the dev server up), `tokens.js` (contrast of every `:root` rgba token), `literals.js` (colour literals bypassing a token). Its own README documents the traps each was written around; those are reproduced in §3 above. |
 | `.tools/serve_gzip.py` | The gzip dev server. §3.2. |
+| `.tools/og/og-cards.py` | Builds the 1200×630 link-preview cards (§4) and a numbered contact sheet to choose from. Three layouts (crop, fit, title card), with the site's Playfair/Syne `.woff` files kept beside it. Run with `python3 -I`; it needs Pillow. Regenerates the shipped cards byte for byte. |
 | `.tools/serve_https.py`, `vr-phone.sh`, `certs/`, `phone-qr.html` | LAN HTTPS plus a QR code for phone and headset testing; can tunnel via cloudflared. WebXR requires a secure context, so plain http does not work on-device. |
 | `.tools/vr-image-index.py`, `vr-image-picker.py` | Index every image and choose which ones each VR room uses. The picker is a local GUI, launchable as `vr-image-picker` from `.claude/launch.json`. |
 | `.tools/vr-make-pages.py`, `vr-make-textures.py`, `vr-shrink-pdfs.py` | Generators for the VR reading stations, textures, and the PDF page images. |

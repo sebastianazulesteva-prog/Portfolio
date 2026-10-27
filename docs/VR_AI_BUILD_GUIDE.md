@@ -4430,9 +4430,19 @@ works.
 
 **Left open, for Sebastian:** the project rooms' document-station pads and
 `focus-stage`'s hidden origin card still use bare `visible`. The rooms are sealed
-behind `VR_ROOMS`, and the origin sits behind the open stage. Two Experience
-logos 404 (`ewear.stanford.edu.png`, `dschool.stanford.edu.png`). None of the
-CDN scripts carry SRI.
+behind `VR_ROOMS`, and the origin sits behind the open stage. None of the CDN
+scripts carry SRI.
+
+**A logo that isn't there gets no space (2026-10-25, later).** Two Experience
+logos 404 (`ewear.stanford.edu.png`, `dschool.stanford.edu.png`), and
+hub-panel reserves the corner the moment `logo` is set. That is deliberate (no
+reflow under a reader), so the card kept an empty slot. `data-loader.js`'s
+`verifyLogos()` now sends one HEAD per job, in parallel with the project-page
+fetches the load already waits on, and drops the mark on a real 404 before
+anything is laid out. A network error keeps the mark. Measured: 12 HEADs
+(10 × 200, 2 × 404), then 10 texture loads; the two cards build no logo mesh
+and their titles sit at y 0.1428 (`h * 0.42`) against 0.0902 under a mark.
+Sebastian is sourcing the two files, so issue #2 stays open for them.
 
 ### 9.11 Deferred
 

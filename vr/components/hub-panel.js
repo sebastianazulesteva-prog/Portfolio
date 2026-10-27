@@ -656,8 +656,9 @@
         mat.needsUpdate = true;
         mesh.__lit = true;
       }, function () {
-        // No file for this hostname. Nothing is drawn and the reserved space
-        // simply stays empty — see the note in data-loader.js's hostLogo().
+        // A missing file is caught earlier (data-loader.js verifyLogos drops
+        // the mark, so no space is reserved). Reaching here means the file
+        // existed but failed to load; nothing is drawn and the slot stays.
       });
     },
 

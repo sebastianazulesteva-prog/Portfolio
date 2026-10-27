@@ -168,7 +168,9 @@
         // So the logo path is the hostname, and there is no table anywhere
         // saying which company gets which picture. Adding a job to the flat
         // page and dropping `<hostname>.png` into /images/logos is the whole
-        // workflow; a missing file simply means no mark (hub-panel skips it).
+        // workflow; a missing file simply means no mark: verifyLogos() below
+        // drops it before any card is built, so the card lays out without
+        // the reserved corner instead of showing an empty one.
         //
         // Four Stanford orgs therefore carry four identical copies of the
         // Stanford mark rather than sharing one through an alias table. That is
@@ -588,6 +590,25 @@
       .catch(function (err) { console.warn('[vr] images.json unavailable:', err); return { images: {} }; });
   }
 
+  // ── A logo that isn't there gets no space ──────────────────────────────
+  // hub-panel reserves the mark's corner the moment `logo` is set, on purpose:
+  // re-flowing the title when a texture lands would move text under someone
+  // already reading it. The cost was that a hostname with no file in
+  // /images/logos kept an empty slot and pushed its title down for nothing
+  // (eWear and the d.school, 2026-10-25). So existence is settled HERE, before
+  // anything is laid out: one HEAD per job, in parallel with the project-page
+  // fetches the load is already waiting on. Only a definite answer (a real
+  // 404) drops the mark. A network failure keeps it, which is the old
+  // behaviour, so a flaky connection cannot strip every logo off the wall.
+  function verifyLogos(experience) {
+    return Promise.all(experience.map(function (exp) {
+      if (!exp.logo) return null;
+      return fetch(exp.logo, { method: 'HEAD' }).then(function (r) {
+        if (!r.ok) exp.logo = null;
+      }).catch(function () {});
+    }));
+  }
+
   function load() {
     return Promise.all([loadManifest(), loadImageManifest()]).then(function (manifests) {
       var manifest = manifests[0];
@@ -602,7 +623,8 @@
         var projects = mergeProjectsWithManifest(parseProjects(indexDoc), manifest);
         var experience = experienceDoc ? parseExperience(experienceDoc) : [];
 
-        return Promise.all(projects.map(fetchRoomContent)).then(function (withBlurbs) {
+        return Promise.all([Promise.all(projects.map(fetchRoomContent)), verifyLogos(experience)]).then(function (both) {
+          var withBlurbs = both[0];
           withBlurbs.forEach(function (p) {
             if (p.manifestBlurb) p.blurb = p.manifestBlurb;
             delete p.manifestBlurb;

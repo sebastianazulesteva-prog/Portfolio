@@ -95,6 +95,12 @@
         } else if (m) {
           media = el('img');
           media.src = m.tagName === 'VIDEO' ? m.getAttribute('poster') : m.getAttribute('src');
+          // Index's card-sized copies (Bastón, Chess) ride along; mini cards
+          // are never wider than half the page.
+          if (m.getAttribute('srcset')) {
+            media.srcset = m.getAttribute('srcset');
+            media.sizes = '(max-width: 768px) 100vw, 50vw';
+          }
           media.alt = m.getAttribute('alt') || m.getAttribute('aria-label') || '';
           if (m.getAttribute('width')) media.width = +m.getAttribute('width');
           if (m.getAttribute('height')) media.height = +m.getAttribute('height');

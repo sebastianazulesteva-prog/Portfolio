@@ -1559,7 +1559,7 @@
            MP4 only (no WebM encoder on the machine it was cut on). The poster
            is what shows before the first frame decodes. -->
       <a href="rbv.html" class="work-card reveal">
-        <video aria-label="Inside the headset: virtual dancers under disco balls and colored light beams, in a real room" width="848" height="478" poster="images/rbv-disco-card-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
+        <video aria-label="Inside the headset: virtual dancers under disco balls and colored light beams, in a real room" width="848" height="478" poster="images/rbv-disco-card-poster.jpg" preload="none" loop muted playsinline disableRemotePlayback>
           <source src="images/rbv-disco-card.mp4" type="video/mp4">
         </video>
         <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
@@ -1579,7 +1579,7 @@
       </a>
 
       <a href="slipdoor.html" class="work-card reveal reveal-delay-1">
-        <video aria-label="3D render of The Slip Door wooden frame prototype" width="1280" height="720" poster="images/slipdoor-final-result-poster.jpg" autoplay loop muted playsinline disableRemotePlayback>
+        <video aria-label="3D render of The Slip Door wooden frame prototype" width="1280" height="720" poster="images/slipdoor-final-result-poster.jpg" preload="none" loop muted playsinline disableRemotePlayback>
           <source src="images/slipdoor-final-result.webm" type="video/webm">
           <source src="images/slipdoor-final-result.mp4" type="video/mp4">
         </video>
@@ -1591,7 +1591,7 @@
       </a>
 
       <a href="baston.html" class="work-card reveal reveal-delay-2">
-        <img src="images/baston-hero.jpg" alt="Close-up of the Bastón folded" width="5184" height="3058">
+        <img src="images/baston-hero.jpg" srcset="images/baston-card.jpg 1600w, images/baston-hero.jpg 5184w" sizes="(max-width: 768px) 100vw, 50vw" alt="Close-up of the Bastón folded" width="5184" height="3058">
         <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
         <div class="work-card-info">
           <p class="work-card-title">Bastón</p>
@@ -1624,7 +1624,7 @@
       <div class="work-grid">
 
         <a href="chess.html" class="work-card">
-          <img src="images/chess-hero.jpg" alt="Hands holding the Poser Chess Set on a wall, its ranks rotated out from flat so a game can be displayed and still played" width="4284" height="5712" loading="lazy">
+          <img src="images/chess-hero.jpg" srcset="images/chess-card.jpg 1600w, images/chess-hero.jpg 4284w" sizes="(max-width: 768px) 100vw, 50vw" alt="Hands holding the Poser Chess Set on a wall, its ranks rotated out from flat so a game can be displayed and still played" width="4284" height="5712" loading="lazy">
           <span class="work-card-arrow"><svg class="arrow-glyph" width="0.95em" height="0.95em" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-0.08em"><path d="M4 12 12 4M5.5 4H12v6.5"/></svg></span>
           <div class="work-card-info">
             <p class="work-card-title">Poser Chess Set</p>
@@ -2166,15 +2166,25 @@
       label.textContent = isOpen ? 'Show Fewer' : 'More Projects';
     }
 
-    /* ─── REDUCED MOTION STOPS THE CARD LOOPS ───
-       The reduced-motion CSS above reaches CSS animation only; the two looping
-       card videos (RBV, Slip Door) ignored it. Both have posters, so they stop
-       on that still. No controls: each video sits inside its card's link, and
-       a play button there would fight the link for the click. load() is what
-       brings the poster back if a frame has already been painted. */
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.querySelectorAll('.work-card video[autoplay]').forEach(function (v) {
-        v.removeAttribute('autoplay'); v.pause(); v.load();
+    /* ─── CARD VIDEOS PLAY ONLY UNDER THE POINTER ───
+       The two card videos (RBV, Slip Door) used to autoplay, and downloading
+       both alongside the card images made the grid stutter and images arrive
+       late. Now they sit on their poster with preload="none", so nothing is
+       fetched until a mouse rests on the card; leaving pauses it. Touch screens
+       and reduced motion never play them: there is no hover to end the loop,
+       and the full video is one tap away on the project page. No controls:
+       each video sits inside its card's link, and a play button there would
+       fight the link for the click. */
+    if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('.work-card video').forEach(function (v) {
+        var card = v.closest('.work-card');
+        function play() { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); }
+        function stop() { v.pause(); }
+        card.addEventListener('mouseenter', play);
+        card.addEventListener('mouseleave', stop);
+        card.addEventListener('focus', play);
+        card.addEventListener('blur', stop);
       });
     }
   </script>

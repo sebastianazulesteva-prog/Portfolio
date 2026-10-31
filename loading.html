@@ -197,6 +197,8 @@
     .story p{ font-family:'Lora', Georgia, serif; font-size:1.08rem; line-height:1.8; color:var(--ink-soft); }
     body.accessible .story p{ font-family:var(--sans); }
     .story p + p{ margin-top:1.1rem; }
+    /* The line the story builds to, set apart as its own closing sentence. */
+    .story p.story-close{ margin-top:2.4rem; font-size:1.42rem; line-height:1.55; font-style:italic; color:var(--ink); }
     .story strong{ font-weight:600; color:var(--ink); }
     /* Jump links from the story down to the clip it is talking about. The
        targets carry scroll-margin so the sticky nav does not cover them. */
@@ -555,7 +557,7 @@
       <p>Then I was lucky enough to explore it further in <strong>Virtual People</strong> at Stanford. I got to really flesh out what it could be, writing up ethics reports and the overall idea of the project, and editing a video by hand to bring the idea into the world <a class="jump" href="#concept-video" data-preview-video="images/loading-concept.mp4" data-preview-img="images/loading-concept-poster.jpg" data-preview-label="Concept video, 2025 · click to jump down">Watch ↓</a>. But it was just a dream, and I definitely couldn't build it myself.</p>
       <p>That changed after I jumped into <a href="rbv.html" data-preview-video="images/rbv-disco-card.mp4" data-preview-img="images/rbv-disco-card-poster.jpg" data-preview-label="Reality Becomes Virtual · Stanford VHIL" data-preview-arrow>RBV, Reality Becomes Virtual</a>, a project at the Virtual Human Interaction Lab. Seeing how powerful AI agents had become, I wanted to find out if the idea I had built up could become real. After many more explorations into APIs, the vector spaces AI uses to hold ideas, the sources of data I could pull from, and the 3D visualizations that already exist, it came to life <a class="jump" href="#first-night" data-preview-video="images/loading-first-night.mp4" data-preview-img="images/loading-first-night-poster.jpg" data-preview-label="First test · click to jump down">Watch ↓</a>.</p>
       <p>Our current search strips facts of their surroundings, and I wanted something that puts them back. I wanted the feeling of going to the library as a kid for one book and finding, right next to it, a book that's even better.</p>
-      <p>That is what I have been creating here: a web of all human knowledge that surrounds you like a starry night, free for you to explore.</p>
+      <p class="story-close">That is what I have been creating here: a web of all human knowledge that surrounds you like a starry night, free for you to explore.</p>
     </div>
 
     <div class="timeline-head">
@@ -574,6 +576,7 @@
           <video class="lazy-video" aria-label="Clip from the Curiosity Engine concept video: a hand presses a red Enter Deep Exploration button on the floor, the room dims, and web pages and pictures about Squishmallows float around a plush toy" width="1280" height="720" muted loop playsinline disableRemotePlayback preload="none" poster="images/loading-concept-poster.jpg">
             <source src="images/loading-concept.mp4" type="video/mp4">
           </video>
+          <figcaption>The concept video, from way back in fall 2025.</figcaption>
         </figure>
         <!-- ═══ CLASS DOCS ═══ excerpts of his two Virtual People assignments
              (the design document and the implementation plan), set as text
@@ -607,23 +610,22 @@
               </div>
             </figure>
           </div>
-          <p class="docs-caption">The concept video and rough drafts of my thinking for the project, all from way back in fall 2025.</p>
+          <p class="docs-caption">Rough drafts of my thinking for the project, also from fall 2025.</p>
         </div>
       </div>
     </section>
 
-    <!-- ═══ II. FIRST LIGHT ═══ night band: everything here is a capture from
+    <!-- ═══ II. FIRST TEST ═══ night band: everything here is a capture from
          inside the headset. -->
     <section class="chapter night" aria-labelledby="ch2">
       <div class="chapter-inner">
         <span class="chapter-node" aria-hidden="true"></span>
         <p class="chapter-date">September to October 2026</p>
-        <h3 id="ch2"><span class="numeral">II.</span>First light</h3>
+        <h3 id="ch2"><span class="numeral">II.</span>First test</h3>
         <figure id="first-night">
           <video class="lazy-video" aria-label="Recording from inside the headset at night: a search window and a floating keyboard, and webs of green spheres joined by lines growing in a dim bedroom lit by string lights" width="1280" height="720" muted loop playsinline disableRemotePlayback preload="none" poster="images/loading-first-night-poster.jpg">
             <source src="images/loading-first-night.mp4" type="video/mp4">
           </video>
-          <figcaption>First test.</figcaption>
         </figure>
         <figure>
           <img src="images/loading-headset-test.jpg" alt="Seen through the headset in daylight: a web around a Sergey Brin node with his card open, and beside it a To check panel listing tests, each with Pass and Fail buttons" width="1600" height="900" loading="lazy">
@@ -884,7 +886,12 @@
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
           var v = e.target;
-          if (e.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+          // Safari refuses autoplay in Low Power Mode or under its "Never
+          // Auto-Play" site setting. The refusal used to be swallowed, which
+          // left a poster that could not be started; now it gets controls.
+          // Only for that refusal: scrolling away mid-start rejects with an
+          // AbortError, which is normal and must not add them.
+          if (e.isIntersecting) { var p = v.play(); if (p && p.catch) p.catch(function (err) { if (err && err.name === 'NotAllowedError') v.controls = true; }); }
           else v.pause();
         });
       }, { threshold: 0.25 });

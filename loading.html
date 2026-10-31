@@ -308,99 +308,24 @@
     body.accessible .sheet{ font-family:var(--sans); }
     .chapter .docs-caption{ margin-top:1.2rem; font-family:var(--serif); font-style:italic; font-size:1.05rem; color:var(--ink-soft); }
 
-    /* ─── THE BUILD CYCLE ───
-       A ring: three orbs 120 degrees apart on a dashed copper loop. --rot
-       turns the whole ring (arcs included); each node is placed by its own
-       --a and counter-rotated by both, so its icon and label stay upright
-       while the ring turns. Both transforms share one duration and curve,
-       so the counter-rotation cancels exactly mid-turn. */
-    .ring-wrap{ position:relative; margin:2.4rem auto 0; width:var(--ring); --ring:330px; --r:calc(var(--ring) * 0.373); }
-    .ring{ position:relative; width:var(--ring); height:var(--ring); transform:rotate(var(--rot)); transition:transform 0.9s cubic-bezier(0.22,1,0.36,1); }
-    .ring-arcs{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
-    .ring-track{ fill:none; stroke:var(--line); stroke-width:1; }
-    .ring-arcs > path{ fill:none; stroke:#9a5527; stroke-width:2.4; stroke-linecap:round; stroke-dasharray:6 7; animation:ringFlow 2.4s linear infinite; }
-    @keyframes ringFlow{ to{ stroke-dashoffset:-26; } }
-    .ring-node{ position:absolute; left:50%; top:50%; width:7.5rem; margin:-2.1rem 0 0 -3.75rem; padding:0; background:none; border:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:0.5rem;
-      transform:rotate(var(--a)) translateY(calc(var(--r) * -1)) rotate(calc(var(--a) * -1 - var(--rot)));
-      transform-origin:50% 2.1rem; transition:transform 0.9s cubic-bezier(0.22,1,0.36,1); }
-    .ring-orb{ width:4.2rem; height:4.2rem; flex:none; border-radius:50%; background:var(--ink); color:var(--paper); display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 6px var(--paper), 0 8px 20px rgba(29,40,80,0.18); transition:background 0.4s ease, transform 0.4s ease, box-shadow 0.4s ease; }
-    .ring-orb .ico{ width:1.7rem; height:1.7rem; }
-    .ring-label{ font-family:var(--serif); font-size:0.95rem; font-weight:600; color:var(--ink-soft); white-space:nowrap; background:var(--paper); padding:0 0.4rem; border-radius:4px; transition:color 0.4s ease; }
-    .ring-label i{ font-style:italic; color:var(--copper); margin-right:0.15rem; }
-    .ring-node[aria-selected="true"] .ring-orb{ background:var(--copper); transform:scale(1.14); box-shadow:0 0 0 6px var(--paper), 0 0 0 8px var(--copper-soft), 0 10px 24px rgba(154,85,39,0.3); }
-    /* The selected orb grows 14% and gains a copper halo, so its label steps
-       down to keep clear of it rather than crowding the ring. */
-    .ring-label{ transform:translateY(0); transition:color 0.4s ease, transform 0.4s ease; }
-    .ring-node[aria-selected="true"] .ring-label{ color:var(--ink); transform:translateY(0.55rem); }
-    .ring-node:focus-visible{ outline:none; }
-    .ring-node:focus-visible .ring-orb{ outline:2px solid var(--ink); outline-offset:8px; }
-    .chapter .ring-center{ position:absolute; left:50%; top:calc(var(--ring) / 2); transform:translate(-50%, -50%); margin:0; text-align:center; font-family:var(--serif); font-style:italic; font-size:1.05rem; line-height:1.3; color:var(--ink-faint); pointer-events:none; }
-    .chapter .ring-hint{ text-align:center; margin-top:0.2rem; font-size:0.7rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-faint); }
-    .ring-panel{ margin-top:1.6rem; background:#fffdf8; border-radius:8px; padding:1.4rem 1.5rem 1.5rem; box-shadow:0 10px 30px rgba(29,40,80,0.07); border-top:3px solid var(--copper); animation:panelIn 0.5s ease; }
-    .ring-panel[hidden]{ display:none; }
-    @keyframes panelIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
-    .ring-panel h4{ font-family:var(--serif); font-weight:600; font-size:1.25rem; color:var(--ink); margin-bottom:0.8rem; }
-    .chapter .ring-panel .lap{ margin-top:1.1rem; font-family:'Lora', Georgia, serif; font-style:italic; color:var(--ink); }
-    .ring-panel .picker{ margin-top:1rem; }
-    .phase-steps{ list-style:none; display:grid; gap:0.5rem; }
-    .phase-steps li, .chapter .phase-note{ display:flex; gap:0.6rem; align-items:flex-start; font-size:0.92rem; line-height:1.6; color:var(--ink-soft); }
-    .ico{ width:1.4rem; height:1.4rem; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
-    .ico-s{ width:1.05rem; height:1.05rem; flex:none; margin-top:0.2rem; fill:none; stroke:var(--copper); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-    .granola{ flex:none; width:1.35rem; height:1.35rem; border-radius:4px; margin-top:0.15rem; }
-
-    /* ─── THE CARD PICKER ───
-       Three ways a node's card could come out of its orb when you pull it
-       close, redrawn from the option sheets the agents made for #137 and
-       #160 (2026-10-13). Morph is the one he picked: "the card should become
-       the droplet and back, not swap with it." Pure CSS loops; under reduced
-       motion the global rule above runs each once, so it lands on the open
-       card. A row of tabs swaps which one plays, the way he chose. */
-    .picker{ margin-top:2.2rem; background:var(--paper-deep); border:1px solid var(--line); border-radius:8px; padding:1.2rem; }
-    .picker-tabs{ display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem; }
-    .picker-tab{
-      font-family:var(--sans); font-size:0.72rem; font-weight:500; letter-spacing:0.06em;
-      padding:0.45rem 0.95rem; border-radius:99px; border:1px solid var(--line);
-      background:var(--paper); color:var(--ink-soft); cursor:pointer;
-      transition:background 0.2s, color 0.2s, border-color 0.2s;
-    }
-    .picker-tab:hover{ border-color:var(--ink); color:var(--ink); }
-    .picker-tab[aria-selected="true"]{ background:var(--ink); border-color:var(--ink); color:var(--paper); }
-    .picker-panel{ display:grid; grid-template-columns:auto 1fr; gap:1.6rem; align-items:center; }
-    .picker-panel[hidden]{ display:none; }
-    .picker-panel h4{ font-family:var(--serif); font-weight:500; font-size:1.6rem; line-height:1.15; margin-bottom:0.3rem; }
-    .picker-panel p{ font-size:0.92rem; color:var(--ink-soft); }
-    .picker-panel .picked{ font-family:var(--sans); font-size:0.62rem; font-weight:500; letter-spacing:0.16em; text-transform:uppercase; color:var(--copper); margin-bottom:0.4rem; }
-
-    /* The stage is a fixed 300 by 190 so the keyframes can stay in pixels,
-       exactly as they were drawn. 300 fits a 375px phone with padding. */
-    .stage{ position:relative; width:300px; height:190px; border-radius:6px; overflow:hidden; background:linear-gradient(#2a3150, #1b2140); }
-    .stage .orb{ position:absolute; left:34px; top:71px; width:48px; height:48px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #a9c9ff, #4d8cff 55%, #2a5bc0); }
-    .stage .glass{ position:absolute; left:130px; top:35px; width:130px; height:120px; border-radius:16px; background:rgba(241,234,217,0.22); border:1px solid rgba(241,234,217,0.55); overflow:hidden; }
-    .stage .glass i{ display:block; height:44px; margin:9px; border-radius:7px; background:#8a7a5c; }
-    .stage .glass b{ display:block; height:7px; margin:6px 9px; border-radius:4px; background:rgba(241,234,217,0.45); }
-
-    /* A · Pop: the card is simply there. */
-    @keyframes pop{ 0%,39%{ opacity:0 } 40%,100%{ opacity:1 } }
-    .s-pop .glass{ animation:pop 3s steps(1) infinite; }
-
-    /* B · Hand-over: a bud swells and shrinks while a separate card grows. */
-    @keyframes handBud{ 0%{ left:66px; top:89px; width:12px; height:12px; opacity:1 } 30%{ left:100px; top:80px; width:30px; height:30px; opacity:1 } 55%{ left:120px; top:85px; width:20px; height:20px; opacity:1 } 75%,100%{ left:128px; top:93px; width:4px; height:4px; opacity:0 } }
-    @keyframes handCard{ 0%,40%{ transform:scale(0.02) } 100%{ transform:scale(1) } }
-    .s-hand .bud{ position:absolute; border-radius:50%; background:#4d8cff; animation:handBud 3s ease-in-out infinite; }
-    .s-hand .glass{ transform-origin:0 50%; animation:handCard 3s ease-out infinite; }
-
-    /* C · Morph: one shape, bud to disc to card, content fades in last. */
-    @keyframes morph{
-      0%{ left:62px; top:87px; width:16px; height:16px; border-radius:50%; background:#4d8cff }
-      30%{ left:100px; top:79px; width:32px; height:32px; border-radius:50%; background:#4d8cff }
-      45%{ left:122px; top:75px; width:40px; height:40px; border-radius:50%; background:#6f9fe8 }
-      80%,100%{ left:130px; top:35px; width:130px; height:120px; border-radius:16px; background:rgba(241,234,217,0.22) }
-    }
-    @keyframes morphContent{ 0%,70%{ opacity:0 } 95%,100%{ opacity:1 } }
-    @keyframes lean{ 0%{ transform:scaleX(1) } 30%{ transform:scaleX(1.12) } 50%,100%{ transform:scaleX(1) } }
-    .s-morph .glass{ animation:morph 3s ease-in-out infinite alternate; }
-    .s-morph .glass .inside{ animation:morphContent 3s ease-in-out infinite alternate; }
-    .s-morph .orb{ transform-origin:30% 50%; animation:lean 3s ease-in-out infinite alternate; }
+    /* ─── HOW I BUILD IT ───
+       The four steps sit side by side and scroll sideways, by request, so
+       the chapter stays short. A copper rule runs along the top with a dot
+       per step; cards snap into place. No motion of its own. */
+    .loop{ list-style:none; margin-top:1.6rem; display:flex; align-items:flex-start; gap:1.2rem; overflow-x:auto; scroll-snap-type:x mandatory; padding:6px 0 1rem; scrollbar-width:thin; scrollbar-color:var(--copper-soft) transparent; }
+    .loop:focus-visible{ outline-offset:6px; }
+    .loop-step{ position:relative; flex:0 0 min(24rem, 86%); scroll-snap-align:start; padding-top:1.4rem; border-top:1px solid var(--copper-soft); }
+    /* Ideate carries three times the text of any other step, so it gets
+       the full column; that keeps all four cards near the same height. */
+    .loop-step:first-child{ flex-basis:min(44rem, 92%); }
+    .loop-step:not(:last-child){ margin-right:-1.2rem; padding-right:1.2rem; }
+    .loop-step::before{ content:''; position:absolute; left:0; top:-5px; width:9px; height:9px; border-radius:50%; background:var(--copper); }
+    .chapter .loop-kicker{ font-family:var(--serif); font-weight:600; font-size:1.15rem; line-height:1.3; color:var(--ink); margin-bottom:0.35rem; }
+    .chapter .loop-step p{ font-size:0.95rem; line-height:1.7; }
+    .chapter .loop-step p + p{ margin-top:0.5rem; }
+    .loop-step a{ color:var(--ink); text-decoration-color:var(--copper); text-underline-offset:3px; }
+    .chapter .loop-hint{ margin-top:0.4rem; font-size:0.7rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-faint); }
+    .granola{ width:1.15em; height:1.15em; border-radius:4px; vertical-align:-0.2em; margin-right:0.25em; }
 
     .next .chapter-inner > p:not(.chapter-date){ font-family:var(--serif); font-size:1.5rem; color:var(--ink); }
 
@@ -449,7 +374,11 @@
 
     @media (max-width: 860px){
       nav{ padding:1.1rem 1rem; gap:0.6rem; }
-      .back-link{ padding:0.5rem 0.9rem; }
+      /* nowrap, as on every sibling page: without it "Back to Projects" broke
+         onto two lines into a tall pill that crowded the logo, while the
+         row still had room to spare. */
+      .back-link{ font-size:0.62rem; padding:0.5rem 0.9rem; white-space:nowrap; }
+      .a11y-toggle{ font-size:0.6rem; padding:0.4rem 0.7rem; white-space:nowrap; }
       .a11y-toggle-prefix{ display:none; }
       .hero{ padding:3rem 1rem 0; }
       .hero-shot{ padding:0 1rem; margin-top:2.5rem; }
@@ -463,19 +392,11 @@
       .chapter-inner{ padding:3rem 1rem 3rem 2.6rem; }
       .chapter-inner::before{ left:1rem; }
       .chapter-node{ left:calc(1rem - 7px); top:3.45rem; }
-      .pair, .picker-panel{ grid-template-columns:1fr; }
+      .pair{ grid-template-columns:1fr; }
       .pillars{ gap:0.5rem; }
       .pillar{ padding:0.8rem 0.6rem 0.9rem; }
       .pillar h4{ font-size:0.95rem; }
       .chapter .pillar p{ font-size:0.74rem; line-height:1.5; }
-      .ring-wrap{ --ring:270px; }
-      .ring-node{ width:6.4rem; margin-left:-3.2rem; }
-      .ring-orb{ width:3.6rem; height:3.6rem; }
-      .ring-label{ font-size:0.85rem; }
-      .ring-panel{ padding:1.1rem 1rem 1.2rem; }
-      /* The animation stage is drawn at a fixed 300px; shrink it to fit
-         the narrow picker rather than redraw every keyframe. */
-      .stage{ zoom:0.86; }
       .doc:hover, .doc:focus{ transform:rotate(0deg) scale(2.4); }
       .doc:nth-child(2){ transform-origin:center top; }
       /* ─── HOVER PREVIEWS ───
@@ -645,73 +566,37 @@
       </div>
     </section>
 
-    <!-- ═══ III. A NOTE ON DESIGN ═══ his build cycle, in his words, with
-         the card picker as one worked round of step two. -->
+    <!-- ═══ III. HOW I BUILD IT ═══ his process, from his own dictated
+         account (2026-10-31), lightly polished; keep his voice if editing.
+         A plain static timeline by request: it replaced a turning ring and
+         an animated card picker. -->
     <section class="chapter" aria-labelledby="ch3">
       <div class="chapter-inner">
         <span class="chapter-node" aria-hidden="true"></span>
         <p class="chapter-date">October 2026</p>
-        <h3 id="ch3"><span class="numeral">III.</span>A note on design</h3>
-        <p>Rapid prototyping and iteration are a key tenet of good design. Discovering my own build cycle was incredible: it has made this far faster than you could imagine.</p>
+        <h3 id="ch3"><span class="numeral">III.</span>How I build it</h3>
+        <p>Loading gets made in loops: dream it up, build it, test it, fix it, and go again.</p>
 
-        <!-- ═══ THE BUILD CYCLE ═══ a ring of three phases. Tapping a phase
-             turns the ring until that phase sits at the top, and its panel
-             opens below; the card picker lives in the Ideate panel as one
-             worked lap, with Build and Talk continuing the same lap. The
-             labels counter-rotate, so they stay upright as the ring turns.
-             Step 2 carries the Granola app mark, supplied by him. -->
-        <div class="ring-wrap">
-          <div class="ring" id="buildRing" style="--rot:0deg" role="tablist" aria-label="The build cycle">
-            <svg class="ring-arcs" viewBox="0 0 300 300" aria-hidden="true">
-              <defs><marker id="ring-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a5527"/></marker></defs>
-              <circle cx="150" cy="150" r="112" class="ring-track"/>
-              <path d="M199.1,49.3 A112,112 0 0 1 261.9,153.9" marker-end="url(#ring-arrow)"/><path d="M212.6,242.9 A112,112 0 0 1 90.6,245.0" marker-end="url(#ring-arrow)"/><path d="M38.3,157.8 A112,112 0 0 1 97.4,51.1" marker-end="url(#ring-arrow)"/>
-            </svg>
-            <button class="ring-node" role="tab" id="rt0" aria-controls="rp0" aria-selected="true" tabindex="0" style="--a:0deg"><span class="ring-orb"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span><span class="ring-label"><i>1</i> Ideate</span></button>
-            <button class="ring-node" role="tab" id="rt1" aria-controls="rp1" aria-selected="false" tabindex="-1" style="--a:120deg"><span class="ring-orb"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5C3 8.6 4.6 7 6.5 7h11C19.4 7 21 8.6 21 10.5v2c0 1.9-1.6 3.5-3.5 3.5h-2l-1.6-1.8a2.5 2.5 0 0 0-3.8 0L8.5 16h-2A3.5 3.5 0 0 1 3 12.5v-2z"/></svg></span><span class="ring-label"><i>2</i> Build</span></button>
-            <button class="ring-node" role="tab" id="rt2" aria-controls="rp2" aria-selected="false" tabindex="-1" style="--a:240deg"><span class="ring-orb"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v10H9l-5 4V5z"/><path d="M8 9h8M8 12h5"/></svg></span><span class="ring-label"><i>3</i> Talk it through</span></button>
-          </div>
-          <p class="ring-center" aria-hidden="true">build, test,<br>repeat</p>
-          <p class="ring-hint">Tap a phase</p>
-        </div>
-
-        <div class="ring-panel" role="tabpanel" id="rp0" aria-labelledby="rt0">
-          <h4>1 · Ideate</h4>
-          <ul class="phase-steps">
-            <li><svg class="ico-s" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg>Sketch, on screen or paper</li>
-            <li><svg class="ico-s" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Ask Claude for several versions, usually four, each in a different design language</li>
-            <li><svg class="ico-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 12l4-3"/><path d="M12 4v2M20 12h-2M6 12H4"/></svg>Pick one, dial it in</li>
-          </ul>
-          <p class="lap">One lap, for a node's card: three ways it could come out of its orb. Click through.</p>
-        <div class="picker" id="cardPicker">
-          <div class="picker-tabs" role="tablist" aria-label="Ways the card comes out">
-            <button class="picker-tab" role="tab" id="ct0" aria-controls="cp0" aria-selected="false" tabindex="-1">A · Pop</button>
-            <button class="picker-tab" role="tab" id="ct1" aria-controls="cp1" aria-selected="false" tabindex="-1">B · Hand-over</button>
-            <button class="picker-tab" role="tab" id="ct2" aria-controls="cp2" aria-selected="true" tabindex="0">C · Morph</button>
-          </div>
-          <div class="picker-panel" role="tabpanel" id="cp0" aria-labelledby="ct0" hidden>
-            <div class="stage s-pop" aria-hidden="true"><div class="orb"></div><div class="glass"><i></i><b></b><b style="width:60%"></b></div></div>
-            <div><h4>Pop</h4><p>The card is just there.</p></div>
-          </div>
-          <div class="picker-panel" role="tabpanel" id="cp1" aria-labelledby="ct1" hidden>
-            <div class="stage s-hand" aria-hidden="true"><div class="orb"></div><div class="bud"></div><div class="glass"><i></i><b></b><b style="width:60%"></b></div></div>
-            <div><h4>Hand-over</h4><p>A bud swells, then a separate card grows.</p></div>
-          </div>
-          <div class="picker-panel" role="tabpanel" id="cp2" aria-labelledby="ct2">
-            <div class="stage s-morph" aria-hidden="true"><div class="orb"></div><div class="glass"><div class="inside"><i></i><b></b><b style="width:60%"></b></div></div></div>
-            <div><p class="picked">Picked</p><h4>Morph</h4><p>The bud becomes the card.</p></div>
-          </div>
-        </div>
-        </div>
-        <div class="ring-panel" role="tabpanel" id="rp1" aria-labelledby="rt1" hidden>
-          <h4>2 · Build on the headset</h4>
-          <p class="phase-note"><img class="granola" src="images/loading-granola.png" alt="Granola" width="96" height="96">Granola records the whole session while I use it and talk through what I see. Notes are the hard part of building in VR alone: your hands are busy, you're walking around, and stopping to write breaks the flow.</p>
-          <p class="lap">For the card: Morph, built and tried on the headset.</p>
-        </div>
-        <div class="ring-panel" role="tabpanel" id="rp2" aria-labelledby="rt2" hidden>
-          <h4>3 · Talk it through</h4>
-          <p class="phase-note">The notes go back to a model, we talk them through, and the next lap starts.</p>
-        </div>
+        <ol class="loop" tabindex="0" aria-label="How I build it, four steps; scrolls sideways">
+          <li class="loop-step">
+            <p class="loop-kicker">1 · Ideate</p>
+            <p>It starts in a variety of ways: drawing on paper, long voice messages, talking with people, thinking out loud. Inspiration comes from classes and from what's going on in the world. This project, for instance, was reignited by my AI governance class at Stanford. Learning how AI uses embeddings showed me there's a whole science of placing concepts in a multidimensional space, yet we still explore knowledge on flat, two-dimensional screens. That brought me back to the project from a year ago, in the <a href="#concept-video">video above</a>. The knowledge is already spatial; there just had to be a way to experience it.</p>
+            <p>I share everything with Claude, Gemini and ChatGPT. I describe roughly what I picture and where I imagine the data coming from, and ask for three different interpretations as real HTML mockups: 2D animations, layouts, or sketches of how it would pull in data. Then I refine and narrow it down.</p>
+          </li>
+          <li class="loop-step">
+            <p class="loop-kicker">2 · Build</p>
+            <p>Building a VR app with AI has its own problems. AI code means lots of hiccups and errors along the way. But with the right process, you can iterate really quickly and polish them down.</p>
+          </li>
+          <li class="loop-step">
+            <p class="loop-kicker">3 · Test on the headset</p>
+            <p>As one person, it's hard to stop and write down what's wrong with a headset on while you're walking through the experience. So a note-taker, <img class="granola" src="images/loading-granola.png" alt="" width="96" height="96">Granola, writes down everything I say as I go. It's been a fabulous way to capture the process.</p>
+          </li>
+          <li class="loop-step">
+            <p class="loop-kicker">4 · Go through the notes</p>
+            <p>Last, I go through the notes and add thoughts or extra points I've uncovered. Then the loop starts again.</p>
+          </li>
+        </ol>
+        <p class="loop-hint" aria-hidden="true">Scroll sideways →</p>
       </div>
     </section>
 
@@ -868,7 +753,7 @@
       });
     }
 
-    initA11yLineHighlight('.meta-value, .story p, .chapter p, .chapter h3, figcaption, .picker-panel p');
+    initA11yLineHighlight('.meta-value, .story p, .chapter p, .chapter h3, figcaption');
 
     /* ═══ LOOPS PLAY ONLY WHILE ON SCREEN ═══
        Two silent clips, 2.6 MB and 3.6 MB. preload="none" means neither costs
@@ -986,61 +871,6 @@
         if (e.pointerType !== 'touch') return;
         set(0.35, -0.35, 1);
         setTimeout(function () { set(0, 0, 0); }, 700);
-      });
-    })();
-
-    /* ═══ THE BUILD RING ═══ a tablist that also turns: selecting a phase
-       rotates the ring clockwise until that node is at the top,
-       and shows its panel. Click or arrow keys. Under reduced motion the
-       global rule makes the turn instant. */
-    (function () {
-      var ring = document.getElementById('buildRing');
-      if (!ring) return;
-      var tabs = Array.prototype.slice.call(ring.querySelectorAll('[role="tab"]'));
-      var rot = 0;
-      function select(i, focus) {
-        // Always clockwise, by request: the ring only ever turns forward,
-        // so the target angle is the first one at or after the current.
-        var target = -120 * i;
-        while (target < rot) target += 360;
-        while (target - rot >= 360) target -= 360;
-        rot = target;
-        ring.style.setProperty('--rot', rot + 'deg');
-        tabs.forEach(function (t, j) {
-          var on = j === i;
-          t.setAttribute('aria-selected', on ? 'true' : 'false');
-          t.tabIndex = on ? 0 : -1;
-          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
-        });
-        if (focus) tabs[i].focus();
-      }
-      tabs.forEach(function (t, i) {
-        t.addEventListener('click', function () { select(i); });
-        t.addEventListener('keydown', function (e) {
-          if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); select((i + 1) % tabs.length, true); }
-          if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); select((i + tabs.length - 1) % tabs.length, true); }
-        });
-      });
-    })();
-
-    /* ═══ CARD PICKER ═══ a plain WAI-ARIA tablist: click or arrow keys. */
-    (function () {
-      var tabs = Array.prototype.slice.call(document.querySelectorAll('#cardPicker [role="tab"]'));
-      function select(i, focus) {
-        tabs.forEach(function (t, j) {
-          var on = j === i;
-          t.setAttribute('aria-selected', on ? 'true' : 'false');
-          t.tabIndex = on ? 0 : -1;
-          document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
-        });
-        if (focus) tabs[i].focus();
-      }
-      tabs.forEach(function (t, i) {
-        t.addEventListener('click', function () { select(i); });
-        t.addEventListener('keydown', function (e) {
-          if (e.key === 'ArrowRight') { e.preventDefault(); select((i + 1) % tabs.length, true); }
-          if (e.key === 'ArrowLeft') { e.preventDefault(); select((i - 1 + tabs.length) % tabs.length, true); }
-        });
       });
     })();
   </script>

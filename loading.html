@@ -415,6 +415,14 @@
       .more-projects-grid{ grid-template-columns:repeat(2, 1fr); gap:1rem; }
       .quick-link-mini{ white-space:normal; }
     }
+
+    /* Under ~350px the three nav items no longer fit on one row and
+       overflow-x:hidden clips the toggle. Wrap it to its own line instead,
+       right-aligned, as the sibling pages do. */
+    @media (max-width: 380px){
+      nav{ flex-wrap:wrap; gap:0.5rem; }
+      .a11y-toggle{ margin-left:auto; }
+    }
   </style>
 </head>
 <body>

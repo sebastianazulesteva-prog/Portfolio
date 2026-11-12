@@ -1803,6 +1803,28 @@
 
       const dot = { x: -9999, y: -9999, opacity: 0 };
 
+      // The mosaic is a 2.8 MB image and the framed photo on top is 88 KB,
+      // so on a cold load the top layer is up for seconds before there is
+      // anything underneath it. Cutting a hole then shows the page's black
+      // background, which reads as a broken photo. So the reveal (and the
+      // touch drops below) stay off until the mosaic has actually decoded.
+      const heroPhotoMosaic = document.querySelector('.hero-photo-mosaic');
+      let mosaicReady = false;
+      if (heroPhotoMosaic) {
+        const markReady = () => { mosaicReady = true; };
+        if (heroPhotoMosaic.complete && heroPhotoMosaic.naturalWidth > 0) {
+          markReady();
+        } else if (heroPhotoMosaic.decode) {
+          // decode() also waits for the pixels, not just the bytes, so the
+          // first reveal frame never shows a half-painted mosaic.
+          heroPhotoMosaic.decode().then(markReady, () => {
+            heroPhotoMosaic.addEventListener('load', markReady, { once: true });
+          });
+        } else {
+          heroPhotoMosaic.addEventListener('load', markReady, { once: true });
+        }
+      }
+
       // Skip the mask entirely while nothing is being revealed, rather than
       // pointing a radial-gradient at a far off-screen coordinate (the old
       // idle state) — Safari can render that as a faint seam across the
@@ -1826,7 +1848,7 @@
       // is a no-op — see the water-drop effect further down for mobile.
       (function animateHeroReveal() {
         const rect = heroPhotoWrap.getBoundingClientRect();
-        if (hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
+        if (mosaicReady && hasMouseMoved && rect.bottom > 0 && rect.top < window.innerHeight) {
           // Only bother updating while the box is at least partly on screen.
           dot.x = mx - rect.left;
           dot.y = my - rect.top;
@@ -1846,7 +1868,6 @@
       // pointer-events:none) and checks the touch coordinates against the
       // wrap's own bounding box, so it works regardless of pointer-events
       // and doesn't interfere with tapping anything else on the page.
-      const heroPhotoMosaic = document.querySelector('.hero-photo-mosaic');
       const MAX_DROPS = 3;
       const DROP_REMOVE_MS = 450;
       let drops = [];
@@ -1901,7 +1922,7 @@
       document.addEventListener('touchstart', e => {
         const rect = heroPhotoWrap.getBoundingClientRect();
         const touch = e.touches[0];
-        if (!touch || !touchInsideWrap(touch, rect)) return;
+        if (!mosaicReady || !touch || !touchInsideWrap(touch, rect)) return;
         spawnDrop(touch.clientX, touch.clientY);
       }, { passive: true });
     }
